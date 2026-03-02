@@ -29,68 +29,108 @@ not the current working directory. If needed, read
    notes exist, this is the first review — the window starts at intake
    (or repo init).
 
-3. **Gather evidence since last review.** Three evidence sources,
-   gathered in parallel where possible:
+3. **Gather evidence since last review.**
 
-   a. **Conversation context** — the current session's full conversation
-      history. Always available; primary source for the current session.
+#### 3a. Resolve the harness root and run session-discovery
 
-   b. **Git history since last review:**
-      ```
-      git log --since="YYYY-MM-DD" --oneline
-      git diff <last-review-date>..HEAD --stat
-      ```
-      Shows what was built, what files changed, commit messages reveal
-      intent. For large diffs, use `--stat` first to get the manifest,
-      then read only files relevant to learning (not config, not lock
-      files).
+```bash
+HARNESS_ROOT=$(cat ~/.config/weft/root)
+bun run "$HARNESS_ROOT/scripts/session-discovery.ts" \
+  --since <last-review-date> \
+  2>/dev/null
+```
 
-   c. **Artifacts produced** — new or modified files since the review
-      window. Use `git diff --name-status` to get the list. Focus on
-      source code, tests, and documentation the user wrote (not
-      generated files).
+Use `--since <last-review-date>` (the date of the most recent file in
+`learning/session-logs/`). **No `--project` filter** — learning is
+cross-project and the learning state already tracks concepts globally.
+Same-day overlap is acceptable: if the last review and a new session
+both occurred today, re-analyzing the review session is preferable to
+missing a post-review session that started the same day.
 
-   d. **Prior session logs in the window** — session logs are created
-      only by this skill (Phase 3). If multiple reviews ran on the
-      same day or in a short window, read their frontmatter for
-      already-logged concepts and scores. Don't re-quiz concepts
-      already reviewed in the window.
+Parse the JSON from stdout. If the script fails (bun not available,
+script not found, exit non-zero), note it as a workflow-friction
+observation in Phase 4 and fall back to git history + current
+conversation only — do not abort the review.
 
-   e. **Lesson scaffolds in the window** — check `learning/scaffolds/`
-      for scaffold files dated within the review window. If found,
-      read concept classifications (solid / growing / new /
-      prerequisite gap) and the execution sequence. These are
-      predictions made before the session — use them as a baseline
-      to validate against session evidence. Note where the scaffold's
-      classification was accurate and where it was wrong (e.g.,
-      scaffold predicted "solid" but the learner struggled, or
-      predicted "prerequisite gap" but the learner handled it fine).
-      These discrepancies are high-value calibration data.
+#### 3b. Context management gate (evidence-driven)
 
-4. **Context management gate.**
+The manifest gives concrete numbers — no judgment required:
 
-   After gathering the evidence manifest (file list + conversation
-   size + git stat), assess total volume:
+| Manifest data | Strategy |
+|---|---|
+| 0–1 sessions AND total `messageCount` < 200 | Inline: read JSONL(s) directly |
+| 2–3 sessions OR total `messageCount` 200–500 | Single sub-agent with all JSONL paths |
+| 4+ sessions OR total `messageCount` > 500 | Parallel sub-agents — one per session JSONL |
 
-   **If manageable** (conversation is the primary source, git diff is
-   < ~200 lines, < ~10 modified files): analyze inline. Read the
-   relevant diffs and conversation, produce the analysis directly.
+The parallel case is what makes large review windows tractable: 5
+sessions dispatched to 5 sub-agents processes evidence in parallel
+rather than sequentially.
 
-   **If context-heavy** (large git diff, many modified files, multiple
-   unreviewed sessions): apply manifest-then-delegate from
-   `.claude/references/context-patterns.md` pattern #1. Dispatch a
-   sub-agent with:
-   - The evidence manifest (file paths, git stat, session log dates)
-   - The current `learning/current-state.md` content
-   - Instructions to read the files/diffs and return a structured
-     analysis report: concepts encountered (with evidence), strengths,
-     growth edges (named gaps), procedural observations
+#### 3c. Gather evidence (inline or via sub-agents)
 
-   The main agent works from the sub-agent's report, never falling
-   back to reading raw evidence itself. If the sub-agent fails, retry
-   once or dispatch fresh.
+**In all cases, run git evidence concurrently** — git is always
+manageable inline regardless of JSONL volume:
+```bash
+git log --since="<last-review-date>" --oneline
+git diff <last-review-date>..HEAD --stat
+```
+Shows what was built; commit messages reveal intent.
 
-5. **Analysis output.** Whether analyzed inline or via sub-agent, the
+**For inline analysis** — read each JSONL file directly:
+- Filter to lines with `"type":"user"` or `"type":"assistant"` only
+- Skip user message blocks starting with: `<ide_opened_file>`,
+  `<system-reminder>`, `<command-message>`, `<command-name>`,
+  `<local-command`
+- Analyze conversation for concepts, strengths, growth edges
+
+**For sub-agent dispatch** — each sub-agent receives:
+- `filePath`: one JSONL path from the manifest
+- `currentState`: full content of `learning/current-state.md`
+- Instructions: read the JSONL; filter to user/assistant types; skip
+  blocks matching the noise patterns above; return:
+  ```
+  concepts_encountered:
+    - concept: [name]
+      evidence: [quote or paraphrase]
+      encounter_type: conceptual | procedural | recall
+
+  strengths:
+    - what: [description]
+      evidence: [quote or paraphrase]
+
+  growth_edges:
+    - topic: [name]
+      gap_type: conceptual | procedural | recall
+      evidence: [quote or paraphrase]
+
+  procedural_observations:
+    - [observation]
+  ```
+
+Main agent synthesizes sub-agent reports + git evidence. Never falls
+back to reading raw JSONL itself once sub-agents are dispatched. If a
+sub-agent fails, retry once; if it fails again, proceed without that
+session and note it in Phase 4 signal.
+
+#### 3d. Session log deduplication (clarified role)
+
+Check `learning/session-logs/` for frontmatter from already-reviewed
+sessions in the window. Their `concepts:` lists show what's already
+been quizzed — don't re-quiz those concepts.
+
+**This is a deduplication step only.** Session log files are summaries
+session-review wrote; they do not contain evidence from sessions not yet
+reviewed. The JSONL files (via session-discovery) are the primary
+evidence source for prior sessions.
+
+#### 3e. Scaffold predictions validation (unchanged)
+
+Check `learning/scaffolds/` for scaffold files dated within the review
+window. Compare concept classifications against actual session evidence.
+Discrepancies (predicted "solid" → struggled; predicted "gap" → handled
+fine) are high-value calibration data for Phase 4.
+
+4. **Analysis output.** Whether analyzed inline or via sub-agent, the
    output is:
    - Concepts encountered (with specific evidence: file, commit, or
      conversation reference)
@@ -100,9 +140,9 @@ not the current working directory. If needed, read
    - Procedural observations (workflow patterns, tool usage, debugging
      approach)
 
-6. Select 4-6 quiz targets. Bias toward partial/stuck concepts. Include at least one application question. If learning/current-state.md has stale low-score concepts relevant to the session, resurface them.
+5. Select 4-6 quiz targets. Bias toward partial/stuck concepts. Include at least one application question. If learning/current-state.md has stale low-score concepts relevant to the session, resurface them.
 
-7. Present the analysis before quizzing: strengths, growth edges, quiz targets with rationale.
+6. Present the analysis before quizzing: strengths, growth edges, quiz targets with rationale.
 
 Honest feedback is the default. The learner is here to grow, not to be reassured. 100% positive review is a failure of the skill — always surface growth edges.
 
@@ -258,6 +298,9 @@ Two layers: learner feedback (prompted) + agent self-report
      and the agent had to guess (expected X, found Y, chose Z)
    - **Context management events** — did the context gate trigger?
      Did sub-agent dispatch succeed or fail? Why?
+   - **Session-discovery** — did the script run? Return sessions in
+     the window? If it failed or returned 0 sessions when the window
+     had known activity, report what was found.
    - **Concept name drift** — near-duplicate names found across
      sessions, inconsistent gap type usage
    - **Workflow friction** — steps that required workarounds, retries,
@@ -278,7 +321,7 @@ Two layers: learner feedback (prompted) + agent self-report
      notes: "[free-text, if provided]"
 
    agent_observations:
-     - category: [file-state | instruction-ambiguity | context-management | concept-drift | workflow-friction]
+     - category: [file-state | instruction-ambiguity | context-management | session-discovery | concept-drift | workflow-friction]
        expected: "..."
        found: "..."
        action: "..."
