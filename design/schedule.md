@@ -1,6 +1,6 @@
 # Schedule & Task Tracker
 
-**Week 4 build:** 2026-02-23 → 2026-02-28 (demo Saturday)
+**Week 5 build:** 2026-03-02 → 2026-03-07 (demo Saturday)
 
 Living tracker for milestones and tasks. Specs live in their respective
 design docs; this file tracks execution status.
@@ -11,159 +11,141 @@ design docs; this file tracks execution status.
 
 | Day | Target | Status |
 |-----|--------|--------|
-| Mon 2/23 | PRD submitted. Group pitch sent. Both repos scaffolded. Coordination layer extraction started. | Done |
-| Tue 2/24 | Personal harness depth: intake + session-review end-to-end compatible, shared scoring rubric, evidence tagging, goals/arcs lifecycle. Install package taking shape. | Done |
-| Wed 2/25 | Install package complete. Solo /startwork built. P10 (teacher relationship) designed: principle, design doc, authority model, protocol. | Done |
-| Thu 2/26 | Teacher-relationship MVP built (publish + read-back + config). Signal repo created. Coordination layer parameterization if time. E2E test run. | Partial — signal repo done, package extracted to standalone repo and launched. Teacher-relationship MVP not built. |
-| Fri 2/27 | Peer testing doubles as first teacher-student exchange. Iterate on feedback. Demo prep. | In progress — 3 testers onboarded (going at own pace). Teacher exchange code unbuilt. |
-| Sat 2/28 | Demo. | Planned |
+| Mon 3/2 | Front door complete: bridge prompt, install audit, first-run messaging, update mechanism checked. Speedrun presentation adapted. | In progress |
+| Tue 3/3 | Onboarding lesson v0. Session-discovery wired into session-review + progress-review. | Planned |
+| Wed 3/4 | Startwork decomposed. Intake context window hardened. Session-review/progress-review diagnosed. | Planned |
+| Thu 3/5 | Principles reference extracted and wired. Onboarding lesson full version. | Planned |
+| Fri 3/6 | Two-user verification (dad + engineer). Update mechanism documented. | Planned |
+| Sat 3/7 | Stranger-perspective README pass. GitHub release + version tag. Demo. | Planned |
 
 ---
 
 ## Task Checklist
 
-### Personal harness — MVP
-
-| Task | Spec | Status |
-|------|------|--------|
-| Background folder + intake interview | `design/prd.md` §MVP | Done |
-| Parameterized CLAUDE.md generation | `design/prd.md` §MVP | Done |
-| Skills out of the box (debugger, session-review, quick-ref) | `design/build-registry.md` | Done |
-| Intake ↔ session-review integration | Shared scoring rubric, evidence tagging, goals/arcs lifecycle | Done |
-| Solo /startwork | `design/startwork.md` §Solo | Done |
-| Solo /project-brainstorm | `design/build-registry.md` §Skills | Planned |
-| Learning state persistence (current-state.md) | `design/harness-features.md` §P3 | Done |
-| Privacy (.gitignore learner profile) | `design/prd.md` §MVP | Done |
-
-### Personal harness — additional built skills
-
-| Skill | Status |
-|-------|--------|
-| browser-qa | Done |
-| design-iterate | Done |
-| design-skill | Done |
-| diagram | Done |
-| lesson-scaffold | Done |
-
-### Coordination layer — MVP
-
-| Task | Spec | Status |
-|------|------|--------|
-| Extract from field-test project | `coordination/README.md` | Done |
-| Generalize hardcoded references | `coordination/README.md` §Config | Done |
-| Team intake flow | `design/prd.md` §MVP | Planned |
-| /startwork (team) | `design/startwork.md` §Team | Extracted (needs parameterization) |
-| /handoff-test | `coordination/skills/handoff-test/` | Done |
-| /triage | `coordination/commands/workflows/triage.md` | Extracted |
-| Dependency protocol | `coordination/commands/startwork.md` | Extracted |
-| Signal return path (GitHub issues) | `coordination/architecture.md` §Signal Catch Basin | Designed |
-| Agent feedback skill | `design/build-registry.md` §Skills | Deferred — replaces session-review Phase 4 strict schema |
-| Privacy boundaries documented | `design/prd.md` §MVP | Planned |
-
-### Teacher relationship layer — MVP (P10)
-
-| Task | Spec | Status |
-|------|------|--------|
-| P10 design principle | `design/design-principles.md` §10 | Done |
-| Boundary condition update (directional ceiling) | `design/design-principles.md` §Boundary | Done |
-| Design doc (protocol, authority, scoping, MVP) | `design/teacher-role/teacher-relationship.md` | Done |
-| Consent/authority model (triad, revocable grant) | `design/teacher-role/teacher-relationship.md` §Consent | Done |
-| Relationship scoping (time, not domain) | `design/teacher-role/teacher-relationship.md` §Scoping | Done |
-| Config format (learning/relationships.md) | `design/teacher-role/teacher-relationship.md` §Config | Designed |
-| Create per-user signal repo (e.g., rhhart/learning-signals) | — | Done (public) |
-| Label protocol setup on signal repo | `design/teacher-role/teacher-relationship.md` §Labels | Done |
-| Progress-review publish step (Phase 5) | `design/teacher-role/teacher-relationship.md` §MVP | Planned |
-| Startwork teacher-response check | `design/teacher-role/teacher-relationship.md` §MVP | Planned |
-| E2E test with peer as teacher | — | Planned (Friday) |
-
-### Stretch goals
-
-| Task | Spec | Status |
-|------|------|--------|
-| Installation package | `design/prd.md` §Stretch | Done — shipped as standalone repo `hartphoenix/weft`. bootstrap.sh + uninstall.sh shipped. test-install.ts and data-contracts.md remain planned. |
-| Solo compound engineer (weekly review) | `design/harness-features.md` §P6 | Done — built as progress-review, integrated into startwork Phase 5 |
-| Team compound engineering workflow | `coordination/commands/workflows/compound.md` | Extracted |
-| Compounding indicators | `design/harness-features.md` §P6 | Partial — progress-review detects compounding breakdown |
-
-### Package extraction
+### Front door
 
 | Task | Status |
 |------|--------|
-| Extract `package/` to standalone `hartphoenix/weft` repo | Done |
-| Fix all `package/` path prefixes in standalone repo | Done |
-| Push to GitHub, verify clone works | Done |
-| Update Hart's dev environment (uninstall old, bootstrap new) | Done |
-| Replace `weft-dev/package/` with pointer README | Done |
-| Share with 3 opt-in testers + Discord announcement | Done |
+| Bridge prompt: write copy-paste prompt (browser Claude → Claude Code readiness) | Done |
+| Bridge prompt: test in browser Claude, confirm it lands at working CLI state | Done |
+| Install story: run bootstrap.sh as a stranger, document every assumption | Done |
+| Install story: fix blockers (skip cosmetic issues) | Done |
+| Install story: verify symlinks, additionalDirectories, CLAUDE.md marker injection | Done |
+| First-run hook: rewrite Condition 3 (fresh install — no current-state.md) | Done |
+| First-run hook: rewrite Condition 2 (interrupted intake) | Done |
+| Update mechanism: confirm notify mode fires correctly | Done |
+| Update mechanism: confirm auto mode is implemented (deferred to EOW) | Done |
+| Update intake time estimate to ~30 min in README and session-start.sh | Done |
 
-Full plan: `design/package-extraction-plan.md`.
+### Onboarding lesson v0
 
-### Install package checklist
-
-What ships in `hartphoenix/weft` — everything a new user needs to clone and go.
-
-| Item | Status |
+| Task | Status |
 |------|--------|
-| `README.md` (quick start, what intake creates, privacy) | Done |
-| `CLAUDE.md` (template, replaced by intake) | Done |
-| `.gitignore` (learning/, background/) | Done |
-| `learning/` + `learning/session-logs/` (with .gitkeep) | Done |
-| `background/` (with .gitkeep) | Done |
-| `.claude/skills/intake/` | Done |
-| `.claude/skills/session-review/` | Done |
-| `.claude/skills/startwork/` | Done |
-| `.claude/skills/quick-ref/` | Done |
-| `.claude/skills/debugger/` | Done |
-| `.claude/skills/lesson-scaffold/` | Done |
-| `.claude/skills/progress-review/` | Done |
-| `.claude/references/developmental-model.md` | Done |
-| `.claude/references/scoring-rubric.md` | Done |
-| `.claude/references/context-patterns.md` | Done |
-| `.claude/references/tutor-posture.md` | Done |
-| `.claude/consent.json` (no default — created by intake on consent) | Done |
-| `.claude/hooks/session-start.sh` (conditional onboarding hook) | Done |
-| `.claude/skills/handoff-test/` | Done |
-| `gh` CLI documented as prerequisite in README | Done |
-| Signal repo setup documented in README (per-user, `gh repo create`) | Done |
-| `.claude/skills/handoff-prompt/` | Done |
-| `.claude/references/claude-md-template.md` | Done |
-| Agent feedback skill (`.claude/skills/agent-feedback/`) | Deferred — see build registry |
-| `scripts/bootstrap.sh` (install pipeline) | Done — shell script, copies weft section to CLAUDE.md, registers skills/hooks |
-| `scripts/uninstall.sh` (clean removal) | Done — strips weft section, removes settings.json entries |
-| `scripts/test-install.ts` (install verification) | Planned |
-| `.claude/references/data-contracts.md` | Planned — YAML schema for current-state.md defined in intake SKILL.md §3d |
-| End-to-end test: clone → /intake → work → /session-review → signal | Not run |
+| Draft lesson content: what Weft is, intake, session-review, startwork | Planned |
+| Structure for lesson-scaffold ingestion | Planned |
+| Verify it passes through lesson-scaffold without breaking | Planned |
+| Quick sanity check: meaningfully different output for beginner vs. intermediate | Planned |
 
-### Validation experiments
+### Learning loop closure
 
-See `design/validation-plan.md` for full specs. All designed, none run.
+| Task | Status |
+|------|--------|
+| Wire session-discovery into session-review (all sessions since last review) | Planned |
+| Wire session-discovery into progress-review | Planned |
+| Wire session-discovery into startwork | Planned |
 
-| Experiment | Priority |
-|------------|----------|
-| Retrospective compliance audit | 1 (highest info yield) |
-| A/B testing infrastructure | 2 (enables experiments 3, 7) |
-| First-person framing | 3 |
-| Instruction persistence | 4 (can run with #2) |
-| Context budget measurement + skill audit | 5 |
-| Embedding loop validation | 6 |
-| Onboarding design | 7 (deployment-blocking) |
-| Continuous system observability (7b) | 0 (prerequisite — makes 5, 6, 7 cheaper) |
-| Context budget discipline | 8 (deployment-blocking) |
-| SessionStart hook validation | 9 (run with peer testing) |
+### /startwork decomposition
+
+| Task | Status |
+|------|--------|
+| Audit current skill for all conditional branches and decision points | Planned |
+| Design subskill structure (what splits off, what stays in dispatcher) | Planned |
+| Implement subskills with context-aware dispatch | Planned |
+| Test: fresh user scenario | Planned |
+| Test: returning user scenario | Planned |
+| Test: progress-review due scenario | Planned |
+
+### Intake context window hardening
+
+| Task | Status |
+|------|--------|
+| Verify intake completes full four-phase flow in one context window | Planned |
+| Audit conditional subagent use (synthesis agents dispatched correctly?) | Planned |
+| Fix paths where intake might overflow or stall before writing files | Planned |
+
+### Session-review and progress-review diagnosis
+
+| Task | Status |
+|------|--------|
+| Run both skills against real session data, evaluate output quality | Planned |
+| Identify major structural flaws before deciding whether to refactor | Planned |
+| Refactor only if diagnosis reveals a real problem | Planned |
+
+### Principles reference — install package
+
+| Task | Status |
+|------|--------|
+| Audit design-principles.md and harness-features.md for delta vs. .claude/references/ | Planned |
+| Distill delta into teaching-principles.md (internal framing, no user-facing jargon) | Planned |
+| Update relevant skill SKILL.md files to read the reference and apply principles | Planned |
+| Verify skills don't surface principle vocabulary in user-facing output | Planned |
+
+### Onboarding lesson — full version
+
+| Task | Status |
+|------|--------|
+| Expand v0 into complete coverage: Weft, intake, session-review, startwork, progress-review | Planned |
+| Pass through lesson-scaffold with beginner (dad-level) intake profile | Planned |
+| Pass through lesson-scaffold with engineer-level intake profile | Planned |
+| Verify adaptation is meaningfully different — not just tone, but content and depth | Planned |
+| Fix any lesson-scaffold behavior producing weak adaptation | Planned |
+
+### Two-user verification
+
+| Task | Status |
+|------|--------|
+| Dad: install Weft from scratch using bridge prompt | Planned |
+| Dad: complete intake | Planned |
+| Dad: run first session-review | Planned |
+| Engineer: install and run intake | Planned |
+| Engineer: verify profile and lesson adapt correctly to more experienced starting point | Planned |
+| Document what broke or felt rough during each run | Planned |
+
+### Update mechanism
+
+| Task | Status |
+|------|--------|
+| Document all three modes (notify, auto, off) in README | Planned |
+| Verify auto mode end-to-end with a real session that has current-state.md | Planned |
+
+### Publishing
+
+| Task | Status |
+|------|--------|
+| Stranger-perspective README pass — read as someone who has never heard of Claude Code | Planned |
+| GitHub release + version tag — marks the shipped state | Planned |
+
+### Speedrun presentation (Mon 3/2)
+
+| Task | Status |
+|------|--------|
+| Decide: raw SVGs (available now) or GPT image restyling (needs OpenAI API key) | Planned |
+| Fix slide 3 broken image (unraveling-fabric not yet generated) | Planned |
+| Review and personalize all speaker notes — especially slide 3 | Planned |
+| Time a full run-through (target: 3 minutes) | Planned |
+| Pre-flight: Chrome, speaker notes window (S key), QR code scan | Planned |
 
 ---
 
 ## Definition of Done
 
-From `design/prd.md`, updated to reflect P10:
+From `design/week5-prd.md`:
 
-- A non-Hart developer can install the personal harness and have a
-  working, personalized setup within 15–20 minutes
-- A team of 2+ can install the coordination layer and have working task
-  selection, triage, and dependency tracking within 30 minutes
-- Both tools have a README with quickstart
-- Demo shows both working and self-improving — with at least one other
-  person's real usage as evidence
-- Demo shows the teacher-student exchange: a progress review published
-  via GitHub Issues, a teacher response, and that response surfaced in
-  the student's next startwork session
+- A non-Hart user can install the personal harness and complete intake
+  in ~30 minutes
+- Two users tested: one beginner (dad), one engineer-level
+- Learning loop closes: session → session-review → startwork cycle runs
+  end-to-end with cross-session analysis
+- /startwork decomposition holds under three test scenarios without
+  regression
+- GitHub release tagged

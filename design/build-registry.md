@@ -55,6 +55,7 @@ Dev-only = used during harness development, not shipped to end users.
 
 | Script | Status | Notes |
 |--------|--------|-------|
+| `scripts/session-discovery.ts` | Built | Dev-only. Scans session-logs/ for all sessions since last review. Used by session-review, progress-review, and startwork for cross-session analysis. Learning loop closure (week 5) depends on this. |
 | `scripts/bootstrap.sh` | Built | Install pipeline (standalone repo). Writes weft section to global CLAUDE.md, registers skills/hooks in settings.json, records manifest. Hardened with marker validation and path reconciliation. |
 | `scripts/uninstall.sh` | Built | Clean removal (standalone repo). Strips weft section from CLAUDE.md, removes settings.json entries. |
 | `scripts/rename-to-weft.sh` | Built | One-time migration script (maestro → weft). Dev-only, in weft-dev. |
