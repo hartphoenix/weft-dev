@@ -24,13 +24,18 @@ This week delivers both:
    no silent failures). First-run messaging that explains itself to a
    beginner without assuming prior knowledge.
 
-2. **Learning loop closure** — Session-discovery wired into session-review,
-   progress-review, and startwork, so analysis spans all sessions since
-   the last review rather than just the current context. The loop closes.
+2. **Learning loop closure** — Session-digest built as the lightweight
+   state-update path (no quiz, no energy demand). Session-review split
+   into session-digest (passive) and session-quiz (active). The loop
+   closes when learning state stays current without requiring
+   high-energy reviews: session → session-digest → startwork reads
+   fresh state. Session-quiz available separately when capacity is fresh.
 
-3. **Startwork decomposition** — The monolithic /startwork skill broken
-   into subskills with context-aware dispatch. Cleaner, testable, and
-   ready for the conditional logic the full loop requires.
+3. **Session-review split** — The monolithic session-review (analysis +
+   quiz + state logging) broken into session-digest (passive state
+   update) and session-quiz (active recall). Existing session-review
+   skill refactored to remove state-update logic now handled by
+   session-digest.
 
 4. **Two-user verification** — A beginner (dad) and an engineer-level user
    each install and run intake. Adaptation is verified to be meaningfully
@@ -51,9 +56,13 @@ This week delivers both:
   actually works requires real users with different backgrounds. Not just
   checking that the code runs, but that the output is meaningfully
   different.
-- **Structural decomposition of a working skill** — Breaking /startwork
-  into subskills without breaking its behavior. Refactoring with a
-  behavioral contract.
+- **Decoupling a monolithic skill** — Session-review accumulated three
+  responsibilities (analysis, quiz, state update) that exhaust context.
+  Splitting it teaches structural decomposition on a high-priority target.
+- **Designing for agent blind spots** — The visibility principle: marking
+  what the agent can and can't assess, and surfacing uncertainty rather
+  than approximating. A design constraint that shapes the learning state
+  model.
 - **Principles extraction and packaging** — Pulling principles from design
   docs into a reference file that ships with the harness and wires into
   skill behavior invisibly.
@@ -89,18 +98,12 @@ yourself, and produces more useful signal.
 
 ### Learning loop closure
 
-- session-discovery.ts wired into session-review — analyses all sessions
-  since last review, not just current context
-- session-discovery.ts wired into progress-review
-- session-discovery.ts wired into startwork
-
-### Startwork decomposition
-
-- Current skill audited for all conditional branches and decision points
-- Subskill structure designed (what splits off, what stays in dispatcher)
-- Subskills implemented with context-aware dispatch
-- Tested across three scenarios: fresh user, returning user,
-  progress-review due
+- session-digest built and wired to session-discovery — lightweight
+  state updates without quiz
+- session-review split: state-update logic removed (now in
+  session-digest), quiz logic extracted to session-quiz
+- session-quiz built as standalone active-recall skill
+- Loop verified: session → session-digest → startwork reads fresh state
 
 ### Intake context window hardening
 
@@ -112,6 +115,9 @@ yourself, and produces more useful signal.
 
 ## Stretch goals
 
+- **Startwork decomposition** — Budget one session maximum. Break
+  /startwork into subskills with context-aware dispatch. Test across
+  three scenarios. Per recalibration: risk of becoming a meta-project.
 - **Principles reference in install package** — Audit design-principles.md
   and harness-features.md for principles not yet in .claude/references/.
   Distill delta to teaching-principles.md. Wire into relevant skills.
@@ -130,10 +136,9 @@ yourself, and produces more useful signal.
 - A non-Hart user can install the personal harness and complete intake
   in ~30 minutes
 - Two users tested: one beginner (dad), one engineer-level
-- Learning loop closes: session → session-review → startwork cycle runs
-  end-to-end with cross-session analysis
-- /startwork decomposition holds under three test scenarios without
-  regression
+- Learning loop closes: session → session-digest updates state;
+  session-quiz available for active recall; startwork reads current state
+- Session-review split complete: digest and quiz are separate skills
 - GitHub release tagged
 
 ---

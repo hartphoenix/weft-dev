@@ -11,10 +11,10 @@ design docs; this file tracks execution status.
 
 | Day | Target | Status |
 |-----|--------|--------|
-| Mon 3/2 | Front door complete: bridge prompt, install audit, first-run messaging, update mechanism checked. Speedrun presentation adapted. | In progress |
-| Tue 3/3 | Onboarding lesson v0. Session-discovery wired into session-review + progress-review. | Planned |
-| Wed 3/4 | Startwork decomposed. Intake context window hardened. Session-review/progress-review diagnosed. | Planned |
-| Thu 3/5 | Principles reference extracted and wired. Onboarding lesson full version. | Planned |
+| Mon 3/2 | Front door complete: bridge prompt, install audit, first-run messaging, update mechanism checked. Speedrun presentation delivered. | Done |
+| Tue 3/3 | Onboarding lesson v0 done. Session-review split designed (digest built, quiz scoped). | In progress |
+| Wed 3/4 | Session-review → session-digest + session-quiz split implemented. Visibility principle markers designed. | Planned |
+| Thu 3/5 | Goal-evolution detector designed. Onboarding lesson full version. Principles reference extracted. | Planned |
 | Fri 3/6 | Two-user verification (dad + engineer). Update mechanism documented. | Planned |
 | Sat 3/7 | Stranger-perspective README pass. GitHub release + version tag. Demo. | Planned |
 
@@ -41,20 +41,52 @@ design docs; this file tracks execution status.
 
 | Task | Status |
 |------|--------|
-| Draft lesson content: what Weft is, intake, session-review, startwork | Planned |
-| Structure for lesson-scaffold ingestion | Planned |
-| Verify it passes through lesson-scaffold without breaking | Planned |
-| Quick sanity check: meaningfully different output for beginner vs. intermediate | Planned |
+| Draft lesson content: what Weft is, intake, session-review, startwork | Done |
+| Structure for lesson-scaffold ingestion | Done |
+| Verify it passes through lesson-scaffold without breaking | Done |
+| Quick sanity check: meaningfully different output for beginner vs. intermediate | Done |
 
 ### Learning loop closure
 
 | Task | Status |
 |------|--------|
-| Wire session-discovery into session-review (all sessions since last review) | Planned |
+| Wire session-discovery into session-review (all sessions since last review) | Done |
+| Build session-digest as lightweight state-update path (no quiz) | Done |
+| Wire session-discovery into session-digest | Done |
+| Split session-review: remove state-update logic now handled by session-digest | Planned |
+| Build session-quiz as standalone active-recall skill | Planned |
 | Wire session-discovery into progress-review | Planned |
-| Wire session-discovery into startwork | Planned |
+| Wire session-discovery into startwork (beyond digest staleness check) | Planned |
 
-### /startwork decomposition
+### Session-review split (recalibration item 8)
+
+| Task | Status |
+|------|--------|
+| Audit session-review SKILL.md for which phases belong to digest vs. quiz | Planned |
+| Remove state-update logic from session-review (now in session-digest) | Planned |
+| Build session-quiz skill: quiz phase + session log write | Planned |
+| Verify session-digest → session-quiz → startwork loop runs end-to-end | Planned |
+
+### Visibility principle (recalibration item 11)
+
+| Task | Status |
+|------|--------|
+| Design agent-visible vs. agent-blind markers for current-state.md scoring model | Planned |
+| Add markers to concepts where evaluation fluency is the target | Planned |
+| Surface uncertainty language in skills that read current-state.md | Planned |
+
+### Goal-evolution detector (recalibration item 10)
+
+| Task | Status |
+|------|--------|
+| Design detection mechanism: behavior-vs-stated-goal divergence check | Planned |
+| Wire into progress-review or audit process | Planned |
+| Distinguish evolution from drift in output language | Planned |
+
+### /startwork decomposition (stretch goal)
+
+Budget: one session maximum. Per recalibration: "The report's warning
+about this becoming another meta-project is accurate."
 
 | Task | Status |
 |------|--------|
@@ -65,7 +97,7 @@ design docs; this file tracks execution status.
 | Test: returning user scenario | Planned |
 | Test: progress-review due scenario | Planned |
 
-### Intake context window hardening
+### Intake context window hardening (stretch goal)
 
 | Task | Status |
 |------|--------|
@@ -129,23 +161,23 @@ design docs; this file tracks execution status.
 
 | Task | Status |
 |------|--------|
-| Decide: raw SVGs (available now) or GPT image restyling (needs OpenAI API key) | Planned |
-| Fix slide 3 broken image (unraveling-fabric not yet generated) | Planned |
-| Review and personalize all speaker notes — especially slide 3 | Planned |
-| Time a full run-through (target: 3 minutes) | Planned |
-| Pre-flight: Chrome, speaker notes window (S key), QR code scan | Planned |
+| Decide: raw SVGs (available now) or GPT image restyling (needs OpenAI API key) | Done |
+| Fix slide 3 broken image (unraveling-fabric not yet generated) | Done |
+| Review and personalize all speaker notes — especially slide 3 | Done |
+| Time a full run-through (target: 3 minutes) | Done |
+| Pre-flight: Chrome, speaker notes window (S key), QR code scan | Done |
 
 ---
 
 ## Definition of Done
 
-From `design/week5-prd.md`:
+Updated from recalibration (2026-03-03). Original PRD definition
+preserved in week5-prd.md for reference.
 
 - A non-Hart user can install the personal harness and complete intake
   in ~30 minutes
 - Two users tested: one beginner (dad), one engineer-level
-- Learning loop closes: session → session-review → startwork cycle runs
-  end-to-end with cross-session analysis
-- /startwork decomposition holds under three test scenarios without
-  regression
+- Learning loop closes: session → session-digest updates state;
+  session-quiz available for active recall; startwork reads current state
+- Session-review split complete: digest and quiz are separate skills
 - GitHub release tagged
