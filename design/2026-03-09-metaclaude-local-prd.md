@@ -6,8 +6,18 @@ fully implemented. Phase 1 (local model swap) largely complete. Phase 3
 (observability) complete + extended with structured session logging,
 inline chat display, accumulator system, fingerprint skip optimization,
 structured response parsing, 28-test suite, and per-session state
-isolation for parallel sessions. **Next: model comparison experiments
-(Phase 1 tail), then Phase 2 (embedding index).**
+isolation for parallel sessions. Phase 2 pre-flight complete (all 4
+de-risk steps done). Phase 2 embedding index built: 685 chunks indexed
+across roger/, weft-dev/, weft/ using Vectra + nomic-embed-text via
+LM Studio. Retrieval validated against 7 handcrafted + 10 real-session
+test cases. **Bug found and fixed:** Vectra `queryItems(vector, query,
+topK)` was called as `queryItems(vector, topK)` — topK was silently
+interpreted as a BM25 query string, returning unlimited results.
+Handcrafted tests passed because they checked content presence, not
+result count. Fixed in store.ts; broader test confirmed top-K limiting
+works correctly. **Next: update prompt.md with source attribution
+instruction, then wire retrieval into observer.sh pipeline, then
+Phase 2.5 (fine-tune meta-agent on retrieval-aware training data).**
 **Scope:** One week, experimentation-heavy, drift expected
 **Success metric:** A local meta-agent that observably improves session
 alignment with long-term goals, principles, and system self-improvement.
@@ -50,7 +60,7 @@ display modes: dev (full observability) and production (minimal UI).
                │ queries (planned)
 ┌──────────────┴──────────────────────┐
 │         Embedding Index (Phase 2)   │
-│  SQLite-vec, bun scripts            │
+│  Vectra (pure TS), bun scripts      │
 │  nomic-embed-text via LM Studio     │
 │  Indexes: notepad, learning state,  │
 │  codebase, reference docs           │
@@ -105,6 +115,32 @@ its first-pass retrieval is sufficient? If escalation rate is ~0% or
 ~100%, Probe collapses to Fast or Deep respectively and the adaptive
 logic adds no value.
 
+### Source attribution (breadcrumb trail)
+
+Retrieved chunks carry source metadata (file path + section/chunk ID)
+through the full pipeline:
+
+1. **Index time:** Each chunk stores `source` (file path relative to
+   project root) and `section` (heading or chunk identifier) in Vectra
+   metadata.
+2. **Retrieval → meta-agent:** Retrieved chunks are formatted with
+   source paths when passed to the inference model:
+   ```
+   [Retrieved from learning/current-state.md — React Context entry]
+   score: 2, gap: conceptual, provider/consumer pattern not internalized
+   ```
+3. **Meta-agent → injection:** `prompt.md` instructs the meta-agent:
+   when an observation draws on retrieved content, include the source
+   as `(ref: path)` so Builder Claude can look up full context.
+4. **Builder Claude receives:** An injection like:
+   ```
+   [MetaClaude] The user has a tracked conceptual gap on React Context
+   (score 2). This is a conceptual gap — explanation over syntax.
+   (ref: learning/current-state.md)
+   ```
+   Builder Claude can then `Read` the source file if the excerpt isn't
+   sufficient. The meta-agent provides the trail, not the full content.
+
 ### Flow per turn (current implementation)
 
 1. Builder Claude responds (Stop hook, async)
@@ -114,13 +150,16 @@ logic adds no value.
 4. Fingerprint check: if window unchanged and accumulator exists, skip
    (log `observation_skipped`, exit)
 5. Read accumulator (running session context from prior observations)
-6. Inference: send recent turns + accumulator + turn count to meta-agent
-   (routed to LM Studio or Claude CLI based on model config)
-7. Parse structured response: `<inject>` for Builder, `<context>` for
+6. (Phase 2+) Embed recent transcript → query index → retrieve top-K
+   chunks with source paths
+7. Inference: send recent turns + accumulator + turn count + retrieved
+   chunks (with source paths) to meta-agent (routed to LM Studio or
+   Claude CLI based on model config)
+8. Parse structured response: `<inject>` for Builder, `<context>` for
    accumulator. Fallback: entire response → injection if no tags.
-8. If observation: write to per-session staging file + update accumulator
+9. If observation: write to per-session staging file + update accumulator
    + log to session JSONL + legacy daily JSONL
-9. Next user prompt → inject hook reads per-session staging file →
+10. Next user prompt → inject hook reads per-session staging file →
    injects as `[MetaClaude] ...` additionalContext
 
 ### Latency target
@@ -186,9 +225,9 @@ turn, ready for Phase 4.
 | Embedding runtime | LM Studio (same server) | One server = one process managing GPU memory, one health check, one failure point. Embedding is not the bottleneck (~50ms either way). |
 | Model size | 7-8B primary, A/B test 3-4B | Metacognition is complex; needs reasoning capacity. Test empirically. |
 | Embedding model | nomic-embed-text via LM Studio | Fast, good quality, ~270MB — negligible memory. Needed at both index and query time (same embedding space required for cosine similarity). Not a bottleneck (~50ms); not worth optimizing separately. |
-| Vector store | SQLite-vec + bun:sqlite | Single file, observable, no new dependencies |
+| Vector store | Vectra (pure TS, brute-force cosine sim) behind interface boundary | sqlite-vec incompatible with bun:sqlite (no loadExtension), better-sqlite3 unsupported in bun. Vectra chosen over usearch (native HNSW) for trust profile: pure TypeScript (no opaque binaries), maintainer is ex-Microsoft principal architect (Steven Ickman). Brute-force is fast enough for current scale (<5K chunks). Interface boundary (`embed`, `store`, `query`) allows swapping to usearch or similar ANN backend if index exceeds ~10K chunks — at that point, conduct a deeper security review of usearch's prebuilt binaries and build pipeline before adopting. |
 | Embedding scope | Generous — notepad, learning, codebase, references | Embedding cost is trivial; breadth improves retrieval |
-| Retrieval design | Three observation modes (Fast/Deep/Probe) | Fast retrieves textually similar content (topical neighbors). Deep/Probe use the inference model to generate queries grounded in learning model knowledge, retrieving pedagogically relevant content (learner patterns, design principles, boundary-confusion history) that cosine similarity over raw transcript would miss. The difference between topical and pedagogical retrieval is the core experimental question. |
+| Retrieval design | Three observation modes (Fast/Deep/Probe) | Fast retrieves textually similar content (topical neighbors). Deep/Probe use the inference model to generate queries grounded in learning model knowledge, retrieving pedagogically relevant content (learner patterns, design principles, boundary-confusion history) that cosine similarity over raw transcript would miss. The difference between topical and pedagogical retrieval is the core experimental question. **Round 2 A/B evidence (2026-03-10):** 4 of 17 benchmark queries got 0 actionable chunks under both chunking strategies — h6-drift (user's current goals/deadlines), h7-altitude (intervention guidance for known pattern), r2-security, r4-cross-project. Common failure mode: queries about the learner's *current state or specific intervention patterns* pull topically adjacent design docs instead of learning-state files. This is a query formulation problem, not a chunking problem — confirms the hypothesis that model-directed retrieval (Deep/Probe) is needed to close the gap cosine similarity can't. |
 | Scheduling | Script-controlled sequential pipeline | Embed → retrieve → infer. Never concurrent — stages are serial by design, so models never compete for GPU. The observer script is the scheduler. No need for LM Studio model priority config. Both models (~5GB total) fit in 16GB alongside OS and Claude Code. |
 | Optimization target | Latency/turnaround, not download time | Models are downloaded once and kept loaded. The metric that matters is per-turn observer completion time — it determines whether same-turn injection is feasible. |
 | Observability | Log file (must-have), dev-mode inline display (must-have) | Injection is highest-influence point; needs monitoring. Dev mode shows additionalContext inline in chat with ◉ MC heading. |
@@ -203,19 +242,21 @@ turn, ready for Phase 4.
 | Hot-swapping models | Flag-based switching via toggle.sh | Status line updates immediately; next observer invocation uses new model. (Moved from deferred.) |
 | Session log viewer | Phase 3a, built then removed | Was React SPA in `tools/log-viewer/`. Session logs are directly queryable with `jq`. |
 | Session log `full_response` | New field on observation entries | Preserves full meta-agent output including thinking tags for empirical comparison. |
-| Accumulator system | `<context>` tag in meta-agent response, persisted to per-session file | Running session summary updated each turn. Observer reads it back as input, giving the meta-agent memory across turns without re-reading the full transcript. |
+| Accumulator system | `<context>` tag in meta-agent response, persisted to per-session file | Running session summary updated each turn. Observer reads it back as input, giving the meta-agent memory across turns without re-reading the full transcript. Read truncation is line-aware (awk, ≤500 bytes at line boundaries) — prevents mid-character splits on multi-byte UTF-8. |
+| Retrieval payload budget | ~6000 chars total, 2000 chars/chunk max, top-3 default | Raised from 800→2000 chars/chunk after Round 2 A/B test. At 2000/chunk × top-3, total payload ~5.5K chars (~1.5K tokens) — trivial for all models in test matrix (Qwen3-4B 32K, Qwen3-8B 32K, Gemma-3-12B 128K). Eliminates embedding/retrieval mismatch (what's embedded = what's delivered). Winner: recursive-md-2000 (structure-aware, 2000 max, 200 overlap) — 55% actionable chunk rate vs 45% for fixed-2000, 82% hit rate vs 76%, half the payload. No truncation needed; source path preserved for full-file reads. |
+| Vectra API contract | `queryItems(vector, "", topK)` — empty string for BM25 query parameter | Vectra's signature is `queryItems(vector, query, topK, filter?, isBm25?)`. The second parameter is a BM25 text search string, not topK. Passing topK as the second argument silently returns unlimited results. Fixed 2026-03-10 in store.ts. |
 | Fingerprint skip | SHA1 of non-tool turns in the recent window | If the window hasn't changed since last observation (e.g., tool-only turns), skip inference entirely. Saves latency and API/compute cost. |
 | Structured response parsing | `<inject>`/`<context>` tags, fallback to raw | Two-path: inject content for Builder Claude, context for accumulator. Fallback treats entire response as injection (backward-compatible with pre-accumulator behavior). Tested at 5/5 compliance on Qwen3-8B. |
 | `[MetaClaude]` prefix on injections | Always prefixed | inject.sh prepends `[MetaClaude]` to all additionalContext. Helps Builder Claude distinguish meta-agent input from other system messages. (Moved from deferred.) |
 | State directory consolidation | `~/.claude/metaclaude/` single directory | All state files under one path. Replaced scattered `~/.claude/.metaclaude-*` flat files. Simplifies sandbox allowlisting (one path). |
 | Per-session state isolation | `~/.claude/metaclaude/sessions/{8-char-id}/` | Injection, accumulator, fingerprint, and session-log pointer are per-session. Prevents cross-contamination when parallel Claude Code sessions run. Global config (enabled, mode, model, instruction) stays at top level. |
-| Test suite | `test-parser.sh` with 28 tests | Validates response parsing, tool-collapsing, accumulator lifecycle, and fingerprint skip logic. Runs in ~1s, no external dependencies. |
+| Test suite | `test-parser.sh` with 29 tests | Validates response parsing, tool-collapsing, accumulator lifecycle (including line-aware truncation and multi-byte UTF-8 safety), and fingerprint skip logic. Runs in ~1s, no external dependencies. |
 
 ## Decisions deferred
 
 | Decision | Why deferred |
 |---|---|
-| Fine-tuning | Week 2+ goal. Need training data first. High effort, unclear payoff for MVP. |
+| Fine-tuning | Phase 2.5 — after embedding index is built and battle-tested. Requires retrieval-aware training data from real sessions. See Phase 2.5 below. |
 | User-facing install flow | Build for self first, then design the onramp. |
 | Ollama as fallback | LM Studio is primary. Ollama stays installed but not required. Revisit if LM Studio proves unreliable for headless/automated use. |
 | Probe escalation threshold | How does the model decide "need more"? Prompt-engineered for now; may need tuning or a confidence score. |
@@ -253,9 +294,44 @@ Replace Haiku API call with LM Studio's OpenAI-compatible local API.
 - [x] State directory consolidation: all state files moved from scattered `~/.claude/.metaclaude-*` to `~/.claude/metaclaude/`.
 - [x] Per-session state isolation: injection, accumulator, fingerprint, session-log pointer scoped to `sessions/{8-char-id}/`. Prevents cross-contamination in parallel sessions.
 - [x] `[MetaClaude]` prefix on all injections (inject.sh additionalContext).
+- [x] Accumulator truncation: `head -c 500` (byte-level) → line-aware awk
+      (≤500 bytes at line boundaries). Prevents mid-character splits on
+      multi-byte UTF-8 content, which would produce invalid strings in
+      jq payloads and corrupt Phase 2.5 training data. Test suite updated
+      (29 tests, +1 multi-byte UTF-8 safety test). Fixed 2026-03-10.
 
 **Curriculum alignment:** Local inference, MLX framework, OpenAI-compatible
 APIs, model selection, benchmarking.
+
+### Phase 2 prerequisites: earlier transitions
+
+Items that belong before Phase 2 wiring to prevent rework or
+data corruption in later phases. Identified during cross-platform
+research (2026-03-10).
+
+- [ ] **Switch observer output from XML tags to JSON `response_format`.**
+      Phase 2 adds retrieved chunks + source paths to the response —
+      building more regex parsing on XML compounds fragility. Phase 2.5
+      trains on the target format — switching after training wastes the
+      fine-tune. Both LM Studio and Ollama support `response_format`
+      on `/v1/chat/completions`. Define the JSON schema, update
+      `prompt.md`, add `response_format` to curl payload, replace perl
+      regex parsing with jq extraction. Most of the 29 parser tests
+      become unnecessary (runtime guarantees structure); keep content-
+      logic tests (silence sentinel, accumulator preservation).
+- [ ] **Unify Claude CLI path behind OpenAI-compatible interface.**
+      Currently, `claude -p` and `curl` are two code paths with
+      different payload composition and response extraction. Phase 2
+      adds retrieval context to the payload — another divergence point.
+      Route `--mch`/`--mco` through Anthropic API via curl (same
+      pattern as LM Studio, different URL + auth header). One code path
+      for payload composition, one for response extraction. Also makes
+      Phase 4 model comparison cleaner (swap URL + model ID, not
+      invocation mechanism).
+- [ ] **Make `INFERENCE_BASE_URL` configurable.** Even for dev: Phase 4
+      compares models across backends. Hardcoded `localhost:1234` means
+      editing observer.sh between test runs. Add to model config JSON
+      or env var. Not portability — test infrastructure.
 
 ### Phase 2: Embedding index (Day 1-2)
 
@@ -263,15 +339,106 @@ Build the retrieval layer. Embedding model (nomic-embed-text) served
 by LM Studio alongside the inference model. Both stay loaded — the
 embedding model is ~270MB, negligible alongside the inference model.
 
-- [ ] Install sqlite-vec extension for bun:sqlite
-- [ ] Write `index.ts`: embed files via LM Studio /v1/embeddings,
-      store in SQLite
-- [ ] Write `query.ts`: embed query string, cosine similarity
-      search, return top-K with snippets
-- [ ] Index notepad/ + learning/ + current project codebase
-- [ ] Test retrieval quality: does it find relevant content?
+#### Phase 2 pre-flight: de-risk the stack (~45 min)
+
+Before writing indexing code, verify the infrastructure works:
+
+- [x] **Vector storage compatibility.** Tested 2026-03-10.
+      bun:sqlite does not support `loadExtension()` — sqlite-vec blocked.
+      better-sqlite3 unsupported in bun runtime. usearch (native HNSW)
+      ships prebuilt binaries — deferred pending deeper security review.
+      **Resolution:** Vectra (pure TypeScript, MIT, brute-force cosine
+      sim). Maintainer: Steven Ickman (ex-Microsoft principal architect).
+      No native binaries — full source is inspectable. Performance
+      acceptable for <5K chunks. Interface boundary enables swap to ANN
+      backend (usearch) if index exceeds ~10K chunks after trust review.
+- [x] **LM Studio embedding endpoint.** Tested 2026-03-10. Both
+      nomic-embed-text and inference models loaded simultaneously.
+      `/v1/embeddings` returns 768-dim vectors. Model ID:
+      `text-embedding-nomic-embed-text-v1.5`. All 5 models coexist
+      (Qwen3-8B, Qwen3-4B-Thinking, Gemma-3-12B, Qwen3-VL-4B,
+      nomic-embed-text).
+- [x] **Chunking strategy.** Surveyed 2026-03-10, benchmarked 2026-03-10.
+      Natural chunk boundaries documented per source type:
+      - `current-state.md`: per-concept entry (~80 chunks, 100-300 bytes)
+      - `goals.md`: per-capability (~15 chunks, 200-400 bytes)
+      - `arcs.md`: per-arc section (~22 chunks, 300-500 bytes)
+      - `session-logs/` (learning): per-quiz/pattern section (~30 chunks)
+      - `design-principles.md`: per-principle (~10 chunks, 600-1000 bytes)
+      - `harness-features.md`: per-feature (~20 chunks, 300-600 bytes)
+      - `notepad/`: per-file or per-section for long files (~25 chunks)
+      - `reference docs`: per-section (~20 chunks, 300-1000 bytes)
+      - Active PRDs/plans: per-section (~30 chunks, 1000-2000 bytes)
+      - Archived design docs (`complete/`): full file, no deprioritization
+      Principle: every chunk is a self-contained unit of meaning —
+      enough context for the meta-agent to make an observation without
+      needing the surrounding file.
+      **Round 1 benchmark** (4 strategies × 17 queries): baseline 94%
+      hit rate but 3812ch avg payload (over budget); recursive-md-800
+      82% / 2348ch; fixed-800 88% / 2340ch. No strategy passed all
+      must-pass checks at 800 chars/chunk.
+      **Round 2 benchmark** (2 strategies × 17 queries + subagent
+      relevance evaluation): recursive-md-2000 won — 82% hit rate,
+      55% actionable chunk rate, 2348ch avg payload vs fixed-2000 at
+      76% hit rate, 45% actionable, 5497ch payload. Winner set as
+      default in `chunker.ts` (maxChars: 2000, overlapChars: 200).
+      Scripts: `benchmark.ts` (Round 1), `evaluate.ts` (Round 2).
+      **Excluded from index:** `meta/` session logs (prevents feedback
+      loop — meta-agent's own past observations would compound errors).
+      **Deprioritization:** score threshold only (no tag-based
+      weighting). Post-retrieval re-ranking deferred as future option.
+      **Scope:** roger/ (learning, notepad, background), weft-dev/
+      (design, plans, research), weft/ (references, skills). Meta-agent
+      should find relevance along any path in these project folders.
+- [x] **Retrieval test cases.** Written 2026-03-10. Five queries
+      with expected retrieval targets. Saved to
+      `tools/embedding/retrieval-tests.md`. These become the quality
+      baseline for validating the index after build.
+
+#### Phase 2 build
+
+- [x] Write `index.ts`: embed files via LM Studio /v1/embeddings,
+      store in Vectra (LocalIndex) behind interface boundary.
+      Built 2026-03-10: `tools/embedding/index.ts` with `store.ts`
+      (VectorStore interface + Vectra impl), `embed.ts` (LM Studio
+      client), `chunker.ts` (auto-strategy per file type).
+- [x] Write `query.ts`: embed query string, cosine similarity
+      search, return top-K with source paths and snippets.
+      Built 2026-03-10: `tools/embedding/query.ts` — exports
+      `queryIndex()` for observer integration, CLI for manual testing.
+- [x] Index roger/ (learning/, notepad/, background/) + weft-dev/
+      (design/, plans/, research/) + weft/ (references/, skills/).
+      1432 chunks indexed (reindexed 2026-03-10 after Round 2
+      benchmark — up from 685 at initial build due to recursive-md-2000
+      producing finer splits). Stored at
+      `~/.claude/metaclaude/embedding-index/`.
+- [x] Test retrieval quality against pre-flight test cases
+      (tools/embedding/retrieval-tests.md). Deep-mode queries hit
+      expected targets in top 3 for all 7 tests. Fast-mode queries
+      less precise (topical neighbors, not pedagogically targeted).
+      **Note:** These tests ran with a Vectra API bug — `queryItems`
+      was called with wrong parameter order, so top-K was not limiting
+      results. Tests validated content relevance (correct) but not
+      result count (missing). Fixed in store.ts. Threshold observation
+      below revised accordingly.
+      Observation: with top-K working correctly, threshold 0.6 returns
+      exactly K results (all relevant at K=3). Threshold 0.65 is
+      recommended for production — tight enough to filter marginal
+      matches while preserving signal.
+- [x] Source attribution: retrieval output includes file path +
+      section for each chunk. `query.ts` returns `formatted` field:
+      `[Retrieved from {source} — {section}]\n{text}`.
+- [x] Broader retrieval quality test: 10 real conversation windows
+      from session transcripts (March 3-7), Deep-mode queries. Results:
+      8/10 actionable (3 excellent, 5 good), 2 mixed (content gaps,
+      not retrieval failures). Found and fixed Vectra topK bug during
+      testing. Full results: `tools/embedding/retrieval-quality-test.md`.
+      Test methodology upgraded: validates result count, payload size,
+      and content relevance (see retrieval-tests.md validation rules).
+- [ ] Update prompt.md: when observation draws on retrieved content,
+      include `(ref: path)` so Builder Claude can look up full context
 - [ ] Wire into observer as Fast mode baseline: embed transcript →
-      retrieve → include in model payload
+      retrieve → include in model payload (with source paths)
 
 **Brainstorm:** Silent failure detection. Session logs capture tool calls with exit codes and empty outputs — enough data to surface recurring failures that get routed around by graceful degradation (e.g., `bun run` silently failing on absolute paths, causing skills to skip session data entirely). A periodic diagnostic that scans recent session logs for non-zero exits, empty-where-non-empty-expected, and repeated error patterns could catch these before they compound. Design as part of a dev-mode toolkit.
 
@@ -304,11 +471,81 @@ initial implementation, later removed from the repo. Session logs are
 directly queryable with `jq` (see Session logging section). A viewer
 may be rebuilt if needed.
 
+### Phase 2.5: Fine-tune meta-agent (after Phase 2 is battle-tested)
+
+Fine-tune a local model (4B or 8B) on the meta-agent task using
+retrieval-aware training data from real sessions. The fine-tune
+trains on the **actual production pipeline input** — recent turns +
+accumulator + retrieved chunks — so the model learns to reason over
+the same payload it will see at inference time.
+
+**Prerequisites:**
+- Embedding index (Phase 2) built and running in production
+- **Output format finalized (Phase 2 prerequisite).** Training data
+  must use the same format the fine-tuned model will produce at
+  inference time. If XML→JSON switch happens after training, the
+  fine-tune is wasted.
+- 3-10 real sessions accumulated with retrieval-augmented observations
+  (50-100+ observation turns as training examples)
+- Alternatively: replay old transcripts through the retrieval pipeline
+  via simulate-accumulator to generate training pairs faster
+
+**Training data pipeline:**
+- [ ] Write `generate_training_data.ts`: reads session logs from
+      `weft-dev/meta/`, extracts `context_window` from each observation
+      entry, formats as meta-agent input (matching observer.sh payload:
+      system prompt + recent turns + accumulator + turn count)
+- [ ] For each input, call Opus to produce the ideal `<inject>`/
+      `<context>` response — this is the distillation step. Opus
+      receives **exactly the same input** the fine-tuned model will
+      see (no extra context that would leak)
+- [ ] Format as chat JSONL for MLX-LM: system = prompt.md content,
+      user = recent turns + accumulator JSON, assistant = Opus response
+- [ ] Quality review: inspect 10-20 examples for format compliance,
+      silence accuracy, injection relevance before training
+- [ ] Handle Qwen3 `<think>` tags: strip from formatted training text
+      with `enable_thinking=False` + regex (per bootcamp assignment
+      guidance on Qwen3 thinking mode)
+
+**Fine-tune execution:**
+- [ ] Install uv + mlx-lm (or use pip in venv)
+- [ ] Split training data: 90% train / 10% validation
+- [ ] Run `mlx_lm.lora` on 4B (or 8B if memory allows — quit LM
+      Studio during training). LoRA rank 16, target all attention +
+      MLP layers, 600 iterations, batch_size=1
+- [ ] Monitor loss curve: healthy = 2-3 → 0.5-1.0. Below 0.1 =
+      overfitting. Above 2.0 = data format or learning rate issue
+- [ ] Fuse adapter: `mlx_lm.fuse` → local model directory
+- [ ] Verify fused model loads in LM Studio (check directory format
+      compatibility)
+- [ ] Add as new toggle.sh flag (e.g., `--ft` or `--ftm`)
+
+**Evaluation:**
+- [ ] Compare fine-tuned vs. base+prompt on: format compliance rate,
+      silence accuracy (correct `[no comment]` when on track),
+      injection relevance, latency
+- [ ] Run simulate-accumulator with fine-tuned model on held-out
+      sessions
+- [ ] Does fine-tuning eliminate the need for model-specific prompt
+      variants? (Moves Phase 1 tail item from prompt engineering to
+      weight-level solution)
+
+**Memory constraints (16GB M2 Pro):**
+- 4B 4-bit: ~2.1GB model + ~2GB training overhead = ~4GB peak. Comfortable.
+- 8B 4-bit: ~4.3GB model + ~3GB training overhead = ~7GB peak. Tight
+  — requires quitting all non-essential apps including LM Studio.
+- Note: LoRA on pre-quantized (4-bit) base weights produces lower
+  quality adapters than on full-precision weights. Acceptable tradeoff
+  for hardware constraints.
+
+**Curriculum alignment:** LoRA fine-tuning, MLX framework, knowledge
+distillation, synthetic training data generation, model evaluation.
+
 ### Phase 4: Empirical comparison framework (Day 3-4)
 
 The publishable deliverable. A/B testing infrastructure.
-Three independent variables: model size, observation mode, and
-baseline comparison.
+Four independent variables: model size, observation mode, fine-tuning,
+and baseline comparison.
 
 - [ ] Define test scenarios: 5-10 representative session types
       (debugging, building, learning, design, stuck-in-a-loop)
@@ -317,6 +554,9 @@ baseline comparison.
       latency, user-perceived helpfulness
 - [ ] **Model comparison:** Run each scenario with no meta-agent,
       Haiku meta-agent, local small (4B), local medium (8B)
+- [ ] **Fine-tuned vs. base+prompt:** Run each scenario with
+      base model + prompt.md vs. fine-tuned model (same size).
+      Isolates the effect of fine-tuning from model size.
 - [ ] **Observation mode comparison:** Run each scenario with:
       - No retrieval (transcript only — baseline)
       - Fast (mechanical retrieval, one inference call)
@@ -329,7 +569,8 @@ baseline comparison.
       that Fast misses? Specifically: learner pattern references,
       design principle connections, boundary-confusion detection.
 - [ ] Log all results in structured format (JSONL per session,
-      including mode, model, latency, escalation, injection content)
+      including mode, model, fine-tuned flag, latency, escalation,
+      injection content)
 - [ ] Write up findings
 
 **Curriculum alignment:** Model evaluation, benchmarking,
@@ -341,8 +582,14 @@ Make it work smoothly for daily use.
 
 - [ ] Reliability: handle LM Studio not running, model not loaded,
       index not built (graceful degradation, not crashes)
-- [ ] Re-indexing: PostToolUse hook on Write/Edit re-embeds
-      changed files, or periodic cron
+- [ ] Re-indexing daemon: watch roger/, weft-dev/, weft/ for file
+      changes, re-embed changed files incrementally. Options evaluated
+      (2026-03-10): chokidar v5 (preferred — debouncing + glob filter,
+      pure JS, untested on bun), fs.watch (built-in, FSEvents-backed,
+      known new-file bug in bun), @parcel/watcher (best performance,
+      snapshot-query feature, bun compat issue). For Phase 2 build:
+      manual re-index script (`bun index.ts --reindex`) is sufficient.
+      Daemon wraps that script in Phase 5.
 - [ ] Select default observation mode based on empirical findings
 - [ ] Tune the meta-agent prompt based on empirical findings
 - [ ] Tune retrieval: similarity threshold, number of results,
@@ -362,9 +609,10 @@ Make it work smoothly for daily use.
 
 ## Week 2+ roadmap (commented, not built)
 
-- Fine-tuning: generate training data from Opus reviewing past
-  sessions. Train a specialized meta-agent on design principles
-  at instinct level. Compare against prompt-only approach.
+- Fine-tuning iteration: retrain with larger corpus as session logs
+  accumulate. Test 8B fine-tune if 4B results are promising.
+  Experiment with training without system prompt (persona leakage /
+  baked-in behavior) vs. system-prompt-dependent behavior.
 - User install flow: one-command bootstrap with guided choices
 - Generalized principles: extract Hart-specific principles into
   a framework any learner can customize
@@ -401,6 +649,9 @@ Each experiment gets a dated entry:
 | Embedding models | nomic-embed-text for retrieval layer |
 | Building pipelines | Full RAG pipeline: embed → index → retrieve → observe → inject |
 | Benchmarking | Empirical comparison framework across models and architectures |
+| Fine-tuning / LoRA | Phase 2.5: LoRA fine-tune of meta-agent on retrieval-aware training data via MLX |
+| Knowledge distillation | Opus generates gold-standard training data for smaller local model |
+| Synthetic data generation | Training data pipeline from session logs + frontier model |
 | Production concerns | Latency, reliability, graceful degradation, modes |
 
 **Not covered by this project:** Hosted providers (Groq, Together,
