@@ -1,10 +1,13 @@
 # MetaClaude Local: Week PRD
 
-**Status:** Draft — brainstormed 2026-03-09
-**Current state:** Haiku-based MetaClaude is fully implemented and
-deployed (hooks, status line, observability, toggle, hotkey). Phase 3
-(observability) complete + extended with structured session logging and
-inline chat display. **Next: Phase 1 (local model swap).**
+**Status:** Living document — started 2026-03-09, updated 2026-03-10
+**Current state:** Dual-backend MetaClaude (Claude CLI + LM Studio local)
+fully implemented. Phase 1 (local model swap) largely complete. Phase 3
+(observability) complete + extended with structured session logging,
+inline chat display, accumulator system, fingerprint skip optimization,
+structured response parsing, 28-test suite, and per-session state
+isolation for parallel sessions. **Next: model comparison experiments
+(Phase 1 tail), then Phase 2 (embedding index).**
 **Scope:** One week, experimentation-heavy, drift expected
 **Success metric:** A local meta-agent that observably improves session
 alignment with long-term goals, principles, and system self-improvement.
@@ -14,12 +17,12 @@ Empirical comparisons between architectures that could be published.
 
 ## What we're building
 
-A local metacognitive agent that observes Claude Code sessions and
-makes selective, grounded context injections. Replaces the current
-Haiku-via-API approach with a local model running via LM Studio's MLX
-backend, augmented by a local embedding index for retrieval. Three
-observation modes (Fast, Deep, Probe) tested empirically. Two display
-modes: dev (full observability) and production (minimal UI).
+A metacognitive agent that observes Claude Code sessions and makes
+selective, grounded context injections. Dual-backend: Claude CLI
+(Haiku/Opus via API) and LM Studio (local MLX models on Apple Silicon).
+Planned: local embedding index for retrieval-augmented observation, with
+three observation modes (Fast, Deep, Probe) tested empirically. Two
+display modes: dev (full observability) and production (minimal UI).
 
 ## Architecture
 
@@ -33,20 +36,20 @@ modes: dev (full observability) and production (minimal UI).
 ┌──────────────┴──────────────────────┐
 │         Inject Hook                 │
 │  UserPromptSubmit                   │
-│  Reads staging file → injects       │
+│  Reads per-session staging file     │
 │  Logs injection (dev mode: display) │
 └──────────────┬──────────────────────┘
                │ reads from
 ┌──────────────┴──────────────────────┐
-│         MetaAgent (local, LM Studio)│
-│  MLX backend on Apple Silicon       │
-│  7-8B model (A/B test with smaller) │
-│  Three observation modes:           │
-│  Fast / Deep / Probe                │
+│         MetaAgent                   │
+│  Backend A: Claude CLI (Haiku/Opus) │
+│  Backend B: LM Studio (MLX local)  │
+│  Accumulator: running session ctx   │
+│  Fingerprint: skip unchanged window │
 └──────────────┬──────────────────────┘
-               │ queries
+               │ queries (planned)
 ┌──────────────┴──────────────────────┐
-│         Embedding Index             │
+│         Embedding Index (Phase 2)   │
 │  SQLite-vec, bun scripts            │
 │  nomic-embed-text via LM Studio     │
 │  Indexes: notepad, learning state,  │
@@ -54,9 +57,11 @@ modes: dev (full observability) and production (minimal UI).
 └─────────────────────────────────────┘
 ```
 
-### Observation modes
+### Observation modes (Phase 2 — planned, not yet built)
 
-Three modes for the observer pipeline, tested empirically:
+Three modes for the observer pipeline, to be tested empirically once
+the embedding index (Phase 2) is built. Current pipeline is single-pass
+inference with no retrieval:
 
 **Fast** — Retrieve-then-reason. One inference call.
 ```
@@ -100,13 +105,23 @@ its first-pass retrieval is sufficient? If escalation rate is ~0% or
 ~100%, Probe collapses to Fast or Deep respectively and the adaptive
 logic adds no value.
 
-### Flow per turn
+### Flow per turn (current implementation)
 
 1. Builder Claude responds (Stop hook, async)
-2. Observer reads recent transcript
-3. Observer runs the active observation mode (Fast, Deep, or Probe)
-4. If observation: write to staging file + log
-5. Next user prompt → inject hook reads staging file → injects
+2. Observer sets up per-session state dir (`sessions/{8-char-id}/`)
+3. Observer reads recent transcript (last 50 lines, tool-collapsing,
+   last 10 substantive turns)
+4. Fingerprint check: if window unchanged and accumulator exists, skip
+   (log `observation_skipped`, exit)
+5. Read accumulator (running session context from prior observations)
+6. Inference: send recent turns + accumulator + turn count to meta-agent
+   (routed to LM Studio or Claude CLI based on model config)
+7. Parse structured response: `<inject>` for Builder, `<context>` for
+   accumulator. Fallback: entire response → injection if no tags.
+8. If observation: write to per-session staging file + update accumulator
+   + log to session JSONL + legacy daily JSONL
+9. Next user prompt → inject hook reads per-session staging file →
+   injects as `[MetaClaude] ...` additionalContext
 
 ### Latency target
 
@@ -118,6 +133,48 @@ If latency is low enough, explore same-turn injection (observer
 fires on UserPromptSubmit instead of Stop, runs before Builder
 Claude processes the message). This is stretch — depends on
 model speed.
+
+---
+
+## Design principle gaps
+
+Audit against `design/design-principles.md` (2026-03-10). Three gaps
+between current implementation and principles, ordered by impact:
+
+1. **No learning state access (P3, P9).** The observer receives notepad
+   file *names* but doesn't read learning state (current-state, goals,
+   session logs). Without the developmental model, it can detect symptoms
+   (circling, drift) but can't diagnose cause (too hard? wrong altitude?
+   well-calibrated?). Phase 2 embedding index is the fix — Deep/Probe
+   modes can retrieve learning state chunks relevant to the current
+   session. Until then, the observer is partially blind about the learner.
+   **Implication for build:** Phase 2 is not just a retrieval upgrade —
+   it's what connects MetaClaude to the developmental model. Prioritize
+   indexing `learning/` and `design/design-principles.md` in the first
+   embedding pass.
+
+2. **No feedback loop on injection quality (P6).** Session logs capture
+   what was injected but not whether it helped. The system improves
+   through use only if it can distinguish useful injections from noise.
+   **Options:** (a) lightweight user signal (thumbs up/down, or a
+   `/metaclaude` subcommand), (b) behavioral signal — did Builder Claude
+   act on the injection in the next turn? (c) Phase 4 human scoring
+   during review. Option (b) is automatable from transcript data and
+   doesn't require user effort. Consider adding to Phase 4 scoring rubric.
+
+3. **No play-state sensitivity (P8).** The prompt doesn't distinguish
+   exploratory vs. convergent sessions. In play/explore mode, the bar
+   for injection should be higher — corrective or evaluative injections
+   disrupt the explore state. **Fix:** One-line addition to `prompt.md`
+   "when to stay silent" section: if the session is in exploratory or
+   play mode and making progress, stay silent even if you'd normally
+   comment.
+
+**What's already strong:** Composability (P5) — toggle, model swap,
+mode swap, instruction system are clean interfaces. Human authority
+(P7) — observer proposes, Builder disposes, user can kill it instantly.
+Logging infrastructure (P6 partial) — full pipeline data captured per
+turn, ready for Phase 4.
 
 ---
 
@@ -137,22 +194,28 @@ model speed.
 | Observability | Log file (must-have), dev-mode inline display (must-have) | Injection is highest-influence point; needs monitoring. Dev mode shows additionalContext inline in chat with ◉ MC heading. |
 | Display modes | Dev (full info) vs Production (minimal) | Different needs for builder vs. user |
 | Toggle | `Cmd+Ctrl+M` global hotkey + mode flag | Out-of-band, doesn't pollute conversation |
-| Session logging | Per-session JSONL in `weft-dev/meta/` | One file per conversation. Captures full pipeline per turn: context window, queries, retrieved chunks, reasoning, decision. Serves both human review and Phase 4 empirical framework. Session identity from transcript UUID; pointer file coordinates observer.sh and inject.sh. |
+| Session logging | Per-session JSONL in `weft-dev/meta/` | One file per conversation. Captures full pipeline per turn: context window, inference metadata, decision, accumulator state, full response. Serves both human review and Phase 4 empirical framework. Session identity from transcript UUID; per-session pointer file in `sessions/{id}/` coordinates observer.sh and inject.sh. |
 | User install | 95% automated / 5% user choices | After personal testing proves the concept |
 | Model selection | Flag-based via toggle.sh (--sl/--ml/--ll/--mch/--mco), abbreviations in status line | Short, scannable. Lowercase flags match shell convention. Abbreviations encode backend class at a glance. |
 | Thinking tag handling | Log full response, strip for injection (two-path) | Thinking chain is valuable data for comparison; Builder Claude should never see meta-agent internals. |
 | Instruction passing | `+[]/−[]` syntax, file-persisted, appended to system prompt | Instructions are session-level directives. `+` appends, `-` replaces, `-[]` clears. File persists until cleared or disabled. |
-| Backend routing | JSON config file (`~/.claude/.metaclaude-model`) with `backend` field | Clean separation: toggle.sh writes once, observer.sh reads and routes. Adding a new backend means one case in each. |
+| Backend routing | JSON config file (`~/.claude/metaclaude/model`) with `backend` field | Clean separation: toggle.sh writes once, observer.sh reads and routes. Adding a new backend means one case in each. |
 | Hot-swapping models | Flag-based switching via toggle.sh | Status line updates immediately; next observer invocation uses new model. (Moved from deferred.) |
-| Session log viewer | Phase 3a, built | React SPA in `tools/log-viewer/`. Moved from deferred. |
+| Session log viewer | Phase 3a, built then removed | Was React SPA in `tools/log-viewer/`. Session logs are directly queryable with `jq`. |
 | Session log `full_response` | New field on observation entries | Preserves full meta-agent output including thinking tags for empirical comparison. |
+| Accumulator system | `<context>` tag in meta-agent response, persisted to per-session file | Running session summary updated each turn. Observer reads it back as input, giving the meta-agent memory across turns without re-reading the full transcript. |
+| Fingerprint skip | SHA1 of non-tool turns in the recent window | If the window hasn't changed since last observation (e.g., tool-only turns), skip inference entirely. Saves latency and API/compute cost. |
+| Structured response parsing | `<inject>`/`<context>` tags, fallback to raw | Two-path: inject content for Builder Claude, context for accumulator. Fallback treats entire response as injection (backward-compatible with pre-accumulator behavior). Tested at 5/5 compliance on Qwen3-8B. |
+| `[MetaClaude]` prefix on injections | Always prefixed | inject.sh prepends `[MetaClaude]` to all additionalContext. Helps Builder Claude distinguish meta-agent input from other system messages. (Moved from deferred.) |
+| State directory consolidation | `~/.claude/metaclaude/` single directory | All state files under one path. Replaced scattered `~/.claude/.metaclaude-*` flat files. Simplifies sandbox allowlisting (one path). |
+| Per-session state isolation | `~/.claude/metaclaude/sessions/{8-char-id}/` | Injection, accumulator, fingerprint, and session-log pointer are per-session. Prevents cross-contamination when parallel Claude Code sessions run. Global config (enabled, mode, model, instruction) stays at top level. |
+| Test suite | `test-parser.sh` with 28 tests | Validates response parsing, tool-collapsing, accumulator lifecycle, and fingerprint skip logic. Runs in ~1s, no external dependencies. |
 
 ## Decisions deferred
 
 | Decision | Why deferred |
 |---|---|
 | Fine-tuning | Week 2+ goal. Need training data first. High effort, unclear payoff for MVP. |
-| `[MetaClaude]` prefix on injections | Uncertain how it affects Builder Claude behavior. Test both. |
 | User-facing install flow | Build for self first, then design the onramp. |
 | Ollama as fallback | LM Studio is primary. Ollama stays installed but not required. Revisit if LM Studio proves unreliable for headless/automated use. |
 | Probe escalation threshold | How does the model decide "need more"? Prompt-engineered for now; may need tuning or a confidence score. |
@@ -182,6 +245,14 @@ Replace Haiku API call with LM Studio's OpenAI-compatible local API.
 - [ ] Select primary model for remaining work
 - [ ] Model-specific prompt variants: standard prompt.md was written for Haiku. Local models (especially smaller ones) may need different prompting to produce useful observations. Test each model with the current prompt, then evaluate whether per-model prompt variants or a single revised prompt is the right path.
 - [x] Thinking tag strip: handle truncated (unclosed) tags. Fixed in observer.sh — `<think>.*\z` catches unclosed tags at end of string. Token limit removed (local inference is free); 30s curl timeout is the only cap.
+- [x] Accumulator system: meta-agent outputs `<context>` tag with running session summary. Observer persists to file, reads back on next turn. Gives meta-agent memory across turns.
+- [x] Fingerprint skip optimization: SHA1 of recent window's non-tool turns. If unchanged since last observation, skip inference entirely.
+- [x] Structured response parsing: `<inject>`/`<context>` tag extraction with fallback to raw response. Tested at 5/5 on Qwen3-8B.
+- [x] Tool-collapsing in transcript parsing: consecutive tool-only assistant turns collapsed into summaries like `[tools: Bash x4, Read x1]`.
+- [x] Test suite: `test-parser.sh` with 28 tests covering parsing, tool-collapsing, accumulator lifecycle, and fingerprint skip.
+- [x] State directory consolidation: all state files moved from scattered `~/.claude/.metaclaude-*` to `~/.claude/metaclaude/`.
+- [x] Per-session state isolation: injection, accumulator, fingerprint, session-log pointer scoped to `sessions/{8-char-id}/`. Prevents cross-contamination in parallel sessions.
+- [x] `[MetaClaude]` prefix on all injections (inject.sh additionalContext).
 
 **Curriculum alignment:** Local inference, MLX framework, OpenAI-compatible
 APIs, model selection, benchmarking.
@@ -202,6 +273,8 @@ embedding model is ~270MB, negligible alongside the inference model.
 - [ ] Wire into observer as Fast mode baseline: embed transcript →
       retrieve → include in model payload
 
+**Brainstorm:** Silent failure detection. Session logs capture tool calls with exit codes and empty outputs — enough data to surface recurring failures that get routed around by graceful degradation (e.g., `bun run` silently failing on absolute paths, causing skills to skip session data entirely). A periodic diagnostic that scans recent session logs for non-zero exits, empty-where-non-empty-expected, and repeated error patterns could catch these before they compound. Design as part of a dev-mode toolkit.
+
 **Curriculum alignment:** Embedding models, vector storage, RAG
 pipeline construction.
 
@@ -211,7 +284,7 @@ Built ahead of schedule during design session. Extended with structured
 session logging and inline chat display (2026-03-09).
 
 - [x] Injection log file: daily JSONL with timestamp, content,
-      latency, mode. In `~/.claude/metaclaude-logs/`.
+      latency, mode. In `~/.claude/metaclaude/logs/`.
 - [x] Dev mode: multi-line status line shows injection content
       ("injected: ...") and staged content ("staged: ...").
 - [x] Production mode: status line indicator only (`○ MC` / `◉ MC`).
@@ -222,21 +295,14 @@ session logging and inline chat display (2026-03-09).
 - [x] Structured per-session logging: JSONL per conversation in
       `weft-dev/meta/`, capturing full observation pipeline (see
       "Session logging" section below). (`observer.sh` + `inject.sh`)
-- [ ] Log viewer: simple script to tail/search the log (not yet built)
+- [x] Log viewer: promoted to Phase 3a (see below). Built and later removed.
 
-### Phase 3a: Session Log Viewer
+### Phase 3a: Session Log Viewer (removed)
 
-React SPA + Bun HTTP server for reviewing metaclaude sessions.
-Location: `tools/log-viewer/`
-
-- Session list: sortable table (date, meta agent, turns, embedding queries stub)
-- Project filter: dropdown scans `~/.claude/projects/`
-- Conversation view: merged timeline of Claude Code transcript + metaclaude observations
-- Turn rendering: user/assistant turns, tool use with emoji map, thinking blocks
-- Meta entries: indented, italic, blue-tinted background
-- File path links: clickable, reveals in Finder via `open -R`
-- Slash command highlighting
-- Embedding query display: stubbed pending Phase 2
+Was a React SPA + Bun HTTP server in `tools/log-viewer/`. Built during
+initial implementation, later removed from the repo. Session logs are
+directly queryable with `jq` (see Session logging section). A viewer
+may be rebuilt if needed.
 
 ### Phase 4: Empirical comparison framework (Day 3-4)
 
@@ -289,12 +355,10 @@ Make it work smoothly for daily use.
 ## Stretch goals (this week if time allows)
 
 - [ ] Same-turn injection (if local model is fast enough)
-- [x] Dashboard/viewer for injection history → built as Phase 3a (tools/log-viewer/)
+- [x] Dashboard/viewer for injection history → built as Phase 3a, later removed
 - [x] Hot-swap model command → toggle.sh flags (--sl/--ml/--ll/--mch/--mco)
 - [ ] MetaAgent writes to notepad (Level 2 from note 010)
-- [ ] Session-spanning memory: MetaAgent maintains its own
-      running summary across turns, persisted to a file,
-      so it doesn't lose context when the transcript grows
+- [x] Session-spanning memory → built as the accumulator system. Meta-agent outputs `<context>` with running summary; observer persists per-session, reads back on next turn.
 
 ## Week 2+ roadmap (commented, not built)
 
@@ -358,25 +422,31 @@ Claude Code conversation. Format: JSONL with typed entries.
 (e.g., `meta/2026-03-09_0beb743c.jsonl`)
 
 **Session identity:** Derived from transcript path UUID
-(`basename "$TRANSCRIPT_PATH" .jsonl`). A pointer file at
-`~/.claude/.metaclaude-session-log` coordinates between observer.sh
-(writes) and inject.sh (reads) so both append to the same log.
+(`basename "$TRANSCRIPT_PATH" .jsonl`). Per-session pointer file at
+`~/.claude/metaclaude/sessions/{8-char-id}/session-log` coordinates
+between observer.sh (writes) and inject.sh (reads) so both append to
+the same log. Each session's state (injection, accumulator, fingerprint,
+pointer) is isolated in its own directory.
 
 **Entry types:**
 
 | Type | Written by | Content |
 |------|-----------|---------|
-| `session_header` | observer.sh (first turn) | session_id, transcript_path, started_at, observation_mode, model |
-| `observation` | observer.sh (every turn) | turn number, context_window (transcript turns, retrieved chunks, notepad files), pipeline stages with per-stage latency and reasoning, decision (inject/silent), injection_content |
-| `injection` | inject.sh (when delivered) | timestamp, content, delivered:true |
+| `session_header` | observer.sh (first turn) | session_id, hook_session_id, transcript_path, started_at, observation_mode, model, cwd, permission_mode |
+| `observation` | observer.sh (every turn) | turn number, context_window (transcript turns, user turns), pipeline (inference_1 with latency and metadata), decision (inject/silent), injection_content, full_response, user_message, accumulator_in, accumulator_out |
+| `observation_skipped` | observer.sh (fingerprint match) | turn number, reason ("window_unchanged"), fingerprint hash |
+| `injection` | inject.sh (when delivered) | timestamp, content, delivered:true, user_prompt, session_id, permission_mode |
 | `error` | observer.sh (on failure) | stage, error message, latency |
 
-**Pipeline stage shape varies by observation mode:**
+**Current pipeline shape (no retrieval):**
+- `inference_1` (purpose: `assess_and_decide`, latency_ms, metadata with model/usage/stop_reason)
+
+**Planned pipeline shapes (Phase 2, when embedding index is built):**
 - **Fast:** `embed` → `retrieve` → `inference_1` (purpose: `assess_and_decide`)
 - **Deep:** `embed` → `retrieve` → `inference_1` (`generate_queries`) → `embed_2` → `retrieve_2` → `inference_2` (`final_decision`)
 - **Probe:** Same as Fast, plus conditionally `embed_2`/`retrieve_2`/`inference_2`. `inference_1` includes `escalated: true/false`.
 
-**Migration:** Legacy daily JSONL in `~/.claude/metaclaude-logs/`
+**Migration:** Legacy daily JSONL in `~/.claude/metaclaude/logs/`
 preserved via dual-write. Will be removed once structured logging is
 verified across multiple sessions.
 
@@ -393,18 +463,21 @@ jq 'select(.type=="error")' meta/*.jsonl                # errors
 
 Dev/prod mode system implemented in `weft/tools/metaclaude/`:
 
-- **Log file** (must-have, built): Daily JSONL in `~/.claude/metaclaude-logs/`.
+- **Log file** (must-have, built): Daily JSONL in `~/.claude/metaclaude/logs/`.
   Every observation logged with latency. Every injection logged with content.
 - **Dev mode display** (must-have, built): Multi-line status line shows
   injection content ("injected: ...") and staged content ("staged: ...").
+  Staged content uses glob across `sessions/*/injection` (most recent wins).
 - **Dev mode inline chat** (built): When an injection fires, the
   additionalContext content is shown inline in the chat via stderr.
   Heading: `◉ MC` in bright magenta (matching the status line icon).
   Content in dim magenta. Only in dev mode; prod mode is silent.
-- **Prod mode** (built): Indicator only (`○ MC` / `◉ MC`).
+- **Prod mode** (built): Indicator only (`○ MCH` / `◉ ML` — model
+  abbreviation replaces generic "MC").
 - **Mode switching** (built): `toggle.sh --dev / --prod / mode dev / mode prod`.
 - **Global hotkey** (built): `Cmd+Ctrl+M` via macOS Quick Action.
-- **Dashboard/viewer**: Promoted to Phase 3a (session log viewer). See below.
+- **Dashboard/viewer**: Was Phase 3a (session log viewer), built then removed.
+  Session logs are directly queryable with `jq`.
 - **Expandable injection view** (hotkey to peek): Nice-to-have for prod mode.
 
 ---
