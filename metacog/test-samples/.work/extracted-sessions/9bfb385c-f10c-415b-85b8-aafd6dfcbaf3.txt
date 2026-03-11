@@ -1,0 +1,610 @@
+[U1 16:32] i'd like you to copy this file into weft-dev/design and prepend the filename with today's date yyyy-mm-dd /Users/rhhart/Documents/GitHub/roger/plans/metaclaude-local-prd.md then analyze schedule.md and week5-prd.md to see what if anything is leftover and relevant from those plans/items. present them in a list for me to respond to with status updates and decisions
+  -> Read: metaclaude-local-prd.md
+  -> Glob: **/schedule.md in roger
+  -> Glob: **/week5-prd.md in roger
+  -> Glob: **/schedule* in roger
+  -> Glob: **/week5* in roger
+  -> Glob: **/*schedule* in weft
+  -> Glob: **/*week5* in weft
+  -> Glob: **/schedule* in GitHub
+  -> Glob: **/week5* in GitHub
+  -> Read: week5-prd.md
+  -> Glob: **/schedule* in roger
+  -> Glob: **/schedule* in design
+  -> Read: schedule.md
+[A14 16:33] Now let me copy the file and then present the analysis.
+  -> Bash: cp /Users/rhhart/Documents/GitHub/roger/plans/metaclaude-local-prd.md /Users/rhh
+[A16 16:33] File copied to `design/2026-03-09-metaclaude-local-prd.md`.
+
+Here's what's leftover from schedule.md and week5-prd.md. Everything marked "Done" is excluded. Items grouped by category, roughly priority-ordered by what seems most load-bearing:
+
+---
+
+### Learning loop closure (partially done)
+
+1. **Split session-review: remove state-update logic now handled by session-digest** — Planned
+2. **Build session-quiz as standalone active-recall skill** — Planned
+3. **Wire session-discovery into progress-review** — Planned
+4. **Wire session-discovery into startwork (beyond digest staleness check)** — Planned
+5. **Verify session-digest → session-quiz → startwork loop runs end-to-end** — Planned
+
+### Session-review split (full section, all planned)
+
+6. **Audit session-review SKILL.md for which phases belong to digest vs. quiz**
+7. **Remove state-update logic from session-review (now in session-digest)**
+8. **Build session-quiz skill: quiz phase + session log write**
+
+### Visibility principle
+
+9. **Design agent-visible vs. agent-blind markers for current-state.md scoring model**
+10. **Add markers to concepts where evaluation fluency is the target**
+11. **Surface uncertainty language in skills that read current-state.md**
+
+### Goal-evolution detector
+
+12. **Design detection mechanism: behavior-vs-stated-goal divergence check**
+13. **Wire into progress-review or audit process**
+14. **Distinguish evolution from drift in output language**
+
+### Session-review and progress-review diagnosis
+
+15. **Run both skills against real session data, evaluate output quality**
+16. **Identify major structural flaws before deciding whether to refactor**
+
+### Principles reference — install package
+
+17. **Audit design-principles.md and harness-features.md for delta vs. .claude/references/**
+18. **Distill delta into teaching-principles.md**
+19. **Wire into relevant skill SKILL.md files**
+
+### Two-user verification
+
+20. **Dad: install + intake + first session-review**
+21. **Engineer: install + intake + v [...truncated]
+[U2 16:35] Now I want you to check over the entire weft harness at ~/documents/github/weft and Analyze all the relevant files, skills, etc. that you need to and check off any of these that appear to be completed.
+[A17 16:35] Let me dig through the harness systematically.
+  -> Agent: Check session-review split status
+  -> Agent: Check visibility and goal-evolution
+  -> Agent: Check principles, onboarding, intake
+  -> Agent: Check two-user verification status
+[A22 16:37] Here's the updated list. Items marked **DONE** have evidence in the codebase. Everything else stays as-is for your status call.
+
+---
+
+### Learning loop closure
+
+1. ~~**Split session-review: remove state-update logic (now in session-digest)**~~ — **DONE.** Session-review dispatches session-digest as a sub-agent for evidence gathering; no longer does state updates itself.
+2. **Build session-quiz as standalone active-recall skill** — NOT DONE. Quiz logic remains inside session-review Phase 2. No `session-quiz/` skill directory exists.
+3. ~~**Wire session-discovery into progress-review**~~ — **DONE.** Progress-review calls `session-discovery.ts` explicitly in its Gather phase.
+4. ~~**Wire session-discovery into startwork (beyond digest staleness check)**~~ — **DONE.** Startwork calls session-discovery twice: once for progress-review gate, once for digest staleness.
+5. **Verify session-digest → session-quiz → startwork loop runs end-to-end** — BLOCKED by #2 (session-quiz doesn't exist).
+
+### Session-review split
+
+6. ~~**Audit session-review for which phases belong to digest vs. quiz**~~ — **DONE** (implicitly — the split is implemented).
+7. ~~**Remove state-update logic from session-review**~~ — **DONE** (same as #1).
+8. **Build session-quiz skill: quiz phase + session log write** — NOT DONE (same as #2).
+
+### Visibility principle
+
+9. **Design agent-visible vs. agent-blind markers** — PARTIALLY DONE. Evidence-source tags exist in `scoring-rubric.md` with confidence weighting per source. Seven concepts have `fluency-target: evaluation` markers. But no explicit `agent-visible`/`agent-blind` labels on concepts.
+10. **Add markers to concepts where evaluation fluency is the target** — **DONE.** Seven concepts in current-state.md have `fluency-target: evaluation`.
+11. **Surface uncertainty language in skills that read current-state.md** — PARTIALLY DONE. Session-digest outputs confidence ratings (high/moderate/low) and flags low-confidence entries. Progress-review has a confid [...truncated]
+[U3 16:40] Another pass for relevance: the first file that we moved, the MetaClaude local PRD. Read that file and consider it the top goal for this week. Everything else is a secondary goal. if Any of those secondary goals serve this goal and *need* to be completed as prior constraints, let's put those first. Everything else can be probably postponed, but update the list and present it with those recommendations.
+
+Also, you may have to check the git status for this, But I believe that I uncovered a problem on Saturday the 7th where many of the skills that use Session Digest were failing silently and not doing any Session Digest analysis. And I think I fixed that problem, but I'm not certain that the PR was merged. I'd like you to check on that, please.
+  -> Read: 2026-03-09-metaclaude-local-prd.md
+  -> Bash: cd /Users/rhhart/Documents/GitHub/weft && git log --oneline -20
+  -> Bash: gh pr list --state all --limit 10
+[A26 16:40] I see two PRs called "Feat/digest guard yolo" (#9 and #10) — that's likely the fix. Let me check those plus the open PR #15.
+  -> Bash: gh pr view 9 --json title,body,state,mergedAt --jq '.title + "\nState: " + .stat
+  -> Bash: gh pr view 10 --json title,body,state,mergedAt --jq '.title + "\nState: " + .sta
+  -> Bash: gh pr view 13 --json title,body,state,mergedAt --jq '.title + "\nState: " + .sta
+  -> Bash: gh pr view 15 --json title,body,state,mergedAt --jq '.title + "\nState: " + .sta
+[A31 16:40] Good. Here's what I found:
+
+**Session-digest fix:** PRs #9 and #10 ("Feat/digest guard yolo") are both **merged** (Mar 5). PR #10 specifically rewired progress-review and startwork to dispatch session-digest with graceful fallbacks when discovery or digest fails. PR #13 (merged Mar 6) further updated session-digest to route through `session-extract.ts` instead of raw JSONL parsing. So yes — the fix landed.
+
+**Open PR:** #15 ("Add domain graph schema, skills, and README updates") is still open and unmerged.
+
+---
+
+Here's the reprioritized list against the MetaClaude Local PRD as primary goal:
+
+### Primary: MetaClaude Local (all from PRD)
+
+This is the week. Phases 1, 2, 4, 5 plus stretch goals. No items from the week 5 backlog are hard prerequisites for this work.
+
+### Secondary: Serves MetaClaude directly
+
+None of the week 5 leftovers are blocking constraints for MetaClaude. The harness infrastructure it depends on (session-discovery, session-digest, observability, hooks) is already merged and working.
+
+### Secondary: Worth doing if time/energy allows
+
+| # | Item | Recommendation |
+|---|------|----------------|
+| 2 | **Build session-quiz as standalone skill** | **Postpone.** Quiz logic works fine inside session-review. Splitting it is a refactor, not a capability gap. |
+| 5 | **Verify digest → quiz → startwork loop e2e** | **Postpone.** Blocked by #2 and not needed this week. |
+| 9 | **Agent-visible/agent-blind markers (explicit labels)** | **Postpone.** Evidence-source tags and fluency-target markers are already doing this work implicitly. Explicit labels are polish. |
+| 11 | **Surface uncertainty in learner-facing output** | **Postpone.** Internal confidence plumbing exists. Surfacing it to the user is a UX decision, not a bug. |
+| 15-16 | **Run session-review + progress-review against real data** | **Postpone but keep on radar.** Good to do after MetaClaude's empirical comparison framework (Phase 4) — same evaluation muscle, different target. |
+| 17-19 | **Principl [...truncated]
+[U4 16:42] I'm leaving this one open for later because it actually introduces a breaking change to many of the skills, and while the progress that it makes is important, it's not complete, and so a lot of other things have to be updated in order to make this an improvement. And so I'm going to keep it open and unmerged for now.
+[A32 16:42] Got it. PR #15 stays open — incomplete migration that would break skills if merged now.
+
+That clears the board. MetaClaude Local is the week, everything else is parked.
+[U5 16:43] Base directory for this skill: /Users/rhhart/.claude/skills/git-ship
+
+# /git-ship
+
+Stage → commit → push → PR in one invocation.
+
+## Flags
+
+| Flag | Effect |
+|------|--------|
+| `--merge` | Squash-merge the PR and delete the branch after creation |
+| `--dry-run` | Show the plan without executing |
+
+## Workflow
+
+### 1. Preflight (parallel)
+
+Run simultaneously:
+- `git status`
+- `git diff --stat` (staged + unstaged)
+- `git log --oneline -5`
+- `git branch -a`
+- `git rev-parse --abbrev-ref HEAD`
+- Detect default branch (`main` or `master`)
+- `gh pr view --json state 2>/dev/null`
+
+**Gate:** if current branch already has an open PR, stop. Report:
+"Branch already has an open PR. Create a fresh branch for new changes."
+
+**Gate:** if on main/master, stop. "Cannot ship directly to main.
+Create a feature branch first."
+
+### 2. Group and filter changes
+
+- **One coherent group:** proceed
+- **Mixed concerns:** identify primary group, report the rest:
+  "Skipping unrelated changes: [file list]"
+- **Ambiguous:** ask which changes to ship
+
+Never stage `.env`, credentials, or secrets files.
+
+### 3. Choose branch
+
+```
+On feature branch + changes fit       → stay
+On feature branch + changes don't fit → find or create matching branch
+```
+
+**Finding a match:** scan local and remote branch names. Confirm with
+user before switching.
+
+**Creating:** generate a descriptive slug (e.g., `fix-auth-redirect`).
+Confirm name with user. `git checkout -b <slug>`.
+
+### 4. Commit
+
+- `git add <file1> <file2> ...` — name each file explicitly
+- Generate a concise commit message (1-2 lines) matching repo's recent
+  style from step 1
+- Append `Co-Authored-By: Claude <noreply@anthropic.com>` trailer
+- Show the message, then commit immediately — do not wait for approval
+
+### 5. Push + PR
+
+Use `AskUserQuestion`: "Ready to push and open PR for `<branch>`."
+Options: **Push** / **Abort**. On abort, stop.
+
+After confirmation:
+- `git push -u origin <branch>`
+- `gh pr create` — inferred title from branch name and commits, brief
+  body summarizing changes. Report URL.
+
+### 6. Merge (--merge flag only)
+
+- `gh pr merge --squash --delete-branch`
+- If merge fails (checks pending, review required): report status, stop
+- After merge: `git checkout <default-branch> && git pull origin <default-branch>`
+
+## Constraints
+
+- `git add`: explicit file names only — never `-A`, `.`, `--all`
+- `git commit`: stage first — never `-a` / `--all`
+- `git push`: only to `origin` — never to other remotes
+- No force-push
+- Never merge without `--merge` flag
+
+
+ARGUMENTS: only the metaclaude prd on a new feature branch and merge
+  -> Bash: cd /Users/rhhart/Documents/GitHub/weft-dev && git status
+  -> Bash: git diff --stat
+  -> Bash: git log --oneline -5
+  -> Bash: git rev-parse --abbrev-ref HEAD
+[A37 16:43] On main with mixed changes. Shipping only the MetaClaude PRD — skipping everything else.
+  -> Bash: git checkout -b hart/metaclaude-local-prd
+  -> Bash: git add design/2026-03-09-metaclaude-local-prd.md
+  -> Bash: git commit -m "$(cat <<'EOF'
+Add MetaClaude Local week PRD
+
+Co-Authored-By: Clau
+  -> ToolSearch: select:AskUserQuestion
+  -> AskUserQuestion
+  -> Bash: git push -u origin hart/metaclaude-local-prd
+  -> Bash: gh pr create --title "Add MetaClaude Local week PRD" --body "$(cat <<'EOF'
+## Su
+  -> Bash: gh pr merge 24 --squash --delete-branch
+  -> Bash: git checkout main && git pull origin main
+[A47 17:11] Shipped and merged. PR #24: https://github.com/hartphoenix/weft-dev/pull/24
+[U6 17:43] ok, let's take next steps on this build. first, when in dev mode i want to be able to see the contents of additionalContext inline in the chat anytime they're present, and would like the heading bullet ◉ (in magenta) to match the MC icon in the statusline. please make changes at /Users/rhhart/Documents/GitHub/weft/tools/metaclaude
+  -> Bash: ls /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/
+  -> Read: inject.sh
+  -> Read: statusline.sh
+  -> Read: toggle.sh
+[A52 17:44] The additionalContext JSON goes to stdout (for Claude), but to show it to the user inline in chat, we need stderr. In dev mode, I'll print the injection content to stderr with the magenta ◉ heading.
+  -> Edit: inject.sh
+[A54 17:44] That adds a magenta `◉ MC` header (bright magenta, matching the statusline's `◉ MC`) followed by the injection content in dim magenta, printed to stderr so it shows inline in the chat. Only fires in dev mode. The additionalContext output to stdout is unchanged.
+
+Want to test it, or move on to Phase 1 of the PRD?
+[U7 17:48] let's move to phase 1. i have several models already in LM studio that might be pulled into ollama somehow locally instead of having to be re-downloaded. is this feasible, or should i start over with ollama pulls from the web?
+  -> Skill: 
+[U8 17:49] Base directory for this skill: /Users/rhhart/.claude/skills/quick-ref
+
+# Quick Reference
+
+Answer the question. Be done.
+
+## Core Behavior
+
+1. **Answer first.** No preamble, no context-setting, no "great question." The answer is the first thing.
+2. **Code example if it clarifies.** Short, runnable, minimal. Skip if the answer is already clear without one.
+3. **Be terse and confident.** If you know the answer, state it. Don't hedge with "it depends" unless it genuinely does — and if it does, name the two cases and answer both.
+4. **Stop.** When the answer is delivered, stop. Don't continue into related topics.
+
+## Fact vs. Structural Detection
+
+Every question gets classified on arrival. The response shape follows.
+
+**Fact question** — has a single correct answer.
+"What does `.bind()` do?" / "How do I center a div?" / "What's the difference between `let` and `const`?"
+- Answer directly. Code example if helpful. Done.
+
+**Structural question** — the answer is correct but incomplete without context.
+"Why is my array empty after `.map()`?" / "Why does `this` change inside my callback?"
+- Answer the immediate question directly.
+- Append **one sentence** flagging the larger concept at play.
+
+The test: if giving only the narrow answer would leave the user solving the same class of problem again next week, it's structural. Flag the pattern; don't teach it.
+
+## The One-Sentence Flag
+
+When a narrow question reveals a structural gap, after giving the direct answer, add one sentence that:
+- **Names** the bigger concept
+- **Does not explain it.** One sentence. No follow-up.
+
+Example:
+- Q: "Why does my `setTimeout` callback have the wrong value of `i`?"
+  A: [direct fix with `let` or closure] + "This is the closure-over-loop-variable problem — `var` shares one binding across iterations, `let` creates a new one each time."
+
+If the question is purely factual, skip the flag.
+
+
+ARGUMENTS: Can LM Studio models be imported into Ollama without re-downloading? What format does each use, and is there a conversion path?
+[A56 17:49] Feasible, but depends on the format.
+
+**LM Studio** stores GGUF files in `~/.cache/lm-studio/models/`. **Ollama** also uses GGUF internally but wraps them in its own blob storage (`~/.ollama/models/`).
+
+**The conversion path:**
+
+1. Find your GGUF files:
+```bash
+find ~/.cache/lm-studio/models -name "*.gguf"
+```
+
+2. For each model, create a one-line `Modelfile`:
+```
+FROM /path/to/your-model.gguf
+```
+
+3. Import into Ollama:
+```bash
+ollama create my-model-name -f Modelfile
+```
+
+This copies the file into Ollama's blob store — no re-download, but it does duplicate the disk space. The import is fast (seconds, just a file copy + metadata).
+
+**If your LM Studio models are not GGUF** (older GPTQ or AWQ formats), there's no direct path — you'd need to re-download as GGUF from Ollama.
+
+Want to check what you've got in LM Studio and see which ones are worth importing for the meta-agent test matrix?
+[U9 17:50] go ahead and check the .cache -- and let's see if the models i have are fit for purpose & up to date with latest versions
+  -> Bash: find ~/.cache/lm-studio/models -name "*.gguf" 2>/dev/null | head -30
+  -> Bash: ollama list 2>/dev/null
+  -> Bash: ls -la ~/.cache/lm-studio/ 2>/dev/null
+  x Bash failed: Exit code 1
+  -> Bash: find ~/.cache/lm-studio -type f -name "*.gguf" -o -name "*.bin" -o -name "*.safe
+  x Bash failed: <tool_use_error>Cancelled: parallel tool call Bash(ls -la ~/.cache/lm-studio/ 2>/dev/null) errored</tool_use_error>
+  -> Bash: ls -R ~/.cache/lm-studio/models/ 2>/dev/null | head -50
+  x Bash failed: <tool_use_error>Cancelled: parallel tool call Bash(ls -la ~/.cache/lm-studio/ 2>/dev/null) errored</tool_use_error>
+  -> Bash: find ~/Library/Caches -maxdepth 2 -name "*lm*" -o -name "*LM*" 2>/dev/null; find
+  -> Bash: find ~/.lmstudio/models -type f \( -name "*.gguf" -o -name "*.bin" -o -name "*.s
+  -> Bash: find ~/.lmstudio/models -name "*.gguf" 2>/dev/null; echo "---"; find ~/.lmstudio
+[A65 17:51] Here's the situation:
+
+**What you have:**
+
+| Model | Format | Size | Ollama-importable? |
+|-------|--------|------|--------------------|
+| Nomic-embed-text v1.5 Q8_0 | GGUF | 139MB | Yes, but you already have nomic-embed-text in Ollama |
+| Gemma 3 12B it-qat-4bit | MLX safetensors | 7.5GB | No |
+| Qwen3-VL-4B Instruct MLX-4bit | MLX safetensors | 2.9GB | No |
+| Qwen3-8B MLX-4bit | MLX safetensors | 4.3GB | No |
+| Qwen3-4B Thinking-2507 MLX-4bit | MLX safetensors | 2.1GB | No |
+
+**The problem:** All your interesting models are MLX format (Apple's framework, used by LM Studio's MLX backend). Ollama uses GGUF. There's no direct conversion path — you'd need to re-download GGUF versions.
+
+**The good news:** The models you picked are solid choices for the PRD's test matrix. Mapping to the plan:
+
+- **Small:** `ollama pull qwen3:4b` — matches your Qwen3-4B Thinking (~2.5GB GGUF)
+- **Medium:** `ollama pull qwen3:8b` — matches your Qwen3-8B (~5GB GGUF)
+- **Stretch:** Gemma 3 12B is tight on 16GB RAM. Could try `ollama pull gemma3:12b` but expect memory pressure.
+
+The Qwen3-VL (vision) isn't useful for the meta-agent task — it's text-in, text-out.
+
+Want me to kick off the pulls for qwen3:4b and qwen3:8b?
+[U10 17:52] this is something we didn't discuss during implementation decisions -- the MLX might be more optimized to make use of apple's chip architecture and therefore more performant than the gguf format (at least on my system) -- is it possible we're leaving gains on the table by using ollama over lm studio+MLX? i don't know how these stack up.
+  -> ToolSearch: web search
+[A67 17:52] Good instinct. Let me check the actual performance comparison.
+  -> WebSearch: MLX vs GGUF Ollama performance benchmark Apple Silicon M2 20
+  -> WebSearch: LM Studio MLX backend vs Ollama llama.cpp Apple Silicon infe
+[A70 17:53] You're right to flag this — it's a significant difference.
+
+**MLX is substantially faster on Apple Silicon.** The numbers from an [academic benchmark on M2 Ultra](https://arxiv.org/abs/2511.05502): MLX ~230 tok/s vs Ollama ~20-40 tok/s. That's not a marginal gain — it's 5-10x. Even [real-world LM Studio vs Ollama comparisons](https://www.arsturn.com/blog/local-llm-showdown-ollama-vs-lm-studio-vs-llama-cpp-speed-tests) show LM Studio's MLX backend at 237 t/s vs Ollama at 149 t/s on the same model.
+
+**Why:** MLX is Apple's own framework, built for unified memory. It talks directly to Metal and the GPU without the translation layer that llama.cpp uses. On your M2 Pro with 16GB unified memory, that architecture match matters.
+
+**For your meta-agent use case specifically:** The PRD targets <3 seconds total per observation. Model inference is the bottleneck. If MLX cuts inference time in half (or more), that's the difference between one-turn-behind and potentially same-turn injection.
+
+**What this means for the PRD:** The Ollama decision was based on convenience ("already installed, CLI-native, OpenAI-compatible API"). But LM Studio also exposes an OpenAI-compatible API on localhost. The observer.sh could call either one — it's the same HTTP endpoint shape.
+
+**Revised proposal:**
+- Use LM Studio as the serving backend (MLX) instead of Ollama
+- Keep Ollama for nomic-embed-text only (embeddings are fast either way, and the GGUF version you already have works)
+- Your existing Qwen3-4B, Qwen3-8B, and Gemma 3 12B MLX models are already downloaded and ready
+- The observer.sh just needs to point at LM Studio's local API instead of Ollama's
+
+This saves download time *and* gets better performance. Want to update the PRD with this decision and start wiring observer.sh to LM Studio's API?
+
+Sources:
+- [Production-Grade Local LLM Inference on Apple Silicon (arxiv)](https://arxiv.org/abs/2511.05502)
+- [Local LLM Speed Test: Ollama vs LM Studio vs llama.cpp](https://www.arsturn.com/blog [...truncated]
+[U11 17:56] what do you think would be most performant and least fragile:
+a) LM Studio runs both the embedding model and the inference model, no need to run ollama
+b) LM studio handles inference model, ollama handles embedding model
+keep in mind which elements will be the actual bottlenecks on my system when i'm working
+[A71 17:57] Option A. One server. Here's why:
+
+**Embedding is not your bottleneck.** nomic-embed-text is 270MB and runs in ~50ms regardless of backend. The difference between Ollama serving it at 50ms and LM Studio serving it at 40ms is invisible. You will never feel it.
+
+**Inference is your bottleneck.** The Qwen3 model at 2-5GB doing reasoning over transcript + retrieved context — that's the 1-3 second operation that determines whether the observer completes in time. MLX wins here, and it's the only place the win matters.
+
+**Memory:** Two model servers = two processes managing GPU scheduling on the same 16GB pool. Ollama's daemon is light, but it's not free — it keeps models warm in memory. With 16GB you want one process managing the memory budget, not two competing for it. LM Studio can hold both the embedding model and inference model and swap intelligently.
+
+**Fragility:** Every additional running service is a failure point. If LM Studio goes down, the observer is dead anyway (no inference). Having Ollama still serving embeddings in that state buys you nothing — you can't observe without the inference model. One server means one thing to check, one thing to start, one health check in observer.sh.
+
+**The only counterargument for B** would be if LM Studio's embedding endpoint were unreliable or missing. But it exposes the full OpenAI-compatible API including `/v1/embeddings`.
+
+So: LM Studio serves both. Ollama becomes optional (keep it installed, don't need it running). Update the PRD decision table accordingly?
+[U12 18:03] additional note: download time isn't a major factor here -- i'll download a few models to try different ones, then keep one running for a long time. the real time saver is whatever saves turnaround/latency.
+
+also, you said 'lm studio can swap intelligently' -- we'll definitely want to give priority to the inference model, and only allow the embedding daemon to run maintenance when the inference model isn't actively working. can that be dictated by our scripting, or does it have to be lm studio's purview?
+
+also, does the embedding model need to be used to query the index or only to create it? would there be any added functionality for the meta-agent to be able to run things through the embedding model itself (ie to formulate queries or interpret their outcomes)?
+[A72 18:03] Three separate questions, let me take them cleanly.
+
+**Priority/scheduling:** In practice, this solves itself. The embedding model (270MB) and inference model (4-5GB) can both sit in memory simultaneously on your 16GB — they total maybe 5-6GB, leaving plenty for OS and Claude Code. They won't compete because your observer script controls the sequence: embed query → retrieve from index → send context to inference model. They're serial, never concurrent. The embedding call finishes in ~50ms before the inference model is even invoked. No scheduling needed — your script *is* the scheduler.
+
+**Embedding at query time:** Yes, the embedding model is needed for both indexing *and* querying. To search the index, you embed your query text into the same vector space, then do cosine similarity against the stored vectors. Same model, same space — if you index with nomic-embed-text, you must query with nomic-embed-text. So it stays loaded.
+
+**Meta-agent using embeddings directly:** No added value. The embedding model is a pure function: text in, vector out. It doesn't reason, interpret, or formulate — it just maps text to coordinates. The flow is:
+
+1. Observer grabs recent transcript (text)
+2. Script embeds that text → vector (mechanical, ~50ms)
+3. Script does cosine similarity against index → gets relevant file chunks (mechanical, ~10ms)
+4. Script sends transcript + retrieved chunks to **inference model** (this is where reasoning happens)
+5. Inference model decides: inject something, or stay silent
+
+The inference model is the only one that "thinks." The embedding model is plumbing. The meta-agent never needs to touch it — the script handles the embed-and-retrieve step before the inference model ever sees the payload.
+
+Want to update the PRD with these decisions (LM Studio for both, sequential scheduling via script, embedding model stays loaded for query-time use) and then look at observer.sh?
+[U13 18:12] what i'm curious about here is the option-space between steps 1 and 2. can the recent transcript be read by the inference model in order to develop higher-level queries that issue from the model's knowledge of e.g. the learning model or the design principles? (in practice, this is the difference between 'waking the meta-agent up with retrieved chunks to infer from' and 'waking the meta-agent up with situations to discern lookups from' -- granted this would actually mean two local model turns (or a turn + tool use) for every turn of primary conversation, but the former are cheap and can improve the quality of the latter. the latency would probably still be one-turn-behind, though.
+
+if this idea isn't entirely half-baked, i think i'd want to try both of these modes and compare their performance and behavior. think it over and let me know what you see here
+[A73 18:12] Not half-baked at all. You're describing two distinct architectures for the observer:
+
+**Mode A: Retrieve-then-reason (current PRD design)**
+```
+transcript → embed transcript → retrieve chunks → inference model reasons over chunks
+```
+One inference call. The embedding does the "what's relevant" work mechanically. The inference model only sees what cosine similarity surfaced. Fast, cheap, but the retrieval is dumb — it finds textual similarity, not conceptual relevance.
+
+**Mode B: Reason-then-retrieve-then-reason**
+```
+transcript → inference model reads transcript → generates targeted queries
+→ embed queries → retrieve chunks → inference model reasons over chunks
+```
+Two inference calls. The first is lightweight: "given this transcript, what should I look up?" The second is the real observation with grounded context.
+
+**The difference is real and it's not just latency cost.** Here's the concrete example:
+
+Hart is debugging a React component. The transcript is full of `useEffect` and `setState`. Mode A embeds that and retrieves... React docs, other React components, maybe a session log about React. Textual neighbors.
+
+Mode B's first pass reads the transcript and recognizes: "Hart is putting the data-fetching logic in the component instead of a custom hook — this is the boundary-confusion pattern from his learning profile." It generates queries like "correct shape wrong boundary" and "client vs server operation placement." Now retrieval pulls the learner profile entry about that pattern, the design principle about matching interventions to gap types, maybe a session log where this was addressed before.
+
+The first mode retrieves *topically similar* content. The second retrieves *pedagogically relevant* content. That's a qualitatively different observation.
+
+**What I'd watch for:**
+
+- The first inference call can be small and fast — it's generating 2-3 query strings, not a full observation. Could even use the smaller model (Qwen3-4B) for query generation and the larger o [...truncated]
+[U14 18:20] let's call mode A 'fast' and mode B 'deep'.
+
+mode C: starts like fast mode, but the inference model reviews the semantic neighbor-docs and decides whether another query is relevant, then either queries, or injects straight away (or does nothing). not sure what to call mode C, but is it also plausible?
+[A74 18:20] Mode C is an adaptive loop — starts cheap, escalates only when the first retrieval isn't sufficient. Call it **"probe"** maybe: it probes first, then decides whether to dig.
+
+```
+transcript → embed transcript → retrieve chunks → inference model evaluates:
+  → "sufficient context" → observe/inject (or silence)
+  → "need more" → generate targeted query → retrieve again → observe/inject
+```
+
+It's plausible and it's actually the most interesting of the three because it's the only one that makes a *judgment call* about whether retrieval was adequate before spending the second inference turn. Fast mode always stops at one pass. Deep mode always takes two. Probe mode lets the model decide.
+
+**The practical shape:**
+
+- Most turns, the transcript is routine and the first retrieval is fine. Probe behaves like Fast — one inference call, low latency.
+- When something interesting happens (a pattern the model recognizes, a stuck loop, a boundary confusion), the first-pass retrieval returns generic neighbors and the model knows it needs something more specific. It generates a targeted query and takes the second pass.
+- Worst case matches Deep. Average case matches Fast. That's a good profile for daily use.
+
+**What makes it testable:** you can log which path it took every turn. Over a session you get a ratio: what percentage of turns triggered the second pass? If it's 5-10%, you're getting Deep-quality observations where they matter and Fast-speed everywhere else. If it's 80%, the first retrieval is mostly useless and you should just run Deep. If it's 0%, Fast is sufficient and the extra evaluation is overhead.
+
+**The risk unique to Probe:** the inference model has to be good at *knowing when it doesn't know enough.* That's metacognition about its own retrieval quality — which is exactly the kind of judgment small models are weakest at. A 4B model might always say "sufficient" or always say "need more." The 8B model might handle it. That's an empirical question and it's the most in [...truncated]
+[U15 18:25] yes
+  -> Read: 2026-03-09-metaclaude-local-prd.md
+[A76 18:25] Now I'll update the PRD with the revised decisions and observation modes.
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+[A86 18:27] Now update the decisions-deferred table to reflect what's changed:
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+[A88 18:27] PRD updated. Changes:
+
+- **Runtime:** Ollama → LM Studio (MLX backend) for both inference and embedding. One server.
+- **Architecture diagram:** Reflects LM Studio + three observation modes
+- **Observation modes section:** Full specification of Fast, Deep, and Probe with latency profiles and experimental questions
+- **Phase 1:** Points at LM Studio API, lists your actual MLX models by name
+- **Phase 2:** Embedding via LM Studio `/v1/embeddings`, wired as Fast mode baseline
+- **Phase 4:** Expanded comparison framework — model size × observation mode matrix, Probe escalation diagnostics, qualitative comparison criteria
+- **Phase 5:** Adds observation mode selection based on empirical results
+- **Test matrix:** Updated to your actual MLX models with sizes
+- **Deferred:** Added Ollama-as-fallback and Probe escalation threshold
+[U16 18:58] good, now i think we can take action. first thing is the log file. the log needs to be quite thorough: what was in the meta-agent's context window (and at what point that resource entered context), whether/what the agent thought or reasoned, what queries it ran, what it received from them, what it thought/reasoned about those, what it injected, and where. each log file should pertain to one complete meta-agent session, and its header should contain the file path of the conversation it was observer to. log files should (for now) be stored in weft-dev/meta (you'll need to create it) and named with the date/time they were created. let's create a plan to implement this logfile cleanly and completely
+  -> Agent: Explore metaclaude observer and hooks
+[A90 18:59] Good, I have a complete picture of the current system. Now let me design the new logging approach.
+  -> Agent: Design structured session log
+[A92 19:01] Let me verify a couple of details before finalizing.
+  -> Read: observer.sh
+  -> Read: prompt.md
+[A95 19:01] Good, I have everything. Let me write the plan.
+  -> Write: squishy-cuddling-anchor.md
+  -> ToolSearch: select:ExitPlanMode
+  -> ExitPlanMode
+[A99 19:05] Let's implement. Starting with the directory and both file edits.
+  -> Bash: mkdir -p /Users/rhhart/Documents/GitHub/weft-dev/meta && touch /Users/rhhart/Doc
+[A101 19:05] Now update observer.sh with session log creation, pointer, and structured logging:
+  -> Read: observer.sh
+  -> Write: observer.sh
+[A104 19:06] Now update inject.sh to append injection confirmation to the session log:
+  -> Read: inject.sh
+  -> Edit: inject.sh
+  -> Edit: inject.sh
+[A108 19:06] Both files are updated. Let me verify they're syntactically valid:
+  -> Bash: bash -n /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/observer.sh && echo
+  -> Bash: bash -n /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/inject.sh && echo "
+[A111 19:06] Both pass syntax check. Let me verify the meta directory exists and the session log pointer mechanism will work by checking current state:
+  -> Bash: ls -la /Users/rhhart/Documents/GitHub/weft-dev/meta/ && echo "---" && cat /Users
+[A113 19:06] Done. Here's what's live:
+
+**observer.sh** — On each Stop hook fire:
+- Derives session identity from transcript UUID
+- Creates `meta/<date>_<uuid-prefix>.jsonl` with a session header on first turn
+- Writes pointer file for inject.sh
+- Logs structured observation entries (turn number, context window contents, pipeline stages, decision, injection content)
+- Error handling wraps the inference call — failures log an error entry instead of silently exiting
+- Dual-writes to legacy daily JSONL during migration
+
+**inject.sh** — On each UserPromptSubmit:
+- Reads the session log pointer
+- Appends injection confirmation entry (`delivered: true`) to the same session log
+
+**meta/** directory created at `weft-dev/meta/`.
+
+The structured logging is running on the current Haiku path. As the LM Studio migration adds embed/retrieve stages, each pipeline step slots into the `pipeline` object in the observation entry. The schema is ready for Fast/Deep/Probe modes.
+
+The next observer fire (your next turn in any conversation with MetaClaude enabled) will create the first structured session log. Want to verify it's working, or move to the next build step?
+[U17 19:11] let's make sure every design decision made in this conversation persists in the PRD and passes the /handoff-test -- do a very thorough check & make sure the decision rationales are captured too
+  -> Read: 2026-03-09-metaclaude-local-prd.md
+[A115 19:12] Now let me trace through every decision made in this conversation and check what's missing.
+  -> Read: observer.sh
+  -> Read: inject.sh
+[A118 19:12] Now let me trace every decision from this conversation against the PRD:
+
+**Decisions made in this conversation:**
+
+1. **LM Studio over Ollama for inference** (MLX 2-5x faster on Apple Silicon) — In PRD decisions table. ✓
+2. **LM Studio for both inference AND embedding** (one server, one memory budget, embedding isn't the bottleneck) — In PRD decisions table. ✓
+3. **Script-controlled sequential scheduling** (embed → retrieve → infer, never concurrent, no LM Studio priority config needed) — In PRD decisions table. ✓
+4. **Embedding model needed at query time, not just index time** (same vector space requirement) — In PRD embedding model row. ✓
+5. **Three observation modes: Fast, Deep, Probe** — In PRD observation modes section. ✓
+6. **Fast = retrieve-then-reason** — ✓
+7. **Deep = reason-then-retrieve-then-reason** (two inference calls, first generates targeted queries from learning model/principles knowledge) — ✓
+8. **Probe = adaptive** (starts like Fast, escalates if first retrieval judged insufficient) — ✓
+9. **Key experimental question: does model-directed retrieval surface qualitatively different observations** — ✓
+10. **Secondary question: can 4-8B model judge retrieval sufficiency** — ✓
+11. **Existing MLX models in LM Studio** (Qwen3-4B, Qwen3-8B, Gemma 3 12B) — In test matrix. ✓
+12. **MLX models can't be imported to Ollama** (different format, no conversion path) — NOT in PRD
+13. **Dev mode inline chat display** (◉ MC heading in magenta, additionalContext shown via stderr) — In decisions table as "dev-mode inline display." ✓ But implementation detail missing.
+14. **Structured per-session logging** (JSONL, one file per conversation, header + observation + injection + error entries) — NOT in PRD
+15. **Session logs stored in weft-dev/meta/** — NOT in PRD
+16. **Session identity derived from transcript UUID** — NOT in PRD
+17. **Pointer file for cross-process log coordination** — NOT in PRD
+18. **Dual-write to legacy JSONL during migration** — NOT in PRD
+19. **Ollama  [...truncated]
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+[A120 19:12] Now add the session logging section before the Observability (built) section:
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+[A122 19:12] Now update the Observability section to reflect the inline display addition:
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+[A124 19:13] Now add the missing rationales to the decisions table — the MLX format incompatibility and latency-as-optimization-target:
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+[A128 19:13] Now add the session logging decision and the inline display decision:
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+[A130 19:13] Now let me also add the Deep mode's key insight about pedagogical vs topical retrieval, since that rationale was important:
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+[A132 19:13] Let me do a final read-through to make sure everything is coherent and nothing contradicts:
+  -> Read: 2026-03-09-metaclaude-local-prd.md
+[A134 19:13] One thing — the status line still says "Next: Phase 1 (local model swap)" but doesn't reflect that Phase 3 has been extended. Let me fix the header:
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+[A136 19:14] Now the handoff test. Here's what I checked against:
+
+**Every decision from this conversation, traced:**
+
+| Decision | In PRD? | Rationale captured? |
+|----------|---------|-------------------|
+| LM Studio over Ollama (MLX 2-5x faster) | Yes, decisions table row 1 | Yes — benchmark numbers, unified memory, MLX format lock-in |
+| LM Studio for both inference AND embedding | Yes, row 2 | Yes — one server, one failure point, embedding not bottleneck |
+| MLX safetensors can't import to Ollama | Yes, in inference runtime rationale | Yes |
+| Script-controlled sequential scheduling | Yes, row 8 | Yes — serial by design, both models fit in 16GB |
+| Embedding needed at query time (same vector space) | Yes, row 4 | Yes |
+| Three observation modes (Fast/Deep/Probe) | Yes, full section + decisions row 7 | Yes — pedagogical vs topical retrieval as core question |
+| Deep: first inference pass generates targeted queries from learning model knowledge | Yes, observation modes section | Yes |
+| Probe: adaptive, escalates only when needed | Yes, observation modes section | Yes — plus secondary question about 4-8B model capability |
+| Latency/turnaround as optimization target, not download time | Yes, row 9 | Yes |
+| Dev mode inline chat display (◉ MC, magenta, stderr) | Yes, observability section + decisions row 10 | Yes |
+| Structured per-session JSONL logging | Yes, full "Session logging (built)" section + decisions row 13 | Yes — entry types, pipeline shapes per mode, pointer file mechanism, migration plan, jq examples |
+| Session identity from transcript UUID | Yes, session logging section | Yes |
+| Pointer file coordination between observer.sh and inject.sh | Yes, session logging section | Yes |
+| Dual-write to legacy JSONL during migration | Yes, session logging section | Yes |
+| Ollama stays installed but not required | Yes, deferred decisions | Yes |
+| Probe escalation threshold deferred | Yes, deferred decisions | Yes |
+| Existing MLX models (Qwen3-4B, 8B, Gemma 3 12B) | Yes, [...truncated]

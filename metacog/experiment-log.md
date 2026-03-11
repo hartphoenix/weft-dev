@@ -285,3 +285,57 @@ given the meta-agent's role as supplementary, not critical-path.
 
 **Artifacts:** `metacog/simulation/simulate-accumulator.sh`,
 `metacog/simulation/simulation-log.jsonl`
+
+---
+
+## 2026-03-11 — Test corpus extraction (pre-fine-tuning)
+
+**Purpose:** Frozen test corpus of categorized conversation windows for
+evaluating the observer's inject/silence decisions before and after
+fine-tuning.
+
+**Setup:**
+1. Session discovery: 315 sessions (6-week window, ≥10 user messages)
+2. Stratified sample: 73 sessions across 5 weekly buckets (seed=42)
+3. Window extraction via `window-extract.ts` — ports observer.sh jq
+   logic (lines 105-138) to produce 10-turn sliding windows in exact
+   observer payload format
+4. 5 parallel search agents, one per category, scanning extracted text
+   and selecting matching windows
+5. Deduplication: windows sharing >3 turns across categories resolved
+   (6 initial overlaps + 2 post-recalibration)
+
+**Categories and counts (40 total):**
+
+| Category | Windows | Sessions | Signal type |
+|---|---|---|---|
+| on-track | 9 | 8 | Forward progress, alignment between user Q and Claude A |
+| drift | 8 | 4 | Conversational circling visible in text (not tool patterns) |
+| learning-edge | 9 | 6 | Conceptual/procedural/recall gaps, synthesis moments |
+| cross-domain | 7 | 6 | Latent structural analogies (theater→arch, psych→tutoring) |
+| unblocking | 7 | 4 | User stuck: wrong altitude, hypothesis non-convergence |
+
+**Calibration pair:** 1 obvious-inject (learning-edge: momentum concept
+synthesis), 1 obvious-silent (on-track: sequential plan execution).
+
+**Observation — drift recalibration:** Initial drift search found
+tool-use patterns (same file read 3x, plan mode rejection loops). These
+are invisible to the observer, which sees only tool names and counts.
+Relaunched with conversational-only criteria: user corrections, apology-
+retry loops, declining engagement signals in text. Plan mode rejection
+excluded as a permissions artifact.
+
+**Observation — user content in observer windows:** The observer.sh
+(line 109-111) only extracts user content when `message.content` is a
+string. In Claude Code, user messages after tool results use array
+content. Most windows are assistant-heavy as a result — this is what the
+observer actually sees.
+
+**Decision:** Corpus frozen at 40 windows. Ready for baseline evaluation
+(feed through observer, score inject/silence decisions) before fine-tuning.
+
+**Artifacts:**
+- `metacog/scripts/window-extract.ts` (JSONL → observer windows)
+- `metacog/test-samples/pre-fine-tuning/manifest.json`
+- `metacog/test-samples/pre-fine-tuning/{category}/*.json`
+- `metacog/test-samples/pre-fine-tuning/calibration/`

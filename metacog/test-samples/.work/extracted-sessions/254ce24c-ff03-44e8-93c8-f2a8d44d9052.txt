@@ -1,0 +1,250 @@
+[U1 21:28] the package is launched and tested, and users can clone and install now. i've shared with the three people who opted in & lightly buzzed the discord server to get more interest. i'm not really able to get them to go any faster, but there are other things worth working on in the meantime. let's check the schedule and prd and make the most important next step. this may involve first updating the schedule and build registry to match current state -- review and advise
+[A1 21:28] Let me gather the current state of the schedule, PRD, and build registry.
+  -> Task
+[A3 21:29] Good overview. Let me read the exact files so I can give precise update recommendations.
+  -> Glob: **/*schedule*
+  -> Glob: design/**/*.md
+  -> Glob: coordination/**/*.md
+  -> Read: schedule.md
+  -> Read: build-registry.md
+  -> Read: harness-features.md
+  -> Read: prd.md
+[A11 21:30] Now let me check the extraction plan status and see what's actually been done with the standalone repo.
+  -> Read: package-extraction-plan.md
+  -> Bash: git status --short
+[A14 21:30] Here's where things stand, with what the docs say vs. reality:
+
+## State Assessment
+
+**Schedule is stale from Thursday forward.** Thu 2/26 and Fri 2/27 still show "Planned" but here's what actually happened:
+
+| Scheduled | Actual |
+|-----------|--------|
+| Thu: Teacher-relationship MVP built | Not built — publish step and read-back both still "Planned/Designed" |
+| Thu: E2E test run | Not run |
+| Thu: Coordination parameterization | Not done |
+| Fri: Peer testing as teacher-student exchange | Testers onboarded, going at own pace — no teacher exchange possible yet |
+| **Unscheduled:** Package extraction + launch | Done — standalone repo shipped, 3 testers onboarded |
+
+**Build registry is stale** — still references `package/` paths (lines 56-57), and skill count text says "9 skills ship as of 2026-02-26" but doesn't reflect that the package is now at `hartphoenix/weft`.
+
+**The big gap is P10.** The demo definition of done requires showing:
+> a progress review published via GitHub Issues, a teacher response, and that response surfaced in the student's next startwork session
+
+None of the three code pieces for that exist yet (publish step, config format, read-back in startwork).
+
+## What matters for tomorrow's demo
+
+The personal harness story is strong — shipped, tested, real users installing it. That's your lead.
+
+The teacher-student exchange is the most ambitious piece in your definition of done and it's fully unbuilt. Even if you build the code today, you need a cooperating tester to demonstrate it — and they're going at their own pace.
+
+## My recommendation: two tracks
+
+**Track 1 (30 min): Update tracking docs** — get schedule and build registry accurate. This is housekeeping but it matters for the demo narrative (you can show the schedule as evidence of a disciplined build).
+
+**Track 2 (rest of the day): Build what you can of the P10 publish step** — even a one-way demo (progress-review publishes to GitHub Issues with labels and assignment) shows the protocol workin [...truncated]
+[U2 21:35] let's do track 1 updates, then i want to  work on the teacher role and infrastructure til it's solid. plan mode for all of track 1
+[A15 21:35] I have all the files in context already. Let me confirm one detail and then write the plan.
+  -> Bash: git log --oneline -10
+  -> Bash: ls /Users/rhhart/Documents/GitHub/weft-dev/package/ 2>/dev/null || echo "package
+[A18 21:35] Good — `package/` is already replaced with a pointer README, extraction is complete. Now let me write the plan.
+  -> Write: spicy-crunching-porcupine.md
+[A20 21:36] Straightforward doc cleanup — two files, updating statuses and fixing stale `package/` paths. The changes are all factual (matching docs to what actually happened), no judgment calls needed.
+  -> ExitPlanMode
+  -> TodoWrite
+[A23 21:40] Starting with schedule.md. Updating milestones first.
+  -> Edit: schedule.md
+[A25 21:40] Now update the stretch goals / installation package status.
+  -> Edit: schedule.md
+[A27 21:40] Now update the install package checklist section.
+  -> Edit: schedule.md
+  -> Edit: schedule.md
+  x Edit failed: <tool_use_error>String to replace not found in file.
+String: | `package/scripts/bootstrap.sh` (install pipeline) | Done — shell script, copies weft section to CLAUDE.md, registers skills/hooks |
+| `pa
+[A30 21:40] Let me re-read to get exact text.
+  -> Read: schedule.md
+[A32 21:40] The bootstrap/uninstall lines were already updated in a prior commit. Just need to fix the data-contracts reference and add a package extraction note.
+  -> Edit: schedule.md
+[A34 21:40] Now add a package extraction entry. Let me find the right spot — after the stretch goals section.
+  -> Edit: schedule.md
+[A36 21:40] Schedule done. Moving to build-registry.md.
+  -> TodoWrite
+  -> Read: build-registry.md
+[A39 21:40] Now I'll update all the `package/` path references.
+  -> Edit: build-registry.md
+  -> Edit: build-registry.md
+  -> Edit: build-registry.md
+  -> Edit: build-registry.md
+[A44 21:41] Now the scripts section.
+  -> Edit: build-registry.md
+[A46 21:41] Now verify both files.
+  -> TodoWrite
+  -> Grep: package/ in schedule.md
+  -> Grep: package/ in build-registry.md
+[A50 21:41] Schedule only has `package/` in the extraction task descriptions (which is correct — that's what the tasks were about). Build registry is clean.
+  -> TodoWrite
+[A52 21:41] Track 1 done. Both files updated:
+
+**schedule.md:**
+- Thu/Fri milestones updated from "Planned" to actual status
+- Installation package note updated to reference standalone repo
+- Install checklist header fixed (`hartphoenix/weft` not `package/`)
+- Data-contracts path fixed
+- New "Package extraction" section added with all 6 steps marked Done
+
+**build-registry.md:**
+- All `package/` path references replaced with standalone repo paths
+- Skills header updated to reference `hartphoenix/weft`
+- Scripts section updated (paths + descriptions reflect standalone repo)
+- Zero stale `package/` references remain
+
+Ready to move to the teacher role and infrastructure work whenever you are. Want to jump straight in or commit this housekeeping first?
+[U3 21:43] commit all unstaged changes to a new feature branch called teacher-role and push but don't pr
+[A53 21:43] Let me check the full state first.
+  -> Bash: git status
+  -> Bash: git diff -- design/schedule.md design/build-registry.md
+  -> Bash: git log --oneline -5
+[A57 21:43] Looks clean. I'll create the new branch from current HEAD, stage the relevant files, commit, and push.
+  -> Bash: git checkout -b hart/teacher-role
+  -> Bash: git add design/schedule.md design/build-registry.md coordination/skills/handoff-
+  -> Bash: git status
+[A61 21:43] The `intake-test/` directory is untracked — that looks like test artifacts, not something to commit. Proceeding with just the doc updates.
+  -> Bash: git commit -m "$(cat <<'EOF'
+Update tracking docs to match post-launch state
+
+Sc
+  -> Bash: git push -u origin hart/teacher-role
+[A64 21:44] Done. Branch `hart/teacher-role` pushed with the tracking doc updates. Ready to start on the teacher role and infrastructure work.
+[U4 21:46] let's start by looking at the design docs that mention the teacher role and holding them up to the design principles to ensure they're aligned. do a thorough review of the existing learning loop and how the teacher role is spec'd out to connect to the learner's experience in order to make a higher-level assessment. use subagents to get a comprehensive picture and then synthesize
+  -> Task
+  -> Task
+  -> Task
+[A68 21:50] Now I have the full picture. Here's my synthesis.
+
+---
+
+## Assessment: Teacher Role Design vs. Design Principles
+
+### What's well-aligned
+
+The **protocol architecture** is strong. Per-user signal repos, GitHub Issues as transport, consent gating, label-based state management — all of this is clean, zero-dependency, and honors the principles:
+
+- **P2 (Attention):** Teacher guidance enters through startwork's session-start-composed loading — the same channel as everything else. No mid-session interruptions.
+- **P3 (Developmental model):** The structured learner state IS the signal the teacher consumes. The teacher reads the same model the harness reads. Same language, same rubric.
+- **P5 (Composable):** Teacher support adds phases to existing skills (progress-review Phase 5, startwork response check), not a new monolithic skill.
+- **P7 (Human authority):** Two-directional. Student controls what's published. Teacher guidance is information, not instruction. Student can defer or revoke. Agent doesn't take sides.
+- **P10 (Teaching relationships):** The three scales (exchange, discovery, role fluidity) are well-defined and the exchange protocol is the right MVP scope.
+
+The consent and authority model is particularly well-thought: the triad (teacher, student, domain), domain-specific authority, at-will/conditional/revocable grant. This is doing real philosophical work, not just checking a box.
+
+### Where the design has gaps
+
+The protocol is well-designed. **The content that flows through the protocol is under-specified.** Two specific problems:
+
+**1. The summary composition problem (outbound: student → teacher)**
+
+The publish step needs to "compose a teacher-facing summary." But the progress-review output is internal analytical language — stalls, regressions, drift, readiness, compounding breakdown. A teacher needs something different: where the student is, what they're working on, what's going well, where they're stuck, and what kind of help they want.
+
+The design says "c [...truncated]
+[U5 22:11] this is excellent. I really like the feedback. I do need to answer all these questions one at a time, and your current context would not be enough to complete the entire next step of brainstorming this solution. So what I'd like you to do with the report that you just generated is: copy the entire thing into the design/teacher-role/ directory. and I would also like you to move the teacher-related documents there. We can leave other general-purpose design docs (such as the design principles and build registry) where they are. only things that are built only to plan or update the teacher role should go into the teacher role directory. Once you've done those things, let's run the handoff test on this latest plan so that the next working agent can pick up where you left off.
+  -> TodoWrite
+  -> Bash: mkdir -p /Users/rhhart/Documents/GitHub/weft-dev/design/teacher-role
+  -> Write: design-review.md
+[A72 22:12] Now move the teacher-specific docs.
+  -> Bash: mv /Users/rhhart/Documents/GitHub/weft-dev/design/teacher-relationship.md /Users
+  -> Bash: ls -la /Users/rhhart/Documents/GitHub/weft-dev/design/teacher-role/
+[A75 22:12] Now let me update references to the moved files in other docs that point to them.
+  -> Grep: design/teacher-relationship in weft-dev
+  -> Edit: schedule.md
+  -> Edit: harness-features.md
+  -> Edit: teacher-relationship-buildout.md
+[A80 22:13] The learning-model-research-plan.md reference uses an old `maestro/` prefix — that's a historical reference, not worth updating. Let me also check for references to the signal-teacher-variant at its old location.
+  -> Grep: signal-teacher-variant in weft-dev
+[A82 22:13] Only referenced in the new review doc. Good. Now update todos and run the handoff test.
+  -> TodoWrite
+[A84 22:13] Now running the handoff test.
+  -> Skill: 
+[U6 22:13] Base directory for this skill: /Users/rhhart/.claude/skills/handoff-test
+
+# Handoff Test
+
+## The Naive Reader
+
+A fresh Claude instance with no session history. Technically competent — can read the codebase, run code, check git history. Has access to standard tooling, CLAUDE.md, and memory files. But has seen nothing from this conversation: no decisions made, options rejected, constraints discovered, or terminology coined. The only things that exist for the naive reader are what's written in persistent artifacts.
+
+The test: could that instance pick up the artifact and execute without asking clarifying questions?
+
+## Process
+
+1. Identify what was created or modified this session. Read each artifact in full.
+2. From the naive reader perspective, find implicit dependencies:
+   - Session-local terminology used without definition
+   - References to "the bug," "the approach," "what we discussed" without grounding
+   - Decisions recorded without rationale (a future reader needs *why* to know when the decision expires)
+   - Scope assumed but not stated
+   - Next steps that depend on conversation memory
+3. Report gaps. For each: what's missing, where it goes, concrete suggested text. Offer to apply fixes.
+
+If the artifact passes, say so in one sentence.
+[A86 22:13] Let me read the primary artifacts from this session.
+  -> Read: design-review.md
+  -> Read: teacher-relationship-buildout.md
+[A89 22:13] Now let me check what else changed this session — the schedule and build registry updates.
+  -> Read: schedule.md
+[A91 22:13] Good. Now I have the full picture. Here's the handoff test result.
+
+---
+
+## Handoff Test Result
+
+The `design-review.md` is **mostly self-contained but has three gaps** a naive reader would stumble on:
+
+### Gap 1: No explicit next action
+
+The review ends with "two specific questions to resolve" and a numbered list of 5 design questions. But it doesn't say **who does what next** or **how to work through them**. A fresh agent would read this and know what's unresolved but not know the intended workflow — should they brainstorm answers? Write a template? Ask the user? The session decision was to work through the questions one at a time in a future session, but that intent isn't captured.
+
+**Where it goes:** End of `design-review.md`, after the design questions list.
+
+**Suggested text:**
+```markdown
+## Next steps
+
+Work through the design questions above one at a time with the user.
+For each question:
+1. Read the relevant source docs (linked in Source documents section)
+2. Propose concrete options (e.g., a template for the summary format)
+3. Get user decision
+4. Record the decision in teacher-relationship.md §Resolved decisions
+
+Once questions 1 and 2 are resolved, implementation can begin:
+- Progress-review Phase 5 (publish step) — add to the existing
+  progress-review SKILL.md in the standalone repo
+- Startwork teacher-response check — add to the existing startwork
+  SKILL.md in the standalone repo
+- Config file template (learning/relationships.md)
+
+Implementation targets the standalone repo (`hartphoenix/weft`), not
+weft-dev. The design docs live in weft-dev; the shipping skills live
+in the standalone repo.
+```
+
+### Gap 2: signal-teacher-variant.md location is wrong
+
+Line 77-78 says the file is "in `design/complete/`" — but it was moved to `design/teacher-role/` during this session. A naive reader would look in the wrong place.
+
+**Where it goes:** Line 77-78 of `design-review.md`.
+
+**Suggested fix:** Change `(in `design/complete/`)` to `(in this directory)`.
+
+### Gap 3 [...truncated]
+[U7 22:14] no thanks, i'll direct the next agent how to brainstorm.
+[A92 22:14] Got it. Let me commit what we have and you're set for the next session.
+  -> Bash: git status --short
+  -> Bash: git add design/teacher-role/ design/schedule.md design/harness-features.md desig
+  -> Bash: git commit -m "$(cat <<'EOF'
+Consolidate teacher-role design docs, add design re
+  -> Bash: git push
+  -> TodoWrite
+[A98 22:14] All pushed. The next agent's entry point is [design/teacher-role/design-review.md](design/teacher-role/design-review.md) — it has the assessment, the five open design questions in priority order, and pointers to all source docs.

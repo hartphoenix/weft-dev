@@ -1,0 +1,81 @@
+[U1 16:00] see screenshot for an issue i'm concerned about running afoul of -- the pictured modal that appears often in claude's terminal view is an instance of a close call that will come up often. when planning, claude automatically prompts for accept/reject. when running in bypass permissions mode, the default option is 'clear context and bypass permissions' which is the worst and most potentially destructive option -- and it can be enacted by an errant keystroke. in fact i find a couple times a day i'll be typing a followup prompt into the command line when one of these modals appears and my spacebar executes the default choice. is there some way of adjusting how these modals appear, whether the spacebar or other keys fire them, or what options are presented as default? i need to safeguard against 'clear context and execute (bypass)' getting triggered by accident, as this would be the wrong move on 99% of planned workflows
+[U2 16:00] [Image: source: /Users/rhhart/Desktop/Screenshot 2026-03-05 at 10.37.06 AM.png]
+[A1 16:00] This is a real and serious UX hazard. The worst option is the default, and spacebar fires it — exactly the key you'd hit mid-typing.
+
+Let me check what's configurable.
+  -> ToolSearch: select:Bash,Read,Glob
+  -> Bash: claude --help 2>&1 | head -50
+  -> Glob: **/*.json in .claude
+  -> Bash: ls /Users/rhhart/.claude/keybindings.json 2>&1; ls /Users/rhhart/.claude/setting
+  -> Bash: claude settings list 2>&1 | head -60
+  -> Read: settings.json
+[A8 16:01] Now let me check what keybinding options exist for this modal.
+  -> Bash: claude /help 2>&1 | grep -i "keybind\|plan\|permission\|modal" || true
+  -> Bash: which claude && claude --version 2>&1
+  -> Bash: cat /Users/rhhart/.claude/keybindings.json 2>&1 || echo "File does not exist"
+[A12 16:01] Here's the situation:
+
+**The problem is real and dangerous.** You're in `bypassPermissions` mode (line 156 of settings.json), so when plan mode presents the execution modal, option 1 — "clear context and bypass permissions" — is the default. Spacebar or Enter fires it instantly.
+
+**What's configurable:**
+
+1. **Keybindings** — You can create `~/.claude/keybindings.json` to remap keys, but this controls things like submit, interrupt, and chord shortcuts. The plan execution modal is a built-in ink/React selector — keybindings don't change the default option order or which keys navigate it.
+
+2. **Permission mode** — The nuclear option: switch `defaultMode` from `bypassPermissions` to `plan` or `default`. Then the "clear context and bypass" option wouldn't appear as option 1 (or at all). But you'd lose the convenience of bypass mode.
+
+3. **`--permission-mode` per session** — You could start sessions with `claude --permission-mode plan` when you want plan mode, and use `--permission-mode default` otherwise, avoiding bypass entirely during plan-heavy sessions.
+
+**What's NOT configurable (as of 2.1.69):**
+- The order of options in the plan execution modal
+- Which option is pre-selected
+- Whether spacebar activates the selection
+- A confirmation step for "clear context"
+
+**Practical mitigations:**
+
+1. **Don't use bypass mode as default.** Your sandbox + deny list already provides strong guardrails. Switch to `"defaultMode": "default"` or `"acceptEdits"` — Claude will still auto-approve most things via sandbox, but the plan modal won't offer the "clear context and bypass" nuke as option 1.
+
+2. **Use `/clear` manually** when you actually want to clear context, rather than relying on the modal to offer it bundled with execution.
+
+3. **File a feature request** at https://github.com/anthropics/claude-code/issues for: (a) making "clear context and bypass" require a confirmation, (b) allowing users to configure the default option, or (c) removing it as the first/default choice. Thi [...truncated]
+[U3 16:06] i already do option 2; i've never used or liked the modals for most things. they interrupt workflow and add this kind of risk to every interaction. can they be turned off completely?
+[A13 16:06] No. The plan execution modal is baked into plan mode — there's no setting to suppress it or auto-execute. It's the mechanism by which plan mode hands control back to you.
+
+Your options are:
+
+1. **Stop using plan mode.** Just work in your normal mode and handle planning conversationally. You already have bypass + sandbox, so there's no functional gap. When you want a plan, just ask for one — you don't need the formal `/plan` flow to get structured thinking.
+
+2. **Use plan mode but immediately type option 4** (tell Claude what to change) or arrow-down before any other keystroke. Muscle memory, but fragile.
+
+3. **Feature request.** The ask would be: "Let me configure plan mode to auto-execute with my current permission mode, skipping the modal entirely." Or at minimum: "Don't put the most destructive option as the default." Both are reasonable. https://github.com/anthropics/claude-code/issues
+
+Option 1 is the real answer. The modal exists because plan mode was designed for a more cautious workflow than yours. Your sandbox + deny list already does what the modal is trying to do, but better.
+[U4 16:13] when i tell claude to write a plan, it automatically enters plan mode, per claude code designs. working without plans makes claude 20% as effective on complex reasoning tasks, so it's the most essential part of my workflow. 2 is as you say, fragile. it means i can't type into a terminal if claude is planning because i might authorize a bad plan by mistake. my workflow isn't being overly cautious, it's just aware of claude's limitations and adapting to them --but the UX is forcing me into all-or-nothing approaches. i have to essentially choose between high friction or high risk. i have carefully designed my system to moderate both elements, but the interface obviates all my efforts. it's antithetical to the design of the claude code system to force users into these extremes. i'd like you to produce a copy-pasteable prompt i can use to inform a parallel agent who's working on a comprehensive report for fellow engineers and a feature request to accompany it. capture the central issues we've discussed, your findings (and links), and anything that i should surface in my reporting
+[A14 16:14] Here's the prompt:
+
+---
+
+You are helping me draft two artifacts: (1) a detailed feature request for the Claude Code GitHub issues tracker, and (2) a companion report aimed at fellow engineers who use Claude Code in high-autonomy configurations.
+
+## Context
+
+Claude Code's plan mode is essential for complex reasoning — it produces dramatically better results than unstructured prompting. However, the plan execution modal introduces a serious UX safety issue that forces users to choose between high friction and high risk, undermining the careful permission/sandbox configurations that Claude Code's own architecture encourages.
+
+## The problem
+
+When Claude finishes writing a plan, it automatically presents a modal with numbered options. In bypass permissions mode (`"defaultMode": "bypassPermissions"` in `~/.claude/settings.json`), the options are:
+
+1. **Yes, clear context (N% used) and bypass permissions** ← DEFAULT, pre-selected
+2. Yes, and bypass permissions
+3. Yes, manually approve edits
+4. Type here to tell Claude what to change
+
+The default option (option 1) is the most destructive: it clears the entire conversation context AND bypasses all permission checks. It is activated by spacebar or Enter.
+
+**The failure mode:** The modal appears asynchronously while the user is typing a follow-up prompt or doing other terminal work. An errant keystroke — most commonly spacebar — fires the default option. This happens multiple times per day in active use.
+
+**Why option 1 is almost never correct:** Clearing context destroys the conversation history that informed the plan. In 99%+ of plan-mode workflows, the user wants to execute the plan they just reviewed WITH the context that produced it. "Clear context and bypass" is an edge case being presented as the default.
+
+## What's been investigated
+
+- **Keybindings** (`~/.claude/keybindings.json`): Can remap submit, interrupt, and chord shortcuts, but cannot change modal option order, default selection, or which keys activate selecti [...truncated]

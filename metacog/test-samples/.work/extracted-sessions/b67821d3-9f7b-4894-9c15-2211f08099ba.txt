@@ -1,0 +1,241 @@
+[U1 13:58] ## Handoff: MetaClaude Local — Sandbox Network Diagnostic                                                                                            
+                                                                                                                                                       
+  ### Goal                                                                                                                                             
+                                                                                                                                      
+  Get Claude Code's sandbox to allow outbound HTTP to LM Studio on                                                                                     
+  localhost:1234. This is blocking all Phase 1 model testing and
+  Phase 2 embedding work for MetaClaude Local.                                                                                        
+                                               
+  ### State
+
+  **Done (prior sessions):**
+  - Full MetaClaude hook infrastructure built and working:
+    observer.sh, inject.sh, toggle.sh, statusline.sh, prompt.md
+    All at `/Users/rhhart/Documents/GitHub/weft/tools/metaclaude/`
+  - MetaClaude SKILL.md, session logging, log viewer — all functional
+  - toggle.sh hardened with write error handling
+  - SETUP.md updated with sandbox allowlist for ~/.claude/ dotfiles
+  - Sandbox filesystem allowlist for ~/.claude/ metaclaude dotfiles
+    added to settings.json — verified working this session
+  - LM Studio confirmed running and serving inference (user verified
+    via separate terminal with curl)
+
+  **Done this session:**
+  - Verified sandbox filesystem writes work (the allowlist from last
+    session took effect)
+  - Attempted `curl -s http://localhost:1234/v1/models` — exit code 7
+    (connection refused)
+  - Attempted `curl -s http://127.0.0.1:1234/v1/models` — same result
+  - Confirmed LM Studio IS running and responding from user's terminal
+  - Diagnosed as sandbox network blocking despite allowedHosts config
+
+  **Not started:**
+  - All Phase 1 model testing (blocked on this)
+  - All Phase 2 embedding index work (blocked on this)
+  - Phases 4 and 5 entirely
+
+  ### Key files
+
+  - Settings with sandbox config: `/Users/rhhart/.claude/settings.json`
+    (read-only to agent — in deny list for Edit/Write)
+  - PRD: `design/2026-03-09-metaclaude-local-prd.md` (in weft-dev)
+  - MetaClaude tools: `/Users/rhhart/Documents/GitHub/weft/tools/metaclaude/`
+  - MetaClaude skill: `/Users/rhhart/Documents/GitHub/weft/.claude/skills/metaclaude/SKILL.md`
+
+  ### Current sandbox network config
+
+  In settings.json under `sandbox.network`:
+  ```json
+  "network": {
+    "allowedHosts": [
+      "localhost",
+      "127.0.0.1:1234"
+    ]
+  }
+
+  Discoveries
+
+  1. curl from inside the sandbox gets exit code 7 (connection refused)
+  for both localhost:1234 and 127.0.0.1:1234, while the same
+  curl succeeds from the user's terminal. This is the sandbox
+  blocking the connection, not LM Studio being down.
+  2. The allowedHosts config IS present in settings.json but is not
+  having the desired effect. Possible causes to investigate:
+    - Format issue: maybe needs all four variants (localhost,
+  localhost:1234, 127.0.0.1, 127.0.0.1:1234)
+    - Schema issue: sandbox.network.allowedHosts might not be the
+  correct path in the settings schema
+    - The network sandbox might not be configurable via settings.json
+  at all — might require a CLI flag or different config file
+    - IPv6 resolution: localhost might resolve to ::1 which doesn't
+  match either allowlist entry
+  3. User was advised to try expanding allowedHosts to all four
+  host/port combinations. Unknown whether they applied this change
+  before ending the session.
+
+  Blockers
+
+  - Sandbox network config not taking effect. This blocks ALL local
+  LM Studio integration.
+
+  Next steps (priority order)
+
+  1. Ask the user if they updated allowedHosts to the four-variant
+  format and whether it helped.
+  2. If still blocked: research Claude Code sandbox network configuration.
+  Check if there's documentation on the correct schema for network
+  allowlists. Try claude --help or check Claude Code docs for
+  sandbox network flags.
+  3. If the allowedHosts approach is a dead end: consider workarounds.
+  The hooks (observer.sh, inject.sh) run OUTSIDE the sandbox — they
+  can curl LM Studio. The sandbox only blocks the agent's own Bash
+  tool. So one workaround is to have the agent write a script and
+  the hook execute it, but that's ugly. Better to fix the config.
+  4. Once network access works: resume the Phase 1 model testing sprint
+  from the prior handoff (test Qwen3-4B, Qwen3-8B, Gemma-3-12B
+  against the same transcript via observer.sh).
+  5. After model testing: start Phase 2 embedding index (sqlite-vec +
+  bun:sqlite, index.ts, query.ts).
+[A1 13:58] Let me check the current state of settings.json and do some research on the sandbox network config.
+  -> Read: settings.json
+  -> Agent: Research sandbox network config
+[A4 13:59] Good news — the research found the problem. The key name is wrong.
+
+**`allowedHosts` should be `allowedDomains`.**
+
+Your current config (line 345) uses `allowedHosts`. Claude Code's sandbox expects `allowedDomains`. That's why the four-variant expansion didn't help — the entire key is being ignored.
+
+Also, the sandbox filters by domain only, not port. So you just need:
+
+```json
+"network": {
+  "allowedDomains": [
+    "localhost",
+    "127.0.0.1"
+  ]
+}
+```
+
+Let me verify with a quick test first — can you update `allowedHosts` → `allowedDomains` in your settings.json (I can't write to it due to the deny list), then I'll test the curl?
+
+The fix is lines 344-351 of `/Users/rhhart/.claude/settings.json`:
+
+```json
+"network": {
+  "allowedDomains": [
+    "localhost",
+    "127.0.0.1"
+  ]
+}
+```
+
+Drop the port-specific entries — the sandbox doesn't filter by port, only domain.
+[U2 13:59] i changed it to allowedDomains -- test the curl again
+  -> Bash: curl -s http://localhost:1234/v1/models
+  x Bash failed: Exit code 7
+[A6 13:59] Still exit 7. Let me try a couple more things to narrow this down.
+  -> Bash: curl -sv http://127.0.0.1:1234/v1/models 2>&1 | head -20
+  -> Bash: lsof -i :1234 2>/dev/null || netstat -an 2>/dev/null | grep 1234
+[A9 14:00] Key finding: **"Operation not permitted"** — not "connection refused." The sandbox is actively blocking the connection at the OS level (macOS Seatbelt), even with the config change. And LM Studio is confirmed listening on port 1234.
+
+The `allowedDomains` key change alone isn't enough. This is macOS Seatbelt enforcement. The research also suggested trying `allowLocalBinding: true` — but honestly, this may not be a real setting.
+
+Let me check what the sandbox actually supports.
+  -> Agent: Research sandbox network bypass
+[A11 14:00] Yeah, that's likely it. The sandbox config is probably read at session start and baked into the Seatbelt profile for the process. Changing settings mid-session wouldn't affect the already-running sandbox.
+
+Look at the sandbox restrictions shown at the top of my environment — they were set when this session started:
+
+```
+Network: {"allowedHosts":["localhost:1234","127.0.0.1:1234","localhost","127.0.0.1"]}
+```
+
+That's the **old** config (still says `allowedHosts`). Your `allowedDomains` change hasn't been picked up yet.
+
+**Next step:** Start a fresh Claude Code session. The new sandbox should load with your updated `allowedDomains` config. Then test `curl -s http://localhost:1234/v1/models` right away.
+
+If it still fails in the fresh session, the fallback options are:
+1. Try adding `"allowLocalBinding": true` to the network config
+2. If that's not a real key, the pragmatic workaround is routing LM Studio calls through the hooks (observer.sh/inject.sh run outside the sandbox and can already curl localhost)
+[U3 14:01] Base directory for this skill: /Users/rhhart/.claude/skills/handoff-prompt
+
+# Handoff Prompt
+
+Do not read files. Work from memory.
+
+## Recipient
+
+Fresh Claude Code instance. Has CLAUDE.md, memory files, full
+tooling. Has nothing from this session.
+
+## Assemble from memory
+
+- **Goal** — session intent
+- **State** — done, in progress, untouched
+- **Key files** — paths and condition
+- **Decisions** — choices and rationale
+- **Discoveries** — anything not yet in persistent files
+- **Blockers** — unresolved issues
+- **Next steps** — prioritized, specific enough to act on
+
+Write plain text addressing the next agent. Be concrete:
+"move token validation from route handler to `src/middleware/auth.ts`"
+not "finish the auth work."
+
+Output the entire handoff inside a single fenced code block.
+
+ARGUMENTS: for the next agent to start where we left off
+[A12 14:01] ```
+## Handoff: MetaClaude Local — Sandbox Network Diagnostic (continued)
+
+### Goal
+
+Get Claude Code's sandbox to allow outbound HTTP to LM Studio on
+localhost:1234. This is blocking all Phase 1 model testing and
+Phase 2 embedding work for MetaClaude Local.
+
+### State
+
+**Done (prior sessions):**
+- Full MetaClaude hook infrastructure built and working:
+  observer.sh, inject.sh, toggle.sh, statusline.sh, prompt.md
+  All at `/Users/rhhart/Documents/GitHub/weft/tools/metaclaude/`
+- MetaClaude SKILL.md, session logging, log viewer — all functional
+- toggle.sh hardened with write error handling
+- SETUP.md updated with sandbox allowlist for ~/.claude/ dotfiles
+- Sandbox filesystem allowlist for ~/.claude/ metaclaude dotfiles
+  added to settings.json — verified working
+
+**Done this session:**
+- Confirmed LM Studio IS running on port 1234 (lsof shows it listening)
+- Verbose curl from sandbox shows: "Immediate connect fail for
+  127.0.0.1: Operation not permitted" — this is macOS Seatbelt
+  blocking at OS level, not a network/firewall issue
+- Identified root cause #1: settings.json had `allowedHosts` but
+  the correct key is `allowedDomains`. User fixed this mid-session.
+- Identified root cause #2: sandbox config is read at session start
+  and baked into the Seatbelt profile. The session's environment
+  still shows the OLD config (`allowedHosts`). The fix requires
+  a fresh session to take effect.
+- User updated settings.json to use `allowedDomains` with just
+  `["localhost", "127.0.0.1"]` (no port-specific entries — sandbox
+  filters by domain only, not port)
+
+**Not started:**
+- All Phase 1 model testing (blocked on this)
+- All Phase 2 embedding index work (blocked on this)
+
+### Key files
+
+- Settings: `/Users/rhhart/.claude/settings.json` (read-only to agent)
+  Current sandbox.network config should now read:
+  ```json
+  "network": {
+    "allowedDomains": [
+      "localhost",
+      "127.0.0.1"
+    ]
+  }
+  ```
+- PRD: `design/2026-03-09-metaclaude-local-prd.md` (in weft-dev)
+-  [...truncated]

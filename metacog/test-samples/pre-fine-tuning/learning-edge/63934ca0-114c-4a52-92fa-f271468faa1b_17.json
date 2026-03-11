@@ -1,0 +1,53 @@
+{
+  "recent_turns": [
+    {
+      "role": "user",
+      "content": "these have to do with training individual neurons then? what does nonlinearity vs linearity look like mathematically? (is linearity referring to dot product transforms and similar?)"
+    },
+    {
+      "role": "assistant",
+      "content": "Yes, linearity is exactly that. A linear transformation is any operation where `f(ax + by) = a\u00b7f(x) + b\u00b7f(y)`. Matrix multiplication, dot products, scaling, addition \u2014 all linear. If you chain them: `W2 \u00b7 (W1 \u00b7 x) = (W2 \u00b7 W1) \u00b7 x = W3 \u00b7 x`. Two matrices collapse to one. Three collapse to one. A hundred collapse to one. No matter how many linear layers you stack, the whole thing is equivalent to a single matrix multiply.\n\n**What that means geometrically:** Linear operations can rotate, scale, shear, and project vectors. They can't *bend* the space. A linear function from input to output is always a flat hyperplane \u2014 it can only carve the world into regions separated by straight boundaries.\n\n**The nonlinearity bends the space.** After `Linear1` stretches your 384-dim vector into 1536 dimensions, GELU warps that space \u2014 it dampens some dimensions, passes others through, creates curves where there were only planes. Now when `Linear2` projects back down, it's projecting from a *warped* space, which means the composite operation can represent curved decision boundaries that no single linear operation could.\n\n**To your question about individual neurons:** Each element in that 1536-dim intermediate vector is one \"neuron.\" `Linear1` computes a weighted sum of the input for each neuron (dot product of one row of the weight matrix with the input \u2014 linear). GELU then applies independently to each neuron's output (nonlinear). So yes \u2014 the nonlinearity operates per-neuron, and it's what makes each neuron more than just a weighted sum.\n\n**The stacking payoff:** One layer with a nonlinearity can represent curved boundaries. Two layers can represent more complex curves. Six transformer blocks, each with its own FFN, can compose increasingly abstract transformations \u2014 early layers detect simple patterns (character pairs, word boundaries), later layers detect complex ones (dialogue structure, meter). Without the nonlinearity at each stage, all six blocks would collapse to a single lin"
+    },
+    {
+      "role": "user",
+      "content": "this level of explanation is helping me far more than the level of prose offered in the lesson -- i'm getting to passages like \"Residual connection -- adds the input back to the output (output = layer(x) + x). This is critical because it lets gradients flow directly through the network during backpropagation, which makes deep networks trainable at all\" and wondering, why am i reading this? the content isn't actually *information* in any meaningful sense. if i were already well-versed in the field, it would pattern-match to what i already know, but it doesn't provide an onramp to understanding for any outsider. it's a just-so story, and as such, it doesn't offer any mnemonic texture, bridgework, or conceptual structure. though i believe that it's accurate, reading it doesn't update my model or inform my intuitions; it's filler.\n\nhelp me solve this. i need a digest of the lesson's parts 1, 3, and 5 that actually meet me where i'm at with my present knowledge structure, define terms that are necessary to know in order to operate here, and don't fill up my memory with info i won't use. use the learning/ contents to create a digest and save it in guides/ with today's date in the title"
+    },
+    {
+      "role": "assistant",
+      "content": "[tools: Read x2, Bash x3]"
+    },
+    {
+      "role": "assistant",
+      "content": "Good \u2014 `guides/` exists at the repo root. Now let me build this properly. Your current-state shows `embedding-vector-scoring` at score 3 with a conceptual gap on vector math foundations, and `local model orchestration` in Incoming with \"chunking: exposure.\" You have strong bridges from systems design (5), context engineering (5), and interface-as-contract (5). You don't have any tracked ML/training concepts yet."
+    },
+    {
+      "role": "assistant",
+      "content": "[tools: Write x1]"
+    },
+    {
+      "role": "assistant",
+      "content": "Written to `guides/2026-03-11-transformer-training-digest.md`.\n\nThe structure: training loop mechanics (with direct mapping to your Phase 2.5 fine-tune), overfitting dynamics (the single most important concept for your data-scarce training scenario), architecture components (enough to read intelligently, grounded in things you've already built), and generation mechanics (mapped to your LM Studio inference parameters).\n\nI bridged to your existing knowledge where the connection is real \u2014 your embedding index, your accumulator system, your model selection decisions. Where there's no bridge (backprop math, optimizer internals), I gave you just the operational surface: what it does, what to check when it breaks, what you never touch yourself.\n\nThe lesson's Part 2 (build the toy model) and Part 4 (experiments) are fully absent. Nothing in the digest requires running code."
+    },
+    {
+      "role": "user",
+      "content": "great so far. i'll be asking questions and guidance as i read, but no need to update the guide unless something's actually broken or erroneous. if i just need some expansion on a concept, conversational inline answers are best. \n\nwhat does 'blame' represent in this context, both conceptually for inference and mathematically (coarse-grained explanation is fine)"
+    },
+    {
+      "role": "assistant",
+      "content": "\n\n**Conceptually:** Each weight in the model contributed to the final prediction. Some pushed the prediction closer to correct, some pushed it further away. \"Blame\" means quantifying each weight's individual contribution to the error. A weight that strongly pushed the prediction in the wrong direction gets a lot of blame (large gradient). A weight that barely affected the outcome gets almost none.\n\n**Mathematically (coarse):** The loss is a single number computed through a long chain of operations \u2014 matrix multiplies, softmaxes, additions, nonlinearities. Each operation is a function whose derivative is known. The chain rule says: if `f(g(x))` has derivative `f'(g(x)) \u00b7 g'(x)`, you can decompose the blame for the final output back through every intermediate step. Backprop walks backward through the computation graph, multiplying these local derivatives together to get each weight's gradient \u2014 \"if I nudged this weight by a tiny amount, how much would the loss change, and in which direction?\"\n\n**The sign is the direction.** Positive gradient means increasing this weight increases the loss (bad) \u2014 so the optimizer decreases it. Negative gradient means increasing this weight decreases the loss (good) \u2014 so the optimizer increases it. The magnitude is the sensitivity \u2014 how much the loss cares about this particular weight.\n\n**For inference (why this matters at runtime even though backprop only runs during training):** The blame pattern *from* training is what *shaped* the weights your model now has. When your meta-agent runs inference on a transcript, every weight is frozen at whatever value training's blame-and-adjust loop left it at. The quality of the training signal (how accurately blame was assigned, over how many examples, with how much diversity) determines whether those frozen weights generalize to new inputs or just replay memorized patterns. This is why data quality matters more than data quantity at your scale \u2014 50 well-curated Opus-distilled examples with accur"
+    },
+    {
+      "role": "user",
+      "content": "the idea of 'momentum' alone seems to suggest that the order in which the training data is fed to the model could cause it to anchor on certain structures of data and then update differently based on later changes. is this intuition correct? and if so, would it be better to feed regular data samples in first followed by edge cases last, or randomize? or other?"
+    }
+  ],
+  "user_turn_count": 4,
+  "accumulator": "",
+  "retrieved_chunks": [],
+  "_meta": {
+    "source_session": "63934ca0-114c-4a52-92fa-f271468faa1b",
+    "source_path": "/Users/rhhart/.claude/projects/-Users-rhhart-Documents-GitHub-roger/63934ca0-114c-4a52-92fa-f271468faa1b.jsonl",
+    "window_start_turn": 17,
+    "annotation": "Conceptual gap + synthesis: user generates novel intuition about training data order from 'momentum' concept. Tests understanding by predicting consequences. Claude confirms and extends."
+  }
+}

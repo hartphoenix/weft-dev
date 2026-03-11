@@ -1,0 +1,134 @@
+[U1 13:31] one of the bootcamp instructors keeps feeding us slop assignments -- literally written by an LLM -- and i know they arise from some important principles, but they're exceedingly lengthy, reductive, and often prescribe useless toy exercises and builds that don't functionally develop any intuitions or skills. i'm facing one such lesson now and need to parse it for the important principles that i should be building with -- and i'm also elbows-deep in a project i care about that needs the majority of my attention. i've already refactored part of the project plan to accommodate one of these slop lessons, and i'm loathe to do it again, but i need to make *some* concessions for the fact that this bootcamp curriculum was originally formed by thoughtful reflection on the the demands of the real world. take a look at the assignment at https://github.com/fractal-nyc/bootcamp-monorepo/blob/main/curriculum/weeks/06-models-and-evals/sp2026/day3.md and bring a lot of scrutiny and skepticism to it. don't fall for toy exercises that assign busywork cloaked as skill building when it barely touches foundational structures or methods. extract from it whatever the *intent* of the lesson was and help me find the connections between that and my current project (summarized here: /Users/rhhart/Documents/GitHub/weft-dev/design/2026-03-09-metaclaude-local-prd.md ) use research agents to get a clear picture of the build progress at ~/documents/github/weft/tools/metaclaude 
+
+my goal here is to make only relevant changes to the PRD that would enhance both my understanding of the domain and the success of my experiment, do any necessary study on the side to fulfill the intent of the assignment, and let any irrelevant busywork go completely untouched. take your time and reflect as needed on the notepad/ contents. don't make any changes to the PRD or project assets yet -- simply research, analyze, reflect, and advise.
+  -> ToolSearch: select:WebFetch
+[A2 13:31] Let me gather all the inputs in parallel.
+  -> Bash: gh api repos/fractal-nyc/bootcamp-monorepo/contents/curriculum/weeks/06-models-a
+  -> Read: 2026-03-09-metaclaude-local-prd.md
+  -> Agent: Explore metaclaude build progress
+  -> Read: notepad
+  x Read failed: EISDIR: illegal operation on a directory, read '/Users/rhhart/Documents/GitHub/roger/notepad'
+  -> Bash: ls /Users/rhhart/Documents/GitHub/roger/notepad/
+  -> Read: bpg21vudz.txt
+  -> Read: toolu_013Q3cVLTsuZuwKygNwFr4uF.txt
+[A10 13:32] Let me read the full assignment and the PRD sections I need.
+  -> Read: toolu_01CzHGssZXzj6JA4jiWpXY35.txt
+  -> Read: toolu_01CzHGssZXzj6JA4jiWpXY35.txt
+  -> Read: toolu_01LnxkEyxAHGHiL5ViGqQEhy.txt
+[A14 13:32] Let me read the rest of the assignment — I need the exercise sections and the "extensions" to assess what's busywork vs. substance.
+  -> Read: toolu_01CzHGssZXzj6JA4jiWpXY35.txt
+  -> Read: toolu_01LnxkEyxAHGHiL5ViGqQEhy.txt
+[A17 13:32] Now let me read the rest of the assignment — the extensions and "going deeper" sections that are most likely to contain the busywork.
+  -> Read: toolu_01CzHGssZXzj6JA4jiWpXY35.txt
+[A19 13:33] I've read the full assignment, the full PRD, and the build status. Let me write my analysis to the notepad, then give you the synthesis.
+  -> Write: 015-day3-assignment-analysis.md
+[A21 13:34] Here's the breakdown.
+
+---
+
+## The assignment's real intent
+
+Day 3 is the conceptual capstone of the week: Day 1 was inference, Day 2 was fine-tuning, Day 3 is training from scratch. The curriculum wants you to understand **the training loop mechanistically** — forward pass, cross-entropy loss, backpropagation, optimizer step — and build intuition for **loss curves, overfitting, and the capacity-data tradeoff**. Secondary goals: architecture literacy (so you can read about transformers intelligently) and generation mechanics (temperature/top-k as operations on logits, not magic sliders).
+
+The explanatory prose in Parts 1, 3, and 5 is genuinely well-written. The Karpathy lineage shows. The actual build exercises are paint-by-numbers — copy-paste into Colab, wait 8 minutes, observe. The 8 afternoon "exploration directions" are almost entirely busywork.
+
+## What transfers to MetaClaude
+
+**Phase 2.5 (LoRA fine-tuning) — direct.** The training loop in this assignment is the same loop `mlx_lm.lora` runs. Your PRD already has loss targets ("healthy = 2-3 → 0.5-1.0, below 0.1 = overfitting, above 2.0 = data format issue") but understanding *why* those numbers gives you diagnostic power when they don't match. The assignment's explanation of optimizer memory (Adam stores 2 extra values per weight → training memory = 3x model size) is exactly what produces your PRD's memory estimates ("4B: ~2.1GB model + ~2GB overhead"). Those aren't magic numbers — they're derivable now.
+
+**Temperature/top-k — already relevant.** You're configuring inference parameters for the meta-agent. Understanding that temperature divides logits before softmax (not some abstract "creativity dial") matters for tuning generation quality.
+
+**Capacity-data tradeoff — Phase 4 framing.** With ~50-100 training examples for the fine-tune, a 4B model may actually generalize better than 8B because larger capacity overfits on small datasets. This is a testable prediction that comes straight from the assignment's co [...truncated]
+[U2 14:24] explain the following segment:
+
+2. Feed-Forward Network ("process what I found")
+
+After attention decides what information to gather, the feed-forward network processes that gathered information. It's just two linear layers with a nonlinearity (GELU or ReLU) in between:
+
+output = Linear2(GELU(Linear1(input)))
+Think of attention as "gathering information from context" and the feed-forward layer as "thinking about what that information means."
+[A22 14:24] The metaphor is decent but slightly misleading. Let me sharpen it.
+
+**What it actually does:** The feed-forward network is a per-position transformation. After attention has mixed information across positions (letting each token "see" other tokens), the FFN processes each position independently — same weights, applied to each token's vector separately.
+
+`Linear1` expands the vector to 4x width (384 → 1536 in your assignment's model). GELU applies a nonlinearity. `Linear2` projects back down (1536 → 384).
+
+**Why the expansion?** The wider intermediate space gives the network more room to represent complex combinations of features before compressing back down. It's like sketching on a large canvas before distilling to a final image.
+
+**Why this matters more than the assignment lets on:** In the models you're running in LM Studio, the FFN layers hold the majority of the parameters — the assignment itself notes "each block's feed-forward network has 1.18M parameters vs. 590K for attention." This is where the model stores learned associations. There's a line of research showing individual FFN neurons correspond to recognizable concepts — a neuron that fires for "text about sports," another for "formal register."
+
+**The "thinking about what it means" metaphor** is the part that's slightly off. It's more like: attention *routes* information (which tokens should talk to which), and the FFN *transforms* it (what to do with the information once gathered). Attention is a dynamic operation — it changes based on the input. FFN is a static operation — same learned transformation applied regardless of what the attention gathered. The power comes from stacking these alternately: route, transform, route, transform.
+
+**Where this connects to your work:** When you're comparing Qwen3-4B vs Qwen3-8B as meta-agents, the main difference in capacity lives in these FFN layers. The 8B model has wider and/or more numerous FFN layers, meaning it can represent more complex transformations per p [...truncated]
+[U3 14:57] what are GELU and ReLU? What rationale determines which gets applied? are both used in the same stack, or is one selected and stuck with for the whole build?
+[A23 14:58] **ReLU** (Rectified Linear Unit): `max(0, x)`. If the input is positive, pass it through. If negative, zero it out. That's it. It's the simplest possible nonlinearity that works.
+
+**GELU** (Gaussian Error Linear Unit): Smooth approximation of ReLU. Instead of a hard cutoff at zero, it tapers — small negative values get slightly dampened rather than zeroed out. The curve looks like ReLU with a soft knee instead of a sharp corner.
+
+**Why you need either one at all:** Without a nonlinearity between the two linear layers, `Linear2(Linear1(x))` collapses to a single linear transformation — matrix multiplication is associative, so stacking two linear operations without something nonlinear in between is mathematically equivalent to one linear operation. The nonlinearity is what gives the network its expressive power. It's the reason depth matters.
+
+**Which gets chosen and why:** One is selected for the whole model. It's a design decision made once at architecture time. The original transformer paper (2017) used ReLU. GPT-2 switched to GELU. Most modern models use GELU or variants (SiLU/Swish is another common one — Llama uses SiLU). The reason for the shift: GELU's smooth gradient near zero gives slightly better training dynamics. ReLU's hard zero creates "dead neurons" — if a neuron's output goes negative during training, the gradient is exactly zero, so it can never recover. GELU avoids this because the gradient is never exactly zero.
+
+In practice the difference is small. It's in the category of "convention you learn the handshake for, not something worth deep investment." The models you're running in LM Studio each made this choice at architecture time — Qwen3 uses SiLU, Gemma uses GELU. You'll never change it; it's baked into the weights.
+
+**The thing worth understanding:** not which activation function is better, but *that* a nonlinearity is structurally necessary. Two linear layers without one between them can't represent anything a single linear layer can't. That's  [...truncated]
+[U4 15:03] these have to do with training individual neurons then? what does nonlinearity vs linearity look like mathematically? (is linearity referring to dot product transforms and similar?)
+[A24 15:04] Yes, linearity is exactly that. A linear transformation is any operation where `f(ax + by) = a·f(x) + b·f(y)`. Matrix multiplication, dot products, scaling, addition — all linear. If you chain them: `W2 · (W1 · x) = (W2 · W1) · x = W3 · x`. Two matrices collapse to one. Three collapse to one. A hundred collapse to one. No matter how many linear layers you stack, the whole thing is equivalent to a single matrix multiply.
+
+**What that means geometrically:** Linear operations can rotate, scale, shear, and project vectors. They can't *bend* the space. A linear function from input to output is always a flat hyperplane — it can only carve the world into regions separated by straight boundaries.
+
+**The nonlinearity bends the space.** After `Linear1` stretches your 384-dim vector into 1536 dimensions, GELU warps that space — it dampens some dimensions, passes others through, creates curves where there were only planes. Now when `Linear2` projects back down, it's projecting from a *warped* space, which means the composite operation can represent curved decision boundaries that no single linear operation could.
+
+**To your question about individual neurons:** Each element in that 1536-dim intermediate vector is one "neuron." `Linear1` computes a weighted sum of the input for each neuron (dot product of one row of the weight matrix with the input — linear). GELU then applies independently to each neuron's output (nonlinear). So yes — the nonlinearity operates per-neuron, and it's what makes each neuron more than just a weighted sum.
+
+**The stacking payoff:** One layer with a nonlinearity can represent curved boundaries. Two layers can represent more complex curves. Six transformer blocks, each with its own FFN, can compose increasingly abstract transformations — early layers detect simple patterns (character pairs, word boundaries), later layers detect complex ones (dialogue structure, meter). Without the nonlinearity at each stage, all six blocks would collapse to a single lin [...truncated]
+[U5 15:11] this level of explanation is helping me far more than the level of prose offered in the lesson -- i'm getting to passages like "Residual connection -- adds the input back to the output (output = layer(x) + x). This is critical because it lets gradients flow directly through the network during backpropagation, which makes deep networks trainable at all" and wondering, why am i reading this? the content isn't actually *information* in any meaningful sense. if i were already well-versed in the field, it would pattern-match to what i already know, but it doesn't provide an onramp to understanding for any outsider. it's a just-so story, and as such, it doesn't offer any mnemonic texture, bridgework, or conceptual structure. though i believe that it's accurate, reading it doesn't update my model or inform my intuitions; it's filler.
+
+help me solve this. i need a digest of the lesson's parts 1, 3, and 5 that actually meet me where i'm at with my present knowledge structure, define terms that are necessary to know in order to operate here, and don't fill up my memory with info i won't use. use the learning/ contents to create a digest and save it in guides/ with today's date in the title
+  -> Read: current-state.md
+  -> Read: goals.md
+  -> Bash: ls /Users/rhhart/Documents/GitHub/roger/learning/
+  -> Bash: ls /Users/rhhart/Documents/GitHub/roger/learning/guides/ 2>/dev/null || echo "no
+  -> Bash: ls /Users/rhhart/Documents/GitHub/roger/guides/ 2>/dev/null || echo "no guides d
+[A30 15:11] Good — `guides/` exists at the repo root. Now let me build this properly. Your current-state shows `embedding-vector-scoring` at score 3 with a conceptual gap on vector math foundations, and `local model orchestration` in Incoming with "chunking: exposure." You have strong bridges from systems design (5), context engineering (5), and interface-as-contract (5). You don't have any tracked ML/training concepts yet.
+  -> Write: 2026-03-11-transformer-training-digest.md
+[A32 15:13] Written to `guides/2026-03-11-transformer-training-digest.md`.
+
+The structure: training loop mechanics (with direct mapping to your Phase 2.5 fine-tune), overfitting dynamics (the single most important concept for your data-scarce training scenario), architecture components (enough to read intelligently, grounded in things you've already built), and generation mechanics (mapped to your LM Studio inference parameters).
+
+I bridged to your existing knowledge where the connection is real — your embedding index, your accumulator system, your model selection decisions. Where there's no bridge (backprop math, optimizer internals), I gave you just the operational surface: what it does, what to check when it breaks, what you never touch yourself.
+
+The lesson's Part 2 (build the toy model) and Part 4 (experiments) are fully absent. Nothing in the digest requires running code.
+[U6 15:24] great so far. i'll be asking questions and guidance as i read, but no need to update the guide unless something's actually broken or erroneous. if i just need some expansion on a concept, conversational inline answers are best. 
+
+what does 'blame' represent in this context, both conceptually for inference and mathematically (coarse-grained explanation is fine)
+[A33 15:24] **Conceptually:** Each weight in the model contributed to the final prediction. Some pushed the prediction closer to correct, some pushed it further away. "Blame" means quantifying each weight's individual contribution to the error. A weight that strongly pushed the prediction in the wrong direction gets a lot of blame (large gradient). A weight that barely affected the outcome gets almost none.
+
+**Mathematically (coarse):** The loss is a single number computed through a long chain of operations — matrix multiplies, softmaxes, additions, nonlinearities. Each operation is a function whose derivative is known. The chain rule says: if `f(g(x))` has derivative `f'(g(x)) · g'(x)`, you can decompose the blame for the final output back through every intermediate step. Backprop walks backward through the computation graph, multiplying these local derivatives together to get each weight's gradient — "if I nudged this weight by a tiny amount, how much would the loss change, and in which direction?"
+
+**The sign is the direction.** Positive gradient means increasing this weight increases the loss (bad) — so the optimizer decreases it. Negative gradient means increasing this weight decreases the loss (good) — so the optimizer increases it. The magnitude is the sensitivity — how much the loss cares about this particular weight.
+
+**For inference (why this matters at runtime even though backprop only runs during training):** The blame pattern *from* training is what *shaped* the weights your model now has. When your meta-agent runs inference on a transcript, every weight is frozen at whatever value training's blame-and-adjust loop left it at. The quality of the training signal (how accurately blame was assigned, over how many examples, with how much diversity) determines whether those frozen weights generalize to new inputs or just replay memorized patterns. This is why data quality matters more than data quantity at your scale — 50 well-curated Opus-distilled examples with accurat [...truncated]
+[U7 15:44] the idea of 'momentum' alone seems to suggest that the order in which the training data is fed to the model could cause it to anchor on certain structures of data and then update differently based on later changes. is this intuition correct? and if so, would it be better to feed regular data samples in first followed by edge cases last, or randomize? or other?
+[A34 15:45] Good intuition, and yes — order matters, but not in the direction you might expect.
+
+**The anchoring risk is real.** If you fed all dialogue examples first, then all silence examples, the optimizer would build momentum in "always inject" direction, then have to reverse course. The early weights wouldn't just be neutral — they'd be actively wrong, and momentum would resist the correction. You'd waste training steps unlearning before relearning.
+
+**The standard answer is: randomize.** Shuffle the training data every epoch (full pass through the dataset). This way each batch is a representative sample of the full distribution, momentum tracks the true average gradient direction, and no single pattern dominates a training phase. This is so universal that most training frameworks shuffle by default — you'd have to actively disable it.
+
+**But your instinct about edge cases points at something real.** There's a technique called **curriculum learning** — start with easy/prototypical examples, then gradually introduce harder/edge-case ones. The idea: let the model learn the general structure first (stable gradients, fast progress), then refine on the tricky cases (noisier gradients, but the model already has a good foundation to integrate them). Evidence is mixed on whether this actually helps for language models — random shuffling is hard to beat in practice. It helps more for tasks with a clear easy-to-hard gradient (image classification, simple-to-complex math).
+
+**For your Phase 2.5 specifically:** Your training set is ~50-100 examples. At that scale, every example gets seen many times across training (hundreds of epochs). Order effects wash out over repeated passes. The more important question is **composition** — what's the ratio of injection examples to silence examples? If 90% of your training data is "inject something" and 10% is "stay silent," the model will learn to always inject regardless of order. Getting that ratio to match the real distribution (where silence [...truncated]
+[U8 16:38] the attention heads are different between 4B and 8B models, but how different? is it a 2:1 ratio?
+[A35 16:39] Not exactly 2:1, and the relationship isn't just head count — it's heads × head dimension × layers, all of which change.
+
+Specific to your models:
+
+**Qwen3-4B:** 32 attention heads, 128-dim per head, 36 layers
+**Qwen3-8B:** 32 attention heads, 128-dim per head, 36 layers — but with 8 key-value heads (grouped-query attention)
+
+So the head count is actually identical between these two. The parameter difference lives mostly in the FFN width and embedding dimension. Qwen3-8B has a wider hidden dimension (4096 vs 2048-ish for 4B), which means the FFN layers are proportionally larger — and as the digest notes, FFN is where most parameters live.
+
+**Grouped-query attention (GQA)** is worth knowing about since your models use it: instead of each attention head having its own K and V projections, multiple heads share K/V while keeping separate Q projections. 32 query heads sharing 8 key-value heads means 4 query heads per KV group. This cuts the memory cost of attention significantly (especially the KV cache during inference) without much quality loss. It's why modern models can have long context windows without exploding memory — and it's one reason your 8B model fits in 16GB at all.
+
+**The practical upshot for your comparison:** The 4B → 8B jump gives you wider representations (each token's vector carries more information) and wider FFN layers (more stored associations), but similar attention structure. The 8B model doesn't *notice more things* in the transcript — it *processes what it notices with more nuance*. Whether that extra processing depth helps for metacognitive observation (a task that may be more about pattern recognition than nuanced reasoning) is exactly what Phase 4 will tell you.

@@ -1,0 +1,981 @@
+[U1 04:33] # Create a plan for a new feature or bug fix
+
+## Introduction
+
+**Note: The current year is 2026.** Use this when dating plans and searching for recent documentation.
+
+Transform feature descriptions, bug reports, or improvement ideas into well-structured markdown files issues that follow project conventions and best practices. This command provides flexible detail levels to match your needs.
+
+## Feature Description
+
+<feature_description> #docs/brainstorms/mind-meld-spec.md & don't prewrite the code -- plan the phase implementation of this build. it's potentially going to take more than one pass of the workflows:work phase to complete the whole build, so the plan needs to articulate a well-sequenced build. right-size each phase. you're gonna nail it, you're great at this. raise questions early if you have them. let's work from a fresh feature branch of course. for this build in particular, we're not opening any PRs until the entire review phase is complete -- no working agents are to open PRs. please make this specifaction very clear to the working agents in your plan. </feature_description>
+
+**If the feature description above is empty, ask the user:** "What would you like to plan? Please describe the feature, bug fix, or improvement you have in mind."
+
+Do not proceed until you have a clear feature description from the user.
+
+### 0. Idea Refinement
+
+**Check for brainstorm output first:**
+
+Before asking questions, look for recent brainstorm documents in `docs/brainstorms/` that match this feature:
+
+```bash
+ls -la docs/brainstorms/*.md 2>/dev/null | head -10
+```
+
+**Relevance criteria:** A brainstorm is relevant if:
+
+- The topic (from filename or YAML frontmatter) semantically matches the feature description
+- Created within the last 14 days
+- If multiple candidates match, use the most recent one
+
+**If a relevant brainstorm exists:**
+
+1. Read the brainstorm document
+2. Announce: "Found brainstorm from [date]: [topic]. Using as context for planning."
+3. Extract key decisions, chosen approach, and open questions
+4. **Skip the idea refinement questions below** - the brainstorm already answered WHAT to build
+5. Use brainstorm decisions as input to the research phase
+
+**If multiple brainstorms could match:**
+Use **AskUserQuestion tool** to ask which brainstorm to use, or whether to proceed without one.
+
+**If no brainstorm found (or not relevant), run idea refinement:**
+
+Refine the idea through collaborative dialogue using the **AskUserQuestion tool**:
+
+- Ask questions one at a time to understand the idea fully
+- Prefer multiple choice questions when natural options exist
+- Focus on understanding: purpose, constraints and success criteria
+- Continue until the idea is clear OR user says "proceed"
+
+**Gather signals for research decision.** During refinement, note:
+
+- **User's familiarity**: Do they know the codebase patterns? Are they pointing to examples?
+- **User's intent**: Speed vs thoroughness? Exploration vs execution?
+- **Topic risk**: Security, payments, external APIs warrant more caution
+- **Uncertainty level**: Is the approach clear or open-ended?
+
+**Skip option:** If the feature description is already detailed, offer:
+"Your description is clear. Should I proceed with research, or would you like to refine it further?"
+
+## Main Tasks
+
+### 1. Local Research (Always Runs - Parallel)
+
+<thinking>
+First, I need to understand the project's conventions, existing patterns, and any documented learnings. This is fast and local - it informs whether external research is needed.
+</thinking>
+
+Run these agents **in parallel** to gather local context:
+
+- Task repo-research-analyst(feature_description)
+- Task learnings-researcher(feature_description)
+
+**What to look for:**
+
+- **Repo research:** existing patterns, CLAUDE.md guidance, technology familiarity, pattern consistency
+- **Learnings:** documented solutions in `docs/solutions/` that might apply (gotchas, patterns, lessons learned)
+
+These findings inform the next step.
+
+### 1.5. Research Decision
+
+Based on signals from Step 0 and findings from Step 1, decide on external research.
+
+**High-risk topics → always research.** Security, payments, external APIs, data privacy. The cost of missing something is too high. This takes precedence over speed signals.
+
+**Strong local context → skip external research.** Codebase has good patterns, CLAUDE.md has guidance, user knows what they want. External research adds little value.
+
+**Uncertainty or unfamiliar territory → research.** User is exploring, codebase has no examples, new technology. External perspective is valuable.
+
+**Announce the decision and proceed.** Brief explanation, then continue. User can redirect if needed.
+
+Examples:
+
+- "Your codebase has solid patterns for this. Proceeding without external research."
+- "This involves payment processing, so I'll research current best practices first."
+
+### 1.5b. External Research (Conditional)
+
+**Only run if Step 1.5 indicates external research is valuable.**
+
+Run these agents in parallel:
+
+- Task best-practices-researcher(feature_description)
+- Task framework-docs-researcher(feature_description)
+
+### 1.6. Consolidate Research
+
+After all research steps complete, verify each agent returned a non-empty
+result. If any agent returned empty or errored, note which analysis is
+missing (e.g., "Learnings search unavailable — agent returned empty").
+
+Consolidate findings:
+
+- Document relevant file paths from repo research (e.g., `app/services/example_service.rb:42`)
+- **Include relevant institutional learnings** from `docs/solutions/` (key insights, gotchas to avoid)
+- Note external documentation URLs and best practices (if external research was done)
+- List related issues or PRs discovered
+- Capture CLAUDE.md conventions
+
+**Optional validation:** Briefly summarize findings and ask if anything looks off or missing before proceeding to planning.
+
+### 2. Issue Planning & Structure
+
+<thinking>
+Think like a product manager - what would make this issue clear and actionable? Consider multiple perspectives
+</thinking>
+
+**Title & Categorization:**
+
+- [ ] Draft clear, searchable issue title using conventional format (e.g., `feat: Add user authentication`, `fix: Cart total calculation`)
+- [ ] Determine issue type: enhancement, bug, refactor
+- [ ] Convert title to filename: add today's date prefix, strip prefix colon, kebab-case, add `-plan` suffix
+  - Example: `feat: Add User Authentication` → `2026-01-21-feat-add-user-authentication-plan.md`
+  - Keep it descriptive (3-5 words after prefix) so plans are findable by context
+
+**Stakeholder Analysis:**
+
+- [ ] Identify who will be affected by this issue (end users, developers, operations)
+- [ ] Consider implementation complexity and required expertise
+
+**Content Planning:**
+
+- [ ] Choose appropriate detail level based on issue complexity and audience
+- [ ] List all necessary sections for the chosen template
+- [ ] Gather supporting materials (error logs, screenshots, design mockups)
+- [ ] Prepare code examples or reproduction steps if applicable, name the mock filenames in the lists
+
+### 3. SpecFlow Analysis
+
+After planning the issue structure, run SpecFlow Analyzer to validate and refine the feature specification:
+
+- Task spec-flow-analyzer(feature_description, research_findings)
+
+**SpecFlow Analyzer Output:**
+
+- [ ] Review SpecFlow analysis results
+- [ ] Incorporate any identified gaps or edge cases into the issue
+- [ ] Update acceptance criteria based on SpecFlow findings
+
+### 4. Choose Implementation Detail Level
+
+Select how comprehensive you want the issue to be, simpler is mostly better.
+
+#### 📄 MINIMAL (Quick Issue)
+
+**Best for:** Simple bugs, small improvements, clear features
+
+**Includes:**
+
+- Problem statement or feature description
+- Basic acceptance criteria
+- Essential context only
+
+**Structure:**
+
+````markdown
+---
+title: [Issue Title]
+type: [feat|fix|refactor]
+status: active
+date: YYYY-MM-DD
+---
+
+# [Issue Title]
+
+[Brief problem/feature description]
+
+## Acceptance Criteria
+
+- [ ] Core requirement 1
+- [ ] Core requirement 2
+
+## Context
+
+[Any critical information]
+
+## MVP
+
+### test.rb
+
+```ruby
+class Test
+  def initialize
+    @name = "test"
+  end
+end
+```
+
+## References
+
+- Related issue: #[issue_number]
+- Documentation: [relevant_docs_url]
+````
+
+#### 📋 MORE (Standard Issue)
+
+**Best for:** Most features, complex bugs, team collaboration
+
+**Includes everything from MINIMAL plus:**
+
+- Detailed background and motivation
+- Technical considerations
+- Success metrics
+- Dependencies and risks
+- Basic implementation suggestions
+
+**Structure:**
+
+```markdown
+---
+title: [Issue Title]
+type: [feat|fix|refactor]
+status: active
+date: YYYY-MM-DD
+---
+
+# [Issue Title]
+
+## Overview
+
+[Comprehensive description]
+
+## Problem Statement / Motivation
+
+[Why this matters]
+
+## Proposed Solution
+
+[High-level approach]
+
+## Technical Considerations
+
+- Architecture impacts
+- Performance implications
+- Security considerations
+
+## Acceptance Criteria
+
+- [ ] Detailed requirement 1
+- [ ] Detailed requirement 2
+- [ ] Testing requirements
+
+## Success Metrics
+
+[How we measure success]
+
+## Dependencies & Risks
+
+[What could block or complicate this]
+
+## References & Research
+
+- Similar implementations: [file_path:line_number]
+- Best practices: [documentation_url]
+- Related PRs: #[pr_number]
+```
+
+#### 📚 A LOT (Comprehensive Issue)
+
+**Best for:** Major features, architectural changes, complex integrations
+
+**Includes everything from MORE plus:**
+
+- Detailed implementation plan with phases
+- Alternative approaches considered
+- Extensive technical specifications
+- Resource requirements and timeline
+- Future considerations and extensibility
+- Risk mitigation strategies
+- Documentation requirements
+
+**Structure:**
+
+```markdown
+---
+title: [Issue Title]
+type: [feat|fix|refactor]
+status: active
+date: YYYY-MM-DD
+---
+
+# [Issue Title]
+
+## Overview
+
+[Executive summary]
+
+## Problem Statement
+
+[Detailed problem analysis]
+
+## Proposed Solution
+
+[Comprehensive solution design]
+
+## Technical Approach
+
+### Architecture
+
+[Detailed technical design]
+
+### Implementation Phases
+
+#### Phase 1: [Foundation]
+
+- Tasks and deliverables
+- Success criteria
+- Estimated effort
+
+#### Phase 2: [Core Implementation]
+
+- Tasks and deliverables
+- Success criteria
+- Estimated effort
+
+#### Phase 3: [Polish & Optimization]
+
+- Tasks and deliverables
+- Success criteria
+- Estimated effort
+
+## Alternative Approaches Considered
+
+[Other solutions evaluated and why rejected]
+
+## Acceptance Criteria
+
+### Functional Requirements
+
+- [ ] Detailed functional criteria
+
+### Non-Functional Requirements
+
+- [ ] Performance targets
+- [ ] Security requirements
+- [ ] Accessibility standards
+
+### Quality Gates
+
+- [ ] Test coverage requirements
+- [ ] Documentation completeness
+- [ ] Code review approval
+
+## Success Metrics
+
+[Detailed KPIs and measurement methods]
+
+## Dependencies & Prerequisites
+
+[Detailed dependency analysis]
+
+## Risk Analysis & Mitigation
+
+[Comprehensive risk assessment]
+
+## Resource Requirements
+
+[Team, time, infrastructure needs]
+
+## Future Considerations
+
+[Extensibility and long-term vision]
+
+## Documentation Plan
+
+[What docs need updating]
+
+## References & Research
+
+### Internal References
+
+- Architecture decisions: [file_path:line_number]
+- Similar features: [file_path:line_number]
+- Configuration: [file_path:line_number]
+
+### External References
+
+- Framework documentation: [url]
+- Best practices guide: [url]
+- Industry standards: [url]
+
+### Related Work
+
+- Previous PRs: #[pr_numbers]
+- Related issues: #[issue_numbers]
+- Design documents: [links]
+```
+
+### 5. Issue Creation & Formatting
+
+<thinking>
+Apply best practices for clarity and actionability, making the issue easy to scan and understand
+</thinking>
+
+**Content Formatting:**
+
+- [ ] Use clear, descriptive headings with proper hierarchy (##, ###)
+- [ ] Include code examples in triple backticks with language syntax highlighting
+- [ ] Add screenshots/mockups if UI-related (drag & drop or use image hosting)
+- [ ] Use task lists (- [ ]) for trackable items that can be checked off
+- [ ] Add collapsible sections for lengthy logs or optional details using `<details>` tags
+- [ ] Apply appropriate emoji for visual scanning (🐛 bug, ✨ feature, 📚 docs, ♻️ refactor)
+
+**Cross-Referencing:**
+
+- [ ] Link to related issues/PRs using #number format
+- [ ] Reference specific commits with SHA hashes when relevant
+- [ ] Link to code using GitHub's permalink feature (press 'y' for permanent link)
+- [ ] Mention relevant team members with @username if needed
+- [ ] Add links to external resources with descriptive text
+
+**Code & Examples:**
+
+````markdown
+# Good example with syntax highlighting and line references
+
+```ruby
+# app/services/user_service.rb:42
+def process_user(user)
+
+# Implementation here
+
+end
+```
+
+# Collapsible error logs
+
+<details>
+<summary>Full error stacktrace</summary>
+
+`Error details here...`
+
+</details>
+````
+
+**AI-Era Considerations:**
+
+- [ ] Account for accelerated development with AI pair programming
+- [ ] Include prompts or instructions that worked well during research
+- [ ] Note which AI tools were used for initial exploration (Claude, Copilot, etc.)
+- [ ] Emphasize comprehensive testing given rapid implementation
+- [ ] Document any AI-generated code that needs human review
+
+### 6. Final Review & Submission
+
+**Pre-submission Checklist:**
+
+- [ ] Title is searchable and descriptive
+- [ ] Labels accurately categorize the issue
+- [ ] All template sections are complete
+- [ ] Links and references are working
+- [ ] Acceptance criteria are measurable
+- [ ] Add names of files in pseudo code examples and todo lists
+- [ ] Add an ERD mermaid diagram if applicable for new model changes
+
+## Output Format
+
+**Filename:** Use the date and kebab-case filename from Step 2 Title & Categorization.
+
+```
+docs/plans/YYYY-MM-DD-<type>-<descriptive-name>-plan.md
+```
+
+Examples:
+
+- ✅ `docs/plans/2026-01-15-feat-user-authentication-flow-plan.md`
+- ✅ `docs/plans/2026-02-03-fix-checkout-race-condition-plan.md`
+- ✅ `docs/plans/2026-03-10-refactor-api-client-extraction-plan.md`
+- ❌ `docs/plans/2026-01-15-feat-thing-plan.md` (not descriptive - what "thing"?)
+- ❌ `docs/plans/2026-01-15-feat-new-feature-plan.md` (too vague - what feature?)
+- ❌ `docs/plans/2026-01-15-feat: user auth-plan.md` (invalid characters - colon and space)
+- ❌ `docs/plans/feat-user-auth-plan.md` (missing date prefix)
+
+## Post-Generation Options
+
+After writing the plan file, use the **AskUserQuestion tool** to present these options:
+
+**Question:** "Plan ready at `docs/plans/YYYY-MM-DD-<type>-<name>-plan.md`. What would you like to do next?"
+
+**Options:**
+
+1. **Open plan in editor** - Open the plan file for review
+2. **Run `/deepen-plan`** - Enhance each section with parallel research agents (best practices, performance, UI)
+3. **Run `/technical_review`** - Technical feedback from code-focused reviewers (DHH, Kieran, Simplicity)
+4. **Review and refine** - Improve the document through structured self-review
+5. **Start `/workflows:work`** - Begin implementing this plan locally
+6. **Start `/workflows:work` on remote** - Begin implementing in Claude Code on the web (use `&` to run in background)
+7. **Create Issue** - Create issue in project tracker (GitHub/Linear)
+
+Based on selection:
+
+- **Open plan in editor** → Run `open docs/plans/<plan_filename>.md` to open the file in the user's default editor
+- **`/deepen-plan`** → Call the /deepen-plan command with the plan file path to enhance with research
+- **`/technical_review`** → Call the /technical_review command with the plan file path
+- **Review and refine** → Load `document-review` skill.
+- **`/workflows:work`** → Call the /workflows:work command with the plan file path
+- **`/workflows:work` on remote** → Run `/workflows:work docs/plans/<plan_filename>.md &` to start work in background for Claude Code web
+- **Create Issue** → See "Issue Creation" section below
+- **Other** (automatically provided) → Accept free text for rework or specific changes
+
+**Note:** If running `/workflows:plan` with ultrathink enabled, automatically run `/deepen-plan` after plan creation for maximum depth and grounding.
+
+Loop back to options after Simplify or Other changes until user selects `/workflows:work` or `/technical_review`.
+
+## Issue Creation
+
+When user selects "Create Issue", detect their project tracker from CLAUDE.md:
+
+1. **Check for tracker preference** in user's CLAUDE.md (global or project):
+   - Look for `project_tracker: github` or `project_tracker: linear`
+   - Or look for mentions of "GitHub Issues" or "Linear" in their workflow section
+
+2. **If GitHub:**
+
+   Use the title and type from Step 2 (already in context - no need to re-read the file):
+
+   ```bash
+   gh issue create --title "<type>: <title>" --body-file <plan_path>
+   ```
+
+3. **If Linear:**
+
+   ```bash
+   linear issue create --title "<title>" --description "$(cat <plan_path>)"
+   ```
+
+4. **If no tracker configured:**
+   Ask user: "Which project tracker do you use? (GitHub/Linear/Other)"
+   - Suggest adding `project_tracker: github` or `project_tracker: linear` to their CLAUDE.md
+
+5. **After creation:**
+   - Display the issue URL
+   - Ask if they want to proceed to `/workflows:work` or `/technical_review`
+
+NEVER CODE! Just research and write the plan.
+[A1 04:33] I'll start by reading the brainstorm document and gathering local context in parallel.
+  -> Read: mind-meld-spec.md
+  -> Task
+  -> Task
+[A5 04:38] Found the brainstorm from today: **Mind Meld — Cooperative Game Redesign**. Using as context for planning.
+
+The research agents returned comprehensive findings. Let me consolidate and check a couple things before writing the plan.
+  -> Bash: ls /Users/rhhart/Documents/GitHub/schelling-points/docs/plans/ 2>/dev/null || ec
+  -> Bash: git branch --list '*mind*' '*meld*' 2>/dev/null; gh issue list --search "mind me
+  -> Read: scoring.ts
+  -> Read: config.ts
+[A10 04:38] Let me also read the type definitions and play.ts to understand the exact shapes I'm planning around.
+  -> Read: types.ts
+  -> Read: types.ts
+  -> Read: play.ts
+  -> Read: types.ts
+  -> Read: Scores.tsx
+[A16 04:39] Now I have full context. Let me consolidate research and write the plan.
+  -> TodoWrite
+[A18 04:40] Now let me write the plan. I've identified several spec gaps during SpecFlow analysis that I'll address in the document.
+  -> TodoWrite
+  -> Write: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+  -> TodoWrite
+  -> Bash: git checkout -b hart/mind-meld
+  -> TodoWrite
+[A24 04:44] Plan written to [2026-02-20-feat-mind-meld-cooperative-redesign-plan.md](docs/plans/2026-02-20-feat-mind-meld-cooperative-redesign-plan.md). Branch `hart/mind-meld` created from `main`.
+
+Here's a summary of the plan structure:
+
+**5 work phases, each one `/workflows:work` pass:**
+
+| Phase | Scope | Key Output |
+|-------|-------|------------|
+| **1. Infrastructure** | New files only — word list, build script, vocab.ts, stemmer.ts, tests | Vocab lookup + stemmer working independently |
+| **2. Scoring + Config** | Modify scoring pipeline, add meld detection, update constants | `scoreGuesses` returns `centroidWord`, meld detection works |
+| **3. Core Game Loop** | Wire protocol, types, play.ts — the big one | Full round cycling: GUESSES → REVEAL → next prompt. Meld wins. |
+| **4. CONTINUE Phase** | Round 20 voting, "I'm out" mechanic | Players can vote to continue or leave at round 20 |
+| **5. Client UI** | Reducer, Reveal screen, GameEnd screen, Guesses updates | Full frontend working with new game flow |
+
+**Spec gaps I found and addressed:**
+- Zero valid submissions (all repeated prompt) → treat as scoring failure
+- Centroid resolving to prompt word itself → accept it, "again" indicator handles it
+- `SCORES_READY` rename → `REVEAL_READY`
+- `RoundScore.category` → `RoundScore.prompt`
+- ScatterPlot extraction from Scores.tsx for reuse
+
+**One decision point before Phase 1:** Stemmer approach — I recommend using the `stemmer` npm package (2KB, well-tested Porter2) vs. implementing from scratch. Correctness matters for meld detection.
+
+**The no-PR rule** is emphasized at the top of the plan, in the phase dependency section, and in every single phase's agent instructions.
+  -> AskUserQuestion
+  x AskUserQuestion failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to
+[U2 04:44] [Request interrupted by user for tool use]
+[U3 04:45] spawn two subagents with different prompts: tell one 'you're a professional game designer who's reviewing this build plan. raise important questions you'd need answered before build time'. tell the other 'you're a senior dev about to set your team to work on building out this plan. ask any questions you need answered before having your team work on this.' (don't of course allow them to make edits, just raise questions). once they've asked you questions, revise the plan in light of what was ambiguous to the fresh agents.
+  -> Task
+  -> Task
+[A28 04:47] Excellent feedback from both reviewers. Let me synthesize the actionable clarifications and revise the plan.
+
+**Key ambiguities to resolve:**
+
+From the **game designer** — pacing concerns (noted as playtesting items), convergence feedback gaps, meld celebration thinness, and Ollama infinite-retry risk.
+
+From the **senior dev** — vocab storage strategy, centroidHistory indexing, scoring failure retry mechanics, zero-submissions check location, CONTINUE disconnect handling, centroidIsRepeat computation, "I'm out" unicast flow, post-meld transition, and centroidHistory initialization.
+
+Let me integrate these directly into the plan.
+  -> Read: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+[A30 04:47] Now I'll apply the revisions. Starting with the most impactful changes.
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+[A35 04:48] Now update Phase 4 to clarify the disconnect handling and "I'm out" unicast flow.
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+[A37 04:49] Now add `MAX_SCORING_RETRIES` and `scoringRetries` to the appropriate config/types sections.
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+[A40 04:49] Now update the REVEAL Phase type to remove centroidIsRepeat (computed fresh, not stored).
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+[A42 04:49] Finally, update the `currentGameState` section to be more explicit about the CONTINUE case.
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+  -> TodoWrite
+[A45 04:49] Plan revised. Here's what the two reviewers surfaced and what I changed:
+
+**From the game designer** (pacing, feel, feedback loops):
+- Added **Spec Gap #8** — timer values are playtesting targets, not final. 10s/3s go in as-spec'd, tuning happens post-build.
+- The convergence feedback concern (no historical context during play) is by-design per the spec — players navigate blind, guided only by the centroid compass. Worth watching in playtesting but not a build-time change.
+
+**From the senior dev** (ambiguities that would cause agents to guess):
+
+| Issue | What was ambiguous | What the plan now says |
+|-------|--------------------|----------------------|
+| **Vocab storage** | "module-level variable" vs parameter vs State | Store on `State.vocab` — matches existing `State.categories` pattern |
+| **centroidHistory ordering** | When to push, risk of off-by-one | Explicit 6-step ordering in scoreRound (push BEFORE storing round results) |
+| **Scoring failure retry** | Does timer restart? Do guesses clear? | Yes and yes — explicit code showing fresh GUESSES phase with same round/prompt |
+| **Zero submissions location** | Where does the check live? | In `scoreRound`, after `filterPromptRepetitions`, before calling `scoreGuesses` |
+| **centroidIsRepeat** | Stored on Phase or computed fresh? | Computed fresh in `currentGameState()` — not stored on Phase |
+| **Post-meld transition** | Race condition between GAME_END and LOBBY | Immediately set LOBBY phase after unicasts, broadcast LOBBY_STATE |
+| **CONTINUE disconnect handling** | Vote re-evaluation after disconnect | Extracted `checkContinueVotes()` helper, reused by both vote handler and disconnect handler |
+| **"I'm out" unicast** | Departing player doesn't know they're in lounge | Explicit unicast of LOUNGE message to departing player before broadcast |
+| **Ollama infinite retry** | What if Ollama is completely down? | Added `MAX_SCORING_RETRIES = 3` — end game gracefully after 3 consecutive failures |
+| **Meld detection  [...truncated]
+  -> AskUserQuestion
+[A47 04:51] Let me trace the dependency chain carefully across all 5 phases.
+  -> Read: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+[A49 04:53] Let me trace the exact dependency chain between phases by checking a critical code path.
+  -> Read: client.tsx
+  -> Read: server.ts
+  -> Read: api.ts
+  -> Read: Lounge.tsx
+[A54 04:55] Now I can see several critical dependency gaps. Let me trace them systematically and fix.
+
+**Gaps found during dependency trace:**
+
+1. **GAME_END → LOBBY_STATE race condition** — Server sends GAME_END unicast then broadcasts LOBBY_STATE, which overwrites the celebration screen in the reducer
+2. **Phase 2 → 3 vocab bridge** — `scoreGuesses` call site in play.ts needs vocab but State.vocab doesn't exist until Phase 3
+3. **Phase 3 helper extraction** — Phase 4 references `sendGameEnd()` and `buildPlayerHistory()` but Phase 3 shows them inline
+4. **newGuessPhase parameter rename** — `category` → `prompt` not explicit
+5. **onTickGame parameter threading** — How does vocab flow from State to scoreRound?
+6. **api.ts close handler** — Doesn't handle game-player disconnects (only lounge)
+7. **Phase 5 "Back to Lounge" flow** — JOIN_LOUNGE handler doesn't send LOUNGE response; client would have no way to transition back
+8. **Round display past 20** — What does "Round 21 of 20" look like?
+
+Let me apply all the fixes.
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+  x Edit failed: <tool_use_error>File has not been read yet. Read it first before writing to it.</tool_use_error>
+  -> Read: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+[A58 04:56] Now fix Phase 3 — add helper extraction, newGuessPhase rename, parameter threading, and the GAME_END cleanup flow.
+  -> Read: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+[A61 04:56] Now fix the GAME_END flow and helper extraction (3e), and the REVEAL → next round transition (3d step 4).
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+[A63 04:57] Now fix the parameter threading in 3h.
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+[A65 04:57] Now update Phase 4 — fix the api.ts disconnect handler gap and update references to use the extracted helpers.
+  -> Read: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+  -> Read: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+[A69 04:57] Now update Phase 4's disconnect handling and add the api.ts file to the files-to-modify list.
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+[A71 04:57] Now update the disconnect handler details in Phase 4.
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+[A73 04:58] Now update Phase 5 — add the reducer guard and "Back to Lounge" flow details.
+  -> Read: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+[A76 04:58] Now add the "Back to Lounge" flow and round display details.
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+[A78 04:58] Actually, let me simplify that section. I was overcomplicating the LOUNGE guard — tracing the actual message flow shows it's not needed.
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+[A80 04:59] Now simplify the "Back to Lounge" flow text.
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+[A82 04:59] Now add the round display guidance for rounds past 20.
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+[A84 04:59] Now update the Phase 3 agent instructions to reflect the new sub-task numbering and key details.
+  -> Edit: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+  -> TodoWrite
+[A87 05:00] Phase dependency audit complete. Here's the summary of what I found and fixed:
+
+**Gap 1: GAME_END → LOBBY_STATE race condition**
+- `endGame()` now deletes the game from `state.games` and moves players to lounge — no LOBBY_STATE broadcast to overwrite the celebration screen
+- MEMBER_CHANGE from `broadcastLoungeChange()` is ignored by the client (gameId mismatch)
+- GAME_END view is stable until player taps "Back to Lounge"
+
+**Gap 2: Phase 2 → 3 vocab bridge**
+- Made `vocab` an optional parameter in `scoreGuesses()` — returns `centroidWord: ''` when absent
+- Phase 2 doesn't touch the call site in play.ts. Phase 3 passes `state.vocab`.
+
+**Gap 3: Helper extraction for Phase 4**
+- Phase 3 must extract `endGame()`, `buildPlayerHistory()` as named functions
+- Phase 4's `checkContinueVotes()` calls `endGame()` and `newGuessPhase()` — both must exist
+
+**Gap 4: newGuessPhase parameter rename**
+- Explicitly documented: `newGuessPhase(round, category)` → `newGuessPhase(round, prompt)`
+
+**Gap 5: Parameter threading**
+- Recommended passing `state` through the entire call chain instead of individual fields
+- `onTick → onTickGame(state) → scoreRound(state) → goToNextRound(state) → endGame(state)`
+
+**Gap 6: api.ts close handler**
+- Current handler only cleans up lounge players — doesn't handle game disconnects at all
+- Phase 4 adds CONTINUE-phase disconnect handling with code for api.ts
+
+**Gap 7: "Back to Lounge" flow**
+- Phase 3 adds LOUNGE response to JOIN_LOUNGE handler (currently never sends one)
+- GameEnd's "Back to Lounge" sends JOIN_LOUNGE → server responds LOUNGE → view transitions
+
+**Gap 8: Round display past 20**
+- Added guidance: show "Round N" without "of X" when round > totalRounds
+  -> AskUserQuestion
+  x AskUserQuestion failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to
+[U4 05:00] [Request interrupted by user for tool use]
+[U5 05:02] This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me trace through the entire conversation chronologically:
+
+1. **User's initial request**: Run `/workflows:plan` on `docs/brainstorms/mind-meld-spec.md`. Key instructions:
+   - Don't prewrite the code — plan the phase implementation
+   - It's potentially going to take more than one pass of workflows:work
+   - Right-size each phase
+   - Raise questions early
+   - Work from a fresh feature branch
+   - **CRITICAL**: No PRs until entire review phase is complete — no working agents are to open PRs
+
+2. **Research phase**: I read the brainstorm spec and launched two parallel explorer agents:
+   - Repo research agent - explored game state machine, WebSocket patterns, frontend routing, scoring system, types, config, component patterns, architecture
+   - Learnings researcher - searched docs/solutions/ for documented patterns and gotchas
+
+3. **Additional research**: Read scoring.ts, config.ts, types.ts, server/types.ts, play.ts, client/types.ts, Scores.tsx to understand exact code patterns.
+
+4. **Plan creation**: Wrote the plan to `docs/plans/2026-02-20-feat-mind-meld-cooperative-redesign-plan.md` with 5 phases. Created branch `hart/mind-meld`.
+
+5. **User's second request**: "spawn two subagents with different prompts" — one as a game designer, one as a senior dev — to review the plan and raise questions. Don't allow edits.
+
+6. **Reviewer feedback incorporated**: 
+   - Game designer raised pacing concerns, convergence feedback gaps, meld celebration thinness, Ollama infinite-retry risk
+   - Senior dev raised: vocab storage strategy, centroidHistory indexing, scoring failure retry mechanics, zero-submissions check, CONTINUE disconnect handling, centroidIsRepeat computation, "I'm out" unicast flow, post-meld transition, centroidHistory initialization
+
+7. **User's third request**: "now do a focused review on the phase implementation. ensure that each phase will provide every bit of foundation needed by the phase that follows."
+
+8. **Dependency audit**: I traced all dependencies across phases and found 8 gaps:
+   - GAME_END → LOBBY_STATE race condition
+   - Phase 2 → 3 vocab bridge
+   - Phase 3 helper extraction for Phase 4
+   - newGuessPhase parameter rename
+   - onTickGame parameter threading
+   - api.ts close handler
+   - "Back to Lounge" flow
+   - Round display past 20
+
+9. **User's final request**: "create a handoff prompt for the working agent who is to work only on phase 1"
+
+Now let me compile the key details for Phase 1 specifically:
+
+**Phase 1: Infrastructure & Utilities**
+- New files only, zero modifications to existing code
+- Files to create:
+  - `data/google-10000-english-no-swears.txt` — vendor the word list
+  - `scripts/build-vocab-embeddings.ts` — one-time Bun script
+  - `src/server/vocab.ts` — loadVocab(), nearestWord()
+  - `src/server/stemmer.ts` — stemmer wrapper
+  - `src/server/vocab.test.ts` — unit tests
+  - `src/server/stemmer.test.ts` — unit tests
+- Files to modify:
+  - `.gitignore` — add `data/vocab-embeddings.json`
+
+Key details the working agent needs:
+- The vocab module uses `cosineSimilarity` from `src/server/scoring.ts` (already exists)
+- Stemmer decision: package vs from-scratch (plan recommends `stemmer` package)
+- Build script batches 500 words per request through Ollama `/api/embed`
+- `loadVocab()` must throw with clear error if file missing
+- Tests use mock vectors, don't need real embeddings
+- DO NOT open PRs, commit to `hart/mind-meld` only
+- Branch already exists
+
+The plan file is at: `docs/plans/2026-02-20-feat-mind-meld-cooperative-redesign-plan.md`
+The brainstorm spec is at: `docs/brainstorms/mind-meld-spec.md`
+
+Important context about the existing codebase:
+- Runtime: Bun
+- Backend: Express 5 + express-ws
+- Config: `src/config.ts` has EMBEDDING_MODEL = 'nomic-embed-text', OLLAMA_URL defaults, etc.
+- Scoring: `src/server/scoring.ts` exports `cosineSimilarity`, `centroid`, `fetchEmbeddings`, `scoreGuesses`
+- The `Vocab` interface: `{ words: string[], vectors: number[][] }`
+
+Summary:
+1. Primary Request and Intent:
+   The user requested a phased implementation plan for redesigning the Schelling Points game into a cooperative "Mind Meld" mode, based on the brainstorm spec at `docs/brainstorms/mind-meld-spec.md`. The plan was to be split into right-sized phases for multiple `/workflows:work` passes. A critical constraint: **NO PRs until the entire review phase is complete — no working agents are to open PRs.** The plan was created, reviewed by two simulated reviewers (game designer + senior dev), revised, and dependency-audited. The user's final request is to **create a handoff prompt for the working agent who is to work only on Phase 1**.
+
+2. Key Technical Concepts:
+   - **Schelling Points**: Jackbox-style mobile word game. TypeScript throughout.
+   - **Tech stack**: React 19 + React Router 7 + Vite (frontend), Express 5 + express-ws (backend), Bun runtime, in-memory state
+   - **Mind Meld redesign**: Cooperative game where players submit words, semantic centroid resolved to nearest real English word becomes next prompt, group wins when all submit same word
+   - **Vocab embedding cache**: Pre-computed embeddings for ~10k English words using Ollama's `nomic-embed-text` model
+   - **Porter stemmer**: For meld detection (comparing word stems)
+   - **Cosine similarity + centroid**: Vector math already in `src/server/scoring.ts`
+   - **5-phase build plan**: Infrastructure → Scoring → Core Loop → CONTINUE Phase → Client UI
+   - **Branch**: `hart/mind-meld` (already created from main)
+
+3. Files and Code Sections:
+   - **`docs/plans/2026-02-20-feat-mind-meld-cooperative-redesign-plan.md`** — The complete phased implementation plan. Created and revised through multiple rounds. This is the primary artifact of the session.
+   - **`docs/brainstorms/mind-meld-spec.md`** — Source spec for Mind Meld. Describes game loop, meld detection, vocab lookup, scoring changes, wire protocol, client views. Read in full.
+   - **`src/server/scoring.ts`** — Existing scoring module. Phase 1 depends on its `cosineSimilarity` export:
+     ```ts
+     export function cosineSimilarity(a: number[], b: number[]): number {
+       let dot = 0; let magA = 0; let magB = 0;
+       for (let i = 0; i < a.length; i++) {
+         dot += a[i] * b[i]; magA += a[i] * a[i]; magB += b[i] * b[i];
+       }
+       const denom = Math.sqrt(magA) * Math.sqrt(magB);
+       return denom === 0 ? 0 : dot / denom;
+     }
+     ```
+   - **`src/config.ts`** — Game config constants. Phase 1's build script uses `EMBEDDING_MODEL = 'nomic-embed-text'`:
+     ```ts
+     export const EMBEDDING_MODEL = 'nomic-embed-text'
+     export const EMBEDDING_TIMEOUT_MS = 10_000
+     export const EMBEDDING_RETRIES = 2
+     ```
+   - **`src/types.ts`** — Shared wire protocol types (ToServerMessage, ToClientMessage). Not modified in Phase 1.
+   - **`src/server/types.ts`** — Server-side types (Phase union, Game class, State class). Not modified in Phase 1.
+   - **`src/server/play.ts`** — Game loop hub. Not modified in Phase 1.
+   - **`src/client.tsx`** — Client reducer and view routing. Not modified in Phase 1.
+   - **`src/client/types.ts`** — Client View type union. Not modified in Phase 1.
+   - **`src/client/Scores.tsx`** — Current scores component with ScatterPlot. Read for context; not modified in Phase 1.
+   - **`src/server.ts`** — Server entry point. Shows how State is constructed and categories loaded. Not modified in Phase 1.
+   - **`src/server/api.ts`** — WebSocket setup and close handler. Not modified in Phase 1.
+
+4. Errors and fixes:
+   - **GAME_END → LOBBY_STATE race condition**: Discovered that sending GAME_END then broadcasting LOBBY_STATE would overwrite the celebration screen. Fixed by having `endGame()` delete the game from `state.games` and move players to lounge instead of transitioning to LOBBY.
+   - **Phase 2 → 3 vocab bridge**: `scoreGuesses` call site in play.ts needs vocab but State.vocab doesn't exist until Phase 3. Fixed by making vocab an optional parameter in Phase 2.
+   - **JOIN_LOUNGE never sends LOUNGE response**: Current handler adds to lounge but never sends a LOUNGE message back, so client can't transition views. Fixed by adding LOUNGE unicast response in Phase 3.
+   - **api.ts close handler doesn't handle game players**: Only handles lounge cleanup. Noted for Phase 4 to add CONTINUE-phase disconnect handling.
+
+5. Problem Solving:
+   - Identified and resolved 8 cross-phase dependency gaps through systematic dependency tracing
+   - Resolved the stemmer implementation question (recommend `stemmer` npm package for correctness)
+   - Addressed spec gaps: zero valid submissions, centroid resolving to prompt word, SCORES_READY rename, RoundScore.category rename, round indexing, ScatterPlot reuse, scoring infrastructure resilience, timer playtesting
+   - Designed the `endGame()` cleanup flow to avoid client-side race conditions
+
+6. All user messages:
+   - **Message 1**: `/workflows:plan docs/brainstorms/mind-meld-spec.md & don't prewrite the code -- plan the phase implementation of this build. it's potentially going to take more than one pass of the workflows:work phase to complete the whole build, so the plan needs to articulate a well-sequenced build. right-size each phase. you're gonna nail it, you're great at this. raise questions early if you have them. let's work from a fresh feature branch of course. for this build in particular, we're not opening any PRs until the entire review phase is complete -- no working agents are to open PRs. please make this specifaction very clear to the working agents in your plan.`
+   - **Message 2**: `spawn two subagents with different prompts: tell one 'you're a professional game designer who's reviewing this build plan. raise important questions you'd need answered before build time'. tell the other 'you're a senior dev about to set your team to work on building out this plan. ask any questions you need answered before having your team work on this.' (don't of course allow them to make edits, just raise questions). once they've asked you questions, revise the plan in light of what was ambiguous to the fresh agents.`
+   - **Message 3** (via AskUserQuestion response): `now do a focused review on the phase implementation. ensure that each phase will provide every bit of foundation needed by the phase that follows. don't prewrite the code, but ensure that the specification is clear and complete for the sequence of phases to provide context and resources for subsequent phases.`
+   - **Message 4**: `create a handoff prompt for the working agent who is to work only on phase 1`
+
+7. Pending Tasks:
+   - Create a handoff prompt for the Phase 1 working agent
+   - The stemmer decision (package vs from-scratch) needs to be made before Phase 1 begins — plan recommends `stemmer` package
+
+8. Current Work:
+   The plan at `docs/plans/2026-02-20-feat-mind-meld-cooperative-redesign-plan.md` is fully written, reviewed, and dependency-audited. Branch `hart/mind-meld` exists. The user's most recent request is: **"create a handoff prompt for the working agent who is to work only on phase 1"**
+
+   Phase 1 scope from the plan:
+   - **New files only, zero modifications to existing code**
+   - Create: `data/google-10000-english-no-swears.txt`, `scripts/build-vocab-embeddings.ts`, `src/server/vocab.ts`, `src/server/stemmer.ts`, `src/server/vocab.test.ts`, `src/server/stemmer.test.ts`
+   - Modify: `.gitignore` (add `data/vocab-embeddings.json`)
+   - `vocab.ts` exports `loadVocab(): Vocab` and `nearestWord(centroidVec, vocab): string`, uses `cosineSimilarity` from `scoring.ts`
+   - `stemmer.ts` exports `stem(word: string): string`
+   - Build script batches 500 words through Ollama `/api/embed` using `nomic-embed-text`
+   - **DO NOT open PRs. Commit to `hart/mind-meld` only.**
+
+9. Optional Next Step:
+   Create the handoff prompt for the Phase 1 working agent, as the user explicitly requested: "create a handoff prompt for the working agent who is to work only on phase 1". This prompt should include all context the agent needs to execute Phase 1 independently — the plan file path, branch name, file list, acceptance criteria, constraints (no PRs), and key codebase patterns (where cosineSimilarity lives, config constants, Bun runtime, etc.).
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/rhhart/.claude/projects/-Users-rhhart-Documents-GitHub-schelling-points/69bf44ac-c40a-4fb5-b12e-19a1f9ea60a9.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+[A89 05:02] Let me read the plan file to get the exact Phase 1 details before writing the handoff prompt.
+  -> Read: 2026-02-20-feat-mind-meld-cooperative-redesign-plan.md
+  -> Read: scoring.ts
+  -> Read: config.ts
+[A93 05:02] Now let me check the existing test setup and project structure so the handoff prompt is fully grounded.
+  -> Glob: **/*.test.ts
+  -> Bash: cat package.json | grep -E '"test"|"bun"|"stemmer"|"devDependencies"|"dependenci
+  -> Bash: git branch --show-current && git log --oneline -3 hart/mind-meld 2>/dev/null || 
+  -> Bash: ls data/ 2>/dev/null || echo "data/ directory does not exist"
+  -> Read: .gitignore
+[A99 05:02] Let me check the existing test pattern.
+  -> Read: scoring.test.ts
+  -> Bash: cat package.json | python3 -c "import sys,json; d=json.load(sys.stdin); print('t
+[A102 05:02] Good, I have everything. Now let me write the handoff prompt.
+  -> TodoWrite
+[A104 05:03] Here's the Phase 1 handoff prompt:
+
+---
+
+## Phase 1 Handoff: Infrastructure & Utilities
+
+**Branch:** `hart/mind-meld` (already exists, already checked out)
+**Plan file:** `docs/plans/2026-02-20-feat-mind-meld-cooperative-redesign-plan.md`
+**Brainstorm spec:** `docs/brainstorms/mind-meld-spec.md`
+
+---
+
+### CRITICAL RULES
+
+1. **DO NOT open a PR.** Do not run `gh pr create`. Do not push to any branch other than `hart/mind-meld`. This is a hard constraint — violating it invalidates the work.
+2. **DO NOT modify existing code.** Phase 1 creates new files only. The one exception is appending a line to `.gitignore`.
+3. Commit to `hart/mind-meld` with conventional commit messages (`feat:`, `chore:`).
+4. Run `bun test` (which runs vitest) before committing to verify no regressions.
+
+---
+
+### What You're Building
+
+You're building the vocabulary embedding cache and stemmer module that the rest of the Mind Meld game depends on. These are standalone utilities — no integration with the game yet.
+
+**The Mind Meld game needs:**
+- A pre-computed embedding cache (~10k English words → vectors) so the server can find the nearest real English word to any semantic centroid
+- A stemmer so the game can detect when players have all submitted the same word (e.g., "dog" and "dogs" count as a meld)
+
+---
+
+### Files to Create
+
+#### 1. `data/google-10000-english-no-swears.txt`
+
+Download the word list:
+```bash
+mkdir -p data
+curl -o data/google-10000-english-no-swears.txt \
+  https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-no-swears.txt
+```
+
+This is a plain text file — one word per line, ~10k words. Vendor it into the repo (committed, not gitignored).
+
+#### 2. `scripts/build-vocab-embeddings.ts`
+
+A one-time Bun script that reads the word list, batches words through Ollama's `/api/embed` endpoint, and writes the result to `data/vocab-embeddings.json`.
+
+**Behavior:**
+- Read `data/google-10000-english-no-swears.txt`, split by newlines, filter empty lines
+ [...truncated]
+  -> TodoWrite
+[A106 05:04] The handoff prompt is complete. It gives the Phase 1 agent everything it needs:
+
+- **Hard constraints** (no PRs, no existing file modifications, commit to `hart/mind-meld` only)
+- **All 6 files to create** with exact interfaces, behaviors, and edge cases
+- **The one file to modify** (`.gitignore`, with current contents shown)
+- **Codebase patterns** (vitest imports, `cosineSimilarity` location, Ollama URL convention)
+- **Acceptance criteria** as a checklist
+- **Commit strategy** suggestions
+
+Want me to launch the work agent with this, or do you want to tweak anything?

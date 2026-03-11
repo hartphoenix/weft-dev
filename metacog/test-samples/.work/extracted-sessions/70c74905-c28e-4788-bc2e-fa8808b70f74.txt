@@ -1,0 +1,110 @@
+[U1 17:01] research docs/solutions/ui-bugs/2026-02-21-timer-transition-lag-investigation.md and let's get to the bottom of this timer issue. start with the obvious and simple ideas, then work outward. what if it's just a mismatch between the render logic and the state transition, or between state and server messaging? check dumb stuff first, then get progressively more complex if that doesn't solve it.
+[A1 17:01] Let me read the investigation doc first, then dig into the relevant code.
+  -> Read: 2026-02-21-timer-transition-lag-investigation.md
+  -> Read: server.ts
+[A4 17:01] Good, I have the full picture from the investigation doc. Now let me read the key files it identifies, starting with the simplest suspects.
+  -> Read: timer.tsx
+  -> Read: play.ts
+  -> Read: config.ts
+  -> Glob: static/styles/global.css
+  -> Read: global.css
+  -> Grep: secsLeft|timer-duration|Timer
+[A11 17:01] Now let me read the Guesses and Reveal components to see the full render flow.
+  -> Read: Guesses.tsx
+  -> Read: Reveal.tsx
+  -> Read: util.ts
+[A15 17:01] Let me see how the client reducer handles these messages and passes props to the components.
+  -> Read: client.tsx
+[A17 17:03] OK. I've read through all the key files. Here's what I found, ordered from dumbest/most obvious to most subtle.
+
+---
+
+## Finding 1: The CSS animation duration is wrong on re-render (the ring jumps)
+
+**This is almost certainly what you saw.** It's a straightforward bug in how `--timer-duration` is set.
+
+In [Guesses.tsx:89](src/client/Guesses.tsx#L89):
+```jsx
+<div className="timer" style={{ '--timer-duration': `${secsLeft}s` } as React.CSSProperties}>
+```
+
+`secsLeft` is the *current remaining time*, not the *total duration*. The CSS animation goes from full ring → empty ring over `--timer-duration` seconds. Here's what happens:
+
+1. Phase starts. `secsLeft=10`. Animation duration = 10s. Ring depletes over 10 seconds. Correct.
+2. Another player submits a guess at ~3 seconds in. Server broadcasts GUESS_STATE with `secsLeft=7.1`. Component re-renders.
+3. `--timer-duration` changes to `7.1s`. The browser does NOT restart the animation — it reinterprets progress against the new duration.
+4. The ring was at ~30% depleted (3s into 10s). Now the browser sees it as 3s into a 7.1s animation = **42% depleted**. The ring visually jumps forward.
+5. Worse: the ring now finishes in ~4.1 more seconds instead of ~7.1. It empties out way too early.
+
+Same issue exists in [Reveal.tsx:44](src/client/Reveal.tsx#L44).
+
+**Fix**: `--timer-duration` should be the *initial total duration* (i.e., `GUESS_SECS` or `REVEAL_SECS`), not the current `secsLeft`. Since `<Guesses>` mounts fresh when the phase starts, setting it to the constant works — the animation starts at mount and runs for the full duration.
+
+---
+
+## Finding 2: The interval doesn't re-align after server sync
+
+In [timer.tsx:10-14](src/client/components/timer.tsx#L10-L14):
+```js
+useEffect(() => {
+  if (remaining <= 0) return
+  const timeout = setInterval(() => setRemaining(r => Math.max(0, r - 1)), 1000)
+  return () => clearInterval(timeout)
+}, [remaining > 0])  // ← boolean dependency
+```
+
+The dependency is `remaining > 0` — a boolean. [...truncated]
+[U2 17:07] do all three, then i'll test out in browser
+  -> TodoWrite
+[A19 17:07] For Fix 1, I need to know the constant names to pass from the client. Let me check how config values are available client-side.
+  -> Grep: GUESS_SECS|REVEAL_SECS
+  -> Grep: GUESS_SECS|REVEAL_SECS
+[A22 17:07] The client doesn't import config. But it doesn't need to — the initial `secsLeft` from the first GUESS_STATE *is* the total duration (it's `config.GUESS_SECS` at phase start). I just need to capture that initial value and not let re-renders change it. The cleanest approach: use the `totalRounds` pattern — pass the total duration alongside `secsLeft`, or just use the initial `secsLeft` at mount via a ref.
+
+Actually, simpler: the Guesses and Reveal components mount fresh at phase start, so the first `secsLeft` they see IS the total. I'll use a `useRef` to capture it on mount.
+
+Wait — even simpler. The Guesses component already has access to `secsLeft` on first render. I can just use `useState` to capture the initial value for the CSS animation, separate from the updating `secsLeft` for the Timer.
+
+Actually, the absolute simplest: use a `key` on the timer div tied to phase identity (round number). When a new round starts, the component remounts and the animation restarts. But within a round, the `--timer-duration` stays stable because we set it from a ref.
+
+Let me just use a ref — minimal change.
+  -> Edit: Guesses.tsx
+[A24 17:07] Now add the ref to capture the initial `secsLeft`:
+  -> Edit: Guesses.tsx
+[A26 17:07] Now fix Reveal.tsx the same way:
+  -> Edit: Reveal.tsx
+  -> Edit: Reveal.tsx
+[A29 17:07] Need to add the React import to Reveal.tsx since it's using `React.useRef`:
+  -> Grep: ^import in Reveal.tsx
+  -> Edit: Reveal.tsx
+  -> TodoWrite
+[A33 17:08] Now Fix 2 — restart the interval on server sync. I'll switch from `setInterval` with a boolean dep to `setTimeout` chaining, which naturally re-aligns on every `remaining` change:
+  -> Read: timer.tsx
+  -> Write: timer.tsx
+  -> TodoWrite
+[A37 17:08] Now Fix 3 — broadcast `secsLeft=0` before scoring:
+  -> Edit: play.ts
+[A39 17:08] That diagnostic is pre-existing (not from my change) — `timeSecs` is passed to `onTick` but unused inside the function body. Ignoring it.
+  -> TodoWrite
+[A41 17:08] Let me make sure it builds clean:
+  -> Bash: bun run build 2>&1 | tail -20
+[A43 17:08] Builds clean. Here's the recap of all three changes:
+
+**Fix 1 — CSS ring animation** ([Guesses.tsx](src/client/Guesses.tsx), [Reveal.tsx](src/client/Reveal.tsx)): `--timer-duration` now uses a `useRef` to capture the initial `secsLeft` at mount. Re-renders from mid-round GUESS_STATE broadcasts no longer change the animation duration, so the ring can't jump or finish early.
+
+**Fix 2 — Timer interval realignment** ([timer.tsx](src/client/components/timer.tsx)): Switched from `setInterval` with `[remaining > 0]` dependency to `setTimeout` with `[remaining]` dependency. Each tick schedules the next one fresh, so a server sync naturally resets the 1-second cadence instead of wobbling.
+
+**Fix 3 — secsLeft=0 broadcast** ([play.ts:70](src/server/play.ts#L70)): Server now broadcasts the `secsLeft=0` GUESS_STATE before calling `scoreRound()`. Clients see "0" before the SCORING indicator, instead of jumping from "1" to "...".
+
+Go try it out — the ring should track smoothly now even when other players submit guesses mid-countdown.
+[U3 17:13] awesome. seems to work great now. commit, push, and merge this branch
+  -> Bash: git status
+  -> Bash: git diff
+  -> Bash: git log --oneline -5
+  -> Bash: git add src/client/Guesses.tsx src/client/Reveal.tsx src/client/components/timer
+  -> Bash: git push
+[A49 17:13] Now let me check what's on main to see the merge base and if there's a PR already open:
+  -> Bash: gh pr list --head julianna/scores-timer-round-header --json number,title,url 2>&
+[A51 17:13] PR #141 already exists. Let me merge it:
+  -> Bash: gh pr merge 141 --merge --delete-branch 2>&1
+[A53 17:14] Done. PR #141 merged to main and branch deleted. The three timer fixes are now live on `main`.

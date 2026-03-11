@@ -1,0 +1,150 @@
+[U1 13:12] /Users/rhhart/Documents/GitHub/weft-dev/design/2026-03-09-metaclaude-local-prd.md let's create a plan to thoroughly fulfill the phase 2 prerequisites. you'll notice there are steps of phase 1 left incomplete. some of them may actually be cleaner once the phase 2 prereqs are fulfilled, so consider resequencing them as early phase 2 steps where applicable (for instance, standardizing the API contract). 
+
+one concern i have that's under-represented by the PRD is the sparsely mentioned experiment log, which afaict doesn't yet exist. we need to create it, review the past ~2 days' session logs to retrieve experiment data, and summarize it cleanly in the log. this should be a phase 2 prereq. we should also remark in the PRD checklist on any item that implicitly involves generation of experiment data -- those items should explicitly call for logging the experiment data in the experiment log. experiments that create tests, scripts, queries, indexes, or artifacts of any kind should also persist those artifacts with clear documentation about them in order to position the project well for replication and reporting. persistent artifacts should be collected in an organized and centralized location that's navigable and human-readable within the weft-dev directory. currently the logs, scripts, and features being built are spread all over the file system -- let's collect dev artifacts in weft-dev/metacog (not yet created -- experiment data and the logs in weft-dev/meta should be moved here and organized in a legible system) and features built in weft/tools/metaclaude (except where other necessary features reside e.g. .claude/skills/ etc) .
+
+use research agents where necessary to get a thorough understanding of the project including ~/documents/github/weft/tools/metaclaude/ directory which contains the majority of the built content. then let's plan migration steps, including correction to file paths, logging scripts, log file storage, etc. -- see weft-dev/tools for some of the current state of research data and artifacts that need to move into weft-dev/metacog/
+[A1 13:13] Let me read the PRD and explore the current project state across all relevant directories.
+  -> Read: 2026-03-09-metaclaude-local-prd.md
+  -> Agent: Explore metaclaude built content
+  -> Agent: Explore weft-dev artifacts and logs
+[A5 13:14] Let me read the full PRD and explore a few more areas to understand the complete picture.
+  -> Read: toolu_01L6irahtQjPuwwxwbRUGHRg.txt
+  -> Read: 2026-03-09-metaclaude-local-prd.md
+  -> Read: 2026-03-09-metaclaude-local-prd.md
+  -> Read: 2026-03-09-metaclaude-local-prd.md
+  -> Read: 2026-03-09-metaclaude-local-prd.md
+[A11 13:14] Now let me check the current state of meta/ and tools/ more closely for the migration planning.
+  -> Bash: ls -la /Users/rhhart/Documents/GitHub/weft-dev/meta/ 2>/dev/null | head -40
+  -> Bash: ls -la /Users/rhhart/Documents/GitHub/weft-dev/tools/ 2>/dev/null
+  -> Bash: ls -laR /Users/rhhart/Documents/GitHub/weft-dev/tools/embedding/ 2>/dev/null | h
+  -> Bash: ls -laR /Users/rhhart/Documents/GitHub/weft-dev/tools/log-viewer/ 2>/dev/null | 
+  -> Bash: ls -la /Users/rhhart/Documents/GitHub/weft-dev/ | head -30
+[A17 13:14] Now let me look at what references observer.sh makes to file paths, and check for any session logs from the last ~2 days that contain experiment data.
+  -> Agent: Find experiment data in logs
+[A19 13:16] Now I have a thorough picture. Let me check one more thing — the observer.sh paths that reference `weft-dev/meta/` and would need updating.
+  -> Grep: weft-dev/meta in metaclaude
+  -> Grep: meta/ in observer.sh
+  -> Grep: weft-dev in metaclaude
+[A23 13:16] Good. Also need to check what references `meta/` in simulate-accumulator scripts and other places.
+  -> Grep: weft-dev|meta/ in simulate-accumulator.sh
+  -> Grep: tools/embedding|weft-dev in embedding
+[A26 13:16] Now I have the full picture. Let me design the plan.
+  -> Agent: Design migration + prereqs plan
+[A28 13:20] Good, I have thorough context from all exploration and the plan agent. Let me read a couple more critical details, then write the final plan.
+  -> Read: observer.sh
+  -> Read: embed.ts
+[A31 13:20] Now I have everything I need. Let me write the plan.
+  -> Write: rosy-swinging-alpaca.md
+[A33 13:22] I have two questions before finalizing.
+  -> ToolSearch: select:AskUserQuestion
+  -> AskUserQuestion
+[A36 13:43] Clear. Let me update the plan — defer API unification, and clarify the weft/weft-dev boundary principle.
+  -> Edit: rosy-swinging-alpaca.md
+[A38 13:43] Now remove Step 2 (API unification) and update the dependency graph.
+  -> Edit: rosy-swinging-alpaca.md
+  -> Edit: rosy-swinging-alpaca.md
+  -> Edit: rosy-swinging-alpaca.md
+  -> Edit: rosy-swinging-alpaca.md
+[A43 13:44] Now update the dependency graph and update Step 5 (PRD) to include the design decisions and principles the user mentioned.
+  -> Edit: rosy-swinging-alpaca.md
+[A45 13:44] Now expand Step 5 (PRD update) to include inserting design decisions and principles.
+  -> Edit: rosy-swinging-alpaca.md
+[A47 13:44] Now update the critical files table and verification section to remove the API unification references.
+  -> Edit: rosy-swinging-alpaca.md
+[A49 13:45] Now update verification to remove the Anthropic API test.
+  -> Edit: rosy-swinging-alpaca.md
+[A51 13:45] Plan is updated. Let me do a final read to make sure it's coherent end-to-end.
+  -> Read: rosy-swinging-alpaca.md
+[A53 13:45] The plan looks coherent. One thing I want to fix — the context paragraph still references "API unification" as a blocking prereq. Let me clean that up.
+  -> Edit: rosy-swinging-alpaca.md
+[A55 13:45] Also fix the "Clean up" section which says "Step 5" but should say "Step 4".
+  -> Edit: rosy-swinging-alpaca.md
+[A57 13:45] Plan is ready.
+  -> ToolSearch: select:ExitPlanMode
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). To tell you how to proceed, the user said:
+check
+[A60 13:57] Let me do a thorough path audit across all files that reference resources being moved.
+  -> Agent: Audit all file path references
+[A62 13:58] The audit found several gaps. Let me update the plan with a comprehensive path reference accounting.
+  -> Edit: rosy-swinging-alpaca.md
+[A64 13:59] Now update Step 4 to also mention the import path changes for benchmark scripts that will import from the new production location.
+  -> Edit: rosy-swinging-alpaca.md
+[A66 13:59] Also need to add the evaluate.ts output path fix to Step 3 (it's currently only in the path table but not called out as a step action).
+  -> Edit: rosy-swinging-alpaca.md
+[A68 13:59] Good. Now let me also check if the PRD itself has specific file path references that need updating — those should be called out in Step 5.
+  -> Grep: weft-dev/meta/|tools/embedding/|tools/log-viewer/|analyze-index in 2026-03-09-metaclaude-local-prd.md
+[A70 13:59] Good, there are about a dozen PRD path references. Let me add those to Step 5.
+  -> Edit: rosy-swinging-alpaca.md
+[A72 13:59] Now let me also check if the SETUP.md has any references to session log paths or meta/ directory, and if there are any other files I might have missed.
+  -> Grep: meta/|weft-dev in SETUP.md
+[A74 13:59] Good — SETUP.md has no weft-dev references. Let me also verify the retrieval-tests.md and retrieval-quality-test.md don't reference paths that'll break.
+  -> Grep: tools/embedding|weft-dev/meta in retrieval-tests.md
+  -> Grep: tools/embedding|weft-dev/meta in retrieval-quality-test.md
+[A77 13:59] Two more doc references in retrieval-tests.md. Let me add those to the path table.
+  -> Edit: rosy-swinging-alpaca.md
+[A79 14:00] Good. The plan now has a thorough accounting of every path reference. Now let me run the handoff-test skill as requested.
+  -> Skill: 
+[U2 14:00] Base directory for this skill: /Users/rhhart/.claude/skills/handoff-test
+
+# Handoff Test
+
+## The Naive Reader
+
+A fresh Claude instance with CLAUDE.md and tooling but nothing from this conversation. The only things that exist for it are what's written in persistent artifacts.
+
+## Process
+
+1. Identify what was created or modified this session. Read each artifact in full.
+2. From the naive reader perspective, find implicit dependencies:
+   - Session-local terminology used without definition
+   - References to "the bug," "the approach," "what we discussed" without grounding
+   - Decisions recorded without rationale (a future reader needs *why* to know when the decision expires)
+   - Scope assumed but not stated
+   - Next steps that depend on conversation memory
+3. Report gaps. For each: what's missing, where it goes, concrete suggested text. Offer to apply fixes.
+
+If the artifact passes, say so in one sentence.
+[A81 14:00] Let me read the plan artifact in full.
+  -> Read: rosy-swinging-alpaca.md
+[A83 14:01] ## Handoff Test: Naive Reader Assessment
+
+Assessing the plan from the perspective of a fresh Claude instance with only CLAUDE.md and the plan file.
+
+### Gaps found
+
+**Gap 1: Multi-repo scope not stated.** The plan operates across two git repos (weft-dev and weft) but never says so. A naive reader following Step 3 ("single commit") would try to commit moves that span repos, which git can't do. Step 4 creates files in weft/ (a different repo) without flagging the repo boundary.
+
+**Where it goes:** After the Context section, before Sequencing rationale.
+**Suggested text:**
+> **Repos involved:** Steps 0-3 and 5 operate in `weft-dev` (this repo). Step 4 operates in `weft` (sibling repo at `~/Documents/GitHub/weft`). Each repo gets its own commit(s). Step 3's "single commit" applies to weft-dev only.
+
+**Gap 2: `$MODEL_FILE` undefined.** Step 1 says "read from model config JSON (`$MODEL_FILE`)" but a naive reader doesn't know what this variable is, where it's defined, or what the current JSON schema looks like.
+
+**Where it goes:** Step 1, after the file list.
+**Suggested text:**
+> `MODEL_FILE` is defined in observer.sh and resolves to `~/.claude/metaclaude/model`. Current JSON schema: `{"id": "ml", "name": "Qwen3-8B", "api_model": "qwen3-8b-mlx-4bit", "backend": "lmstudio"}`. Step 1 adds `"inference_url"` to this schema.
+
+**Gap 3: Line number references will drift.** Step 2 references "lines 257-276" in observer.sh for the perl regex. Step 1 edits the same file first, so those line numbers shift. Same issue with PRD line references in Steps 0 and 5.
+
+**Where it goes:** Inline fix — reference by content/section name instead of line numbers.
+**Suggested fixes:**
+- Step 2: "replace perl regex extraction (the `# Parse structured response` section)" instead of "lines 257-276"
+- Step 0: "using the PRD's 'Experiment log format' section" instead of "lines 624-637"
+- Step 5 PRD path table: reference by section heading rather than line number, since the PRD will have been edited by  [...truncated]
+[U3 14:03] yes, and one more: all changes to the weft/ directory should be committed to feature branches off the hart/metaclaude branch (not branched from or merged to main)
+  -> Edit: rosy-swinging-alpaca.md
+  -> Edit: rosy-swinging-alpaca.md
+  -> Edit: rosy-swinging-alpaca.md
+  -> Edit: rosy-swinging-alpaca.md
+[A88 14:03] Now fix the PRD line number references in Step 5 and the verification item.
+  -> Edit: rosy-swinging-alpaca.md
+  -> Edit: rosy-swinging-alpaca.md
+[A91 14:04] Now add the weft branch convention to Step 4.
+  -> Edit: rosy-swinging-alpaca.md
+[A93 14:04] All four gaps fixed plus the weft branch convention added. Let me verify the hart/metaclaude branch exists before finalizing.
+  -> Bash: cd /Users/rhhart/Documents/GitHub/weft && git branch -a | grep metaclaude
+[A95 14:04] Confirmed — `hart/metaclaude` exists and is the current branch in weft. All fixes applied.
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to
+[A97 14:09] Waiting for your direction.

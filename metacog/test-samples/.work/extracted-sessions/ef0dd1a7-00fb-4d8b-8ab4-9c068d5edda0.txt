@@ -1,0 +1,215 @@
+[U1 13:38] ## Handoff: MetaClaude Local — Phase 1 completion + Phase 2 start                                                                                                
+                                                                                                                                                                   
+  ### Goal                                                                                                                                                         
+                                               
+  Complete the MetaClaude Local build per the PRD at                                                                                                               
+  `design/2026-03-09-metaclaude-local-prd.md`. This session was scoped
+  to unstale the PRD checklist against actual repo state, then begin
+  the next work items.
+
+  ### State
+
+  **Done (prior sessions):**
+  - Full hook infrastructure: observer.sh, inject.sh, toggle.sh, statusline.sh
+    in `/Users/rhhart/Documents/GitHub/weft/tools/metaclaude/`
+  - MetaClaude SKILL.md at `/Users/rhhart/Documents/GitHub/weft/.claude/skills/metaclaude/SKILL.md`
+  - Phase 1 model selection interface, backend routing, thinking tag handling,
+    session instruction passing, status line dynamic model tags — all built
+  - Phase 3 observability — complete + extended with structured session logging
+  - Phase 3a session log viewer — built at `tools/log-viewer/` in weft-dev
+  - Session logging (JSONL per conversation in `weft-dev/meta/`)
+  - LM Studio verified serving inference (tested with --sl Qwen3-4B)
+
+  **Done this session:**
+  - toggle.sh hardened: all writes go through `_write`/`_touch` helpers
+    that emit `ERROR:` to stderr and return non-zero on permission failure
+    (was silently succeeding with failed writes)
+  - SETUP.md updated with sandbox allowlist section listing all 8 paths
+    metaclaude needs write access to in `~/.claude/`
+  - User has updated their settings.json with the allowlist but it won't
+    take effect until next session
+
+  **Not started (Phase 1 remaining — 5 items):**
+  1. Try 3 models: --sl (Qwen3-4B), --ml (Qwen3-8B), --ll (Gemma-3-12B)
+  2. Measure per-model: inference time, response quality, memory, responsiveness
+  3. Document results in experiment log
+  4. Select primary model for remaining work
+  5. Model-specific prompt variants (test current prompt.md against each model,
+     decide if per-model variants are needed)
+
+  **Not started (Phase 2 — embedding index, all items):**
+  - sqlite-vec extension for bun:sqlite
+  - index.ts: embed files via LM Studio /v1/embeddings, store in SQLite
+  - query.ts: embed query, cosine similarity, return top-K
+  - Index notepad/ + learning/ + project codebase
+  - Test retrieval quality
+  - Wire into observer as Fast mode baseline
+
+  **Not started:** Phases 4 and 5 entirely.
+
+  ### Key files
+
+  - PRD: `design/2026-03-09-metaclaude-local-prd.md` (modified, uncommitted in weft-dev)
+  - metaclaude tools: `/Users/rhhart/Documents/GitHub/weft/tools/metaclaude/`
+    - `observer.sh` — the main observer pipeline
+    - `inject.sh` — UserPromptSubmit hook
+    - `toggle.sh` — just updated with write error handling
+    - `prompt.md` — meta-agent system prompt (written for Haiku, may need revision per model)
+    - `SETUP.md` — just updated with sandbox allowlist section
+    - `statusline.sh` — status line component
+  - metaclaude skill: `/Users/rhhart/Documents/GitHub/weft/.claude/skills/metaclaude/SKILL.md`
+  - Session logs: `weft-dev/meta/*.jsonl`
+  - Log viewer: `weft-dev/tools/log-viewer/`
+
+  ### Decisions
+
+  - LM Studio is the inference + embedding runtime (MLX backend, Apple Silicon optimized)
+  - Both models served by same LM Studio instance on localhost:1234
+  - Embedding model: nomic-embed-text (~139MB, negligible)
+  - Vector store: SQLite-vec + bun:sqlite (single file, no new deps)
+  - Three observation modes to test: Fast, Deep, Probe (see PRD for details)
+  - Phase 2 embedding index is what connects MetaClaude to the developmental
+    model — prioritize indexing learning/ and design/design-principles.md first
+
+  ### Discoveries
+
+  - Sandbox blocks writes to ~/.claude/ dotfiles. The allowlist fix is in
+    settings.json but requires a fresh session to take effect. First thing
+    to verify: run `toggle.sh --ml` and confirm no ERROR output.
+  - toggle.sh was printing success messages even when writes failed — now fixed
+    but the same pattern may exist in observer.sh and inject.sh (not audited)
+
+  ### Blockers
+
+  - None hard. Sandbox allowlist is applied, just needs session restart to activate.
+  - LM Studio must be running with target model loaded for any model testing.
+
+  ### Next steps (priority order)
+
+  1. Verify sandbox allowlist works: run `/metaclaude --ml` and confirm clean output
+  2. Model testing sprint: run all 3 local models against the same transcript
+     using observer.sh, collect inference time + response quality + memory usage.
+     Use the experiment log format from the PRD.
+  3. Document results, select primary model
+  4. Test prompt.md against each model — does the Haiku-tuned prompt work or
+     does it need revision for local models?
+  5. Start Phase 2: install sqlite-vec, write index.ts and query.ts
+  6. Audit observer.sh and inject.sh for the same silent-write-failure pattern
+     that was in toggle.sh
+
+  ### Repo state
+
+  - weft-dev (main): uncommitted changes to CLAUDE.md and the PRD, plus
+    untracked files in design/, meta/, plans/, research/
+  - weft (main): uncommitted changes to 4 skill files + CLAUDE.md, plus
+    untracked metaclaude skill dir and tools dir — these are the working
+    metaclaude implementation
+[A1 13:38] Got it. Picking up from the handoff. Let me verify the sandbox allowlist first, then assess what's ready.
+  -> Bash: /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/toggle.sh --ml 2>&1
+  -> Bash: curl -s http://localhost:1234/v1/models 2>&1 | head -50
+[A4 13:38] Sandbox allowlist is working — `toggle.sh --ml` wrote cleanly, no ERROR output. LM Studio isn't running though (curl returned nothing).
+
+Let me check the current metaclaude state and read the PRD to confirm the model testing plan.
+  -> Bash: cat /Users/rhhart/.claude/.metaclaude-enabled /Users/rhhart/.claude/.metaclaude-
+  -> Read: 2026-03-09-metaclaude-local-prd.md
+[A7 13:38] State confirmed. Sandbox allowlist is working — toggle wrote cleanly to all three dotfiles.
+
+**Blocker:** LM Studio isn't running (localhost:1234 not responding). Model testing needs it.
+
+While that's blocked, I can do the audit item: check observer.sh and inject.sh for the same silent-write-failure pattern that was in toggle.sh. Want me to do that now, or do you want to start LM Studio first and jump into model testing?
+[U2 13:39] according to the system statusbar lm studio dropdown, it's running on http://localhost:1234/v1 -- it may still be a silent sandbox blockage. any other checks you can run before i restart lm studio?
+  -> Bash: curl -s --connect-timeout 5 http://localhost:1234/v1/models 2>&1; echo "EXIT: $?
+  -> Bash: curl -v --connect-timeout 5 http://localhost:1234/v1/models 2>&1 | head -30
+[A10 13:40] That's the sandbox blocking network access. `Operation not permitted` on both IPv6 and IPv4 — the sandbox network allowlist doesn't include `localhost:1234`.
+
+The sandbox network config only allows connections to `fullstackopen.com`. We need to add `localhost` (or `127.0.0.1`) to the allowed hosts in your settings.json.
+
+Check your `~/.claude/settings.json` — you'll need something like:
+
+```json
+"permissions": {
+  "allow": [
+    "Bash(network:localhost:1234)"
+  ]
+}
+```
+
+Or in the sandbox network allowlist, add `localhost` to `allowedHosts`. That's what's blocking curl — not LM Studio being down.
+[U3 13:41] read the settings.json -- the bypass mode should already allow that i think
+  -> Read: settings.json
+[A12 13:41] You're right — `localhost` is in the network allowlist (line 347). The sandbox config looks correct. Let me check if it's a port issue or if LM Studio is binding to a different interface.
+  -> Bash: lsof -i :1234 -P -n 2>&1 | head -10
+[A14 13:41] LM Studio is running and listening on `127.0.0.1:1234`. The sandbox *should* allow it. Let me test whether the sandbox is actually applying the network allowlist from settings.json to this session.
+  -> Bash: curl -s --connect-timeout 3 http://127.0.0.1:1234/v1/models 2>&1; echo "---EXIT:
+[A16 13:41] Still blocked. The sandbox environment shown at the top of this session says:
+
+```
+Network: {"allowedHosts":["fullstackopen.com"]}
+```
+
+That's the **active** sandbox config for this session — it only allows `fullstackopen.com`. Your settings.json says `localhost`, but this session was started with a different config (probably from a project-level or managed settings override, or the settings change hadn't taken effect when this session launched).
+
+**Fix:** Restart this Claude Code session. The sandbox network allowlist is baked in at session start. Your settings.json is correct (`"allowedHosts": ["localhost"]`), but this session loaded before it took effect — or there's a higher-priority settings file overriding it.
+
+Let me check if there's a project-level settings file that might be winning.
+  -> Glob: **/.claude/settings*
+  -> Read: settings.local.json
+[A19 13:41] There's no network sandbox override here — just a permission allow for WebFetch. The sandbox config in your user settings.json looks correct.
+
+The issue is just session timing. The sandbox network allowlist shown in my system prompt is `["fullstackopen.com"]` — that's what loaded when this session started. Your settings.json now says `["localhost"]`, but it wasn't applied to this session.
+
+**You need to restart the Claude Code session.** The sandbox network config is immutable once the session starts. When you relaunch, it should pick up `localhost` from your settings.json and curl to LM Studio will work.
+[U4 13:42] could it be this file /Users/rhhart/Documents/GitHub/weft-dev/.claude/settings.local.json and if so, should it be removed?
+[A20 13:42] It's not causing the problem directly — it has no sandbox section. But the fact that the active sandbox shows `allowedHosts: ["fullstackopen.com"]` is suspicious. That domain matches the `WebFetch(domain:fullstackopen.com)` permission in that file exactly, and your global settings say `["localhost"]`.
+
+This suggests Claude Code might derive the sandbox network allowlist from WebFetch permissions rather than (or instead of) the `sandbox.network.allowedHosts` key. Your global sandbox config might not be doing what you expect.
+
+**Don't remove it** — you probably want the fullstackopen.com access for coursework. Instead, try adding localhost network access there too:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:fullstackopen.com)",
+      "Bash(network:localhost:1234)"
+    ]
+  }
+}
+```
+
+Then restart the session. If the sandbox derives allowed hosts from permissions, this should add localhost. If not, we'll need to dig into how Claude Code actually resolves the sandbox network config.
+
+Want to try that?
+[U5 13:43] no, this should be allowed without a special allowlist based on the global settings. i think this is a known bug where a local settings.json overrides rather than merging with global settings. can you see if that bug still exists and if this is the cause?
+  -> ToolSearch: select:WebSearch
+  -> WebSearch: Claude Code settings.json local project overrides global san
+  -> WebSearch: claude code settings.json project local overrides global mer
+[A24 13:44] That's exactly the bug. Multiple issues confirm it:
+
+- [**#19487**: Project settings.local.json overwrites global settings instead of deep merging](https://github.com/anthropics/claude-code/issues/19487)
+- [**#17017**: Project-level permissions replace global permissions instead of merging](https://github.com/anthropics/claude-code/issues/17017)
+- [**#6900**: settings.local.json permissions.allow overwrites existing manual settings](https://github.com/anthropics/claude-code/issues/6900)
+
+Your `.claude/settings.local.json` in weft-dev has a `permissions` key. Because of this bug, it **replaces** the global settings' `permissions` (and likely `sandbox`) entirely instead of deep-merging. That's why the active sandbox shows `fullstackopen.com` (derived from the project file) instead of `localhost` (from your global).
+
+**Two fix options:**
+
+1. **Add the sandbox network config to the project file** so it's self-contained:
+```json
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:fullstackopen.com)"
+    ]
+  },
+  "sandbox": {
+    "network": {
+      "allowedHosts": ["localhost"]
+    }
+  }
+}
+```
+
+2. **Remove the project file** and move `WebFetch(domain:fullstackopen.com)` into your global settings.json instead.
+
+Option 2 is cleaner — the fullstackopen allow is a user preference, not project-specific. But either way you'll need to restart the session after. Which do you prefer?

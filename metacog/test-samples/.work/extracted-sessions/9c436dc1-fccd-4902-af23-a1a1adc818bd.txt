@@ -1,0 +1,397 @@
+[U1 16:32] # Brainstorm a Feature or Improvement
+
+**Note: The current year is 2026.** Use this when dating brainstorm documents.
+
+Brainstorming helps answer **WHAT** to build through collaborative dialogue. It precedes `/workflows:plan`, which answers **HOW** to build it.
+
+**Process knowledge:** Load the `brainstorming` skill for detailed question techniques, approach exploration patterns, and YAGNI principles.
+
+## Feature Description
+
+<feature_description> #a sprint to parallelize & knock out the P1 & P2 todos (@/Users/rhhart/Documents/GitHub/schelling-points/scoring-sandbox/todos) and also add two features: 1) plot the centroid as its own point and depict it as a green circle, and 2) add another 2D view mode (available with a radio button selector) that presents the results of the selected scoring mode as follows -- 
+
+- the graph is radian-style, and plot points are spaced evenly around the origin (divide the radians by the # of responses). each point's distance from the origin is determined by its score in the selected scoring mode.
+
+consider what needs to be known about these features in order to plan the described work sprint </feature_description>
+
+**If the feature description above is empty, ask the user:** "What would you like to explore? Please describe the feature, problem, or improvement you're thinking about."
+
+Do not proceed until you have a feature description from the user.
+
+## Execution Flow
+
+### Phase 0: Assess Requirements Clarity
+
+Evaluate whether brainstorming is needed based on the feature description.
+
+**Clear requirements indicators:**
+
+- Specific acceptance criteria provided
+- Referenced existing patterns to follow
+- Described exact expected behavior
+- Constrained, well-defined scope
+
+**If requirements are already clear:**
+Use **AskUserQuestion tool** to suggest: "Your requirements seem detailed enough to proceed directly to planning. Should I run `/workflows:plan` instead, or would you like to explore the idea further?"
+
+### Phase 1: Understand the Idea
+
+#### 1.1 Repository Research (Lightweight)
+
+Run a quick repo scan to understand existing patterns:
+
+- Task repo-research-analyst("Understand existing patterns related to: <feature_description>")
+
+Focus on: similar features, established patterns, CLAUDE.md guidance.
+
+#### 1.2 Collaborative Dialogue
+
+Use the **AskUserQuestion tool** to ask questions **one at a time**.
+
+**Guidelines (see `brainstorming` skill for detailed techniques):**
+
+- Prefer multiple choice when natural options exist
+- Start broad (purpose, users) then narrow (constraints, edge cases)
+- Validate assumptions explicitly
+- Ask about success criteria
+
+**Exit condition:** Continue until the idea is clear OR user says "proceed"
+
+### Phase 2: Explore Approaches
+
+Propose **2-3 concrete approaches** based on research and conversation.
+
+For each approach, provide:
+
+- Brief description (2-3 sentences)
+- Pros and cons
+- When it's best suited
+
+Lead with your recommendation and explain why. Apply YAGNI—prefer simpler solutions.
+
+Use **AskUserQuestion tool** to ask which approach the user prefers.
+
+### Phase 3: Capture the Design
+
+Write a brainstorm document to `docs/brainstorms/YYYY-MM-DD-<topic>-brainstorm.md`.
+
+**Document structure:** See the `brainstorming` skill for the template format. Key sections: What We're Building, Why This Approach, Key Decisions, Open Questions.
+
+Ensure `docs/brainstorms/` directory exists before writing.
+
+**IMPORTANT:** Before proceeding to Phase 4, check if there are any Open Questions listed in the brainstorm document. If there are open questions, YOU MUST ask the user about each one using AskUserQuestion before offering to proceed to planning. Move resolved questions to a "Resolved Questions" section.
+
+### Phase 4: Handoff
+
+Use **AskUserQuestion tool** to present next steps:
+
+**Question:** "Brainstorm captured. What would you like to do next?"
+
+**Options:**
+
+1. **Review and refine** - Improve the document through structured self-review
+2. **Proceed to planning** - Run `/workflows:plan` (will auto-detect this brainstorm)
+3. **Ask more questions** - I have more questions to clarify before moving on
+4. **Done for now** - Return later
+
+**If user selects "Ask more questions":** YOU (Claude) return to Phase 1.2 (Collaborative Dialogue) and continue asking the USER questions one at a time to further refine the design. The user wants YOU to probe deeper - ask about edge cases, constraints, preferences, or areas not yet explored. Continue until the user is satisfied, then return to Phase 4.
+
+**If user selects "Review and refine":**
+
+Load the `document-review` skill and apply it to the brainstorm document.
+
+When document-review returns "Review complete", present next steps:
+
+1. **Move to planning** - Continue to `/workflows:plan` with this document
+2. **Done for now** - Brainstorming complete. To start planning later: `/workflows:plan [document-path]`
+
+## Output Summary
+
+When complete, display:
+
+```
+Brainstorm complete!
+
+Document: docs/brainstorms/YYYY-MM-DD-<topic>-brainstorm.md
+
+Key decisions:
+- [Decision 1]
+- [Decision 2]
+
+Next: Run `/workflows:plan` when ready to implement.
+```
+
+## Important Guidelines
+
+- **Stay focused on WHAT, not HOW** - Implementation details belong in the plan
+- **Ask one question at a time** - Don't overwhelm
+- **Apply YAGNI** - Prefer simpler approaches
+- **Keep outputs concise** - 200-300 words per section max
+
+NEVER CODE! Just explore and document decisions.
+[A2 16:32] Let me start by understanding the existing codebase and the todos you're referencing.
+  -> Task
+[A4 16:34] Good — I've got a full picture of the codebase. Let me assess what's clear and what needs clarification.
+
+**What's well-defined:**
+- The P1/P2 todos are concrete and documented with file references
+- The centroid feature aligns directly with todo 004 (centroid is already computed but discarded)
+- The radial view concept is clear: polar chart, even angular spacing, radius = score
+
+**What needs clarification before planning:**
+  -> AskUserQuestion
+[A6 16:34] Got it — input order. Next question:
+  -> AskUserQuestion
+[A8 16:34] Good call. One thing to flag about the centroid on the radial view — in that view, distance from center = score. The centroid's "score" has some quirks depending on mode:
+
+- **Schelling mode**: centroid vs centroid = 1.0 always (it's identical to itself)
+- **Bullseye mode**: centroid vs category = meaningful number
+- **Dark Horse mode**: includes `(1 - sim to centroid)` which is 0 for the centroid itself, so always 0
+  -> AskUserQuestion
+[A10 16:36] Love that — the reference circle is a clean way to show the centroid's score as a benchmark without needing an angular position.
+  -> AskUserQuestion
+[A12 16:36] One more design question. Todo 004 mentions "mode-aware feedback" on the PCA scatter plot — meaning the plot should visually reflect the active scoring mode somehow.
+  -> AskUserQuestion
+[A14 16:37] Great decisions all around. I have a clear picture now. Let me capture the brainstorm.
+  -> Bash: mkdir -p /Users/rhhart/Documents/GitHub/schelling-points/docs/brainstorms
+  x Bash failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to
+[U2 16:37] [Request interrupted by user for tool use]
+[U3 16:37] all work should be kept inside scoring-sandbox
+[A16 16:37] Got it — keeping everything inside `scoring-sandbox`. Let me write the brainstorm there.
+  -> Bash: mkdir -p /Users/rhhart/Documents/GitHub/schelling-points/scoring-sandbox/docs/br
+  -> Write: 2026-02-18-sprint-centroid-radial-view-brainstorm.md
+  -> AskUserQuestion
+  -> Skill: 
+[U4 16:39] Base directory for this skill: /Users/rhhart/Documents/GitHub/schelling-points/.claude/skills/document-review
+
+# Document Review
+
+Improve brainstorm or plan documents through structured review.
+
+## Step 1: Get the Document
+
+**If a document path is provided:** Read it, then proceed to Step 2.
+
+**If no document is specified:** Ask which document to review, or look for the most recent brainstorm/plan in `docs/brainstorms/` or `docs/plans/`.
+
+## Step 2: Assess
+
+Read through the document and ask:
+
+- What is unclear?
+- What is unnecessary?
+- What decision is being avoided?
+- What assumptions are unstated?
+- Where could scope accidentally expand?
+
+These questions surface issues. Don't fix yet—just note what you find.
+
+## Step 3: Evaluate
+
+Score the document against these criteria:
+
+| Criterion        | What to Check                                                                    |
+| ---------------- | -------------------------------------------------------------------------------- |
+| **Clarity**      | Problem statement is clear, no vague language ("probably," "consider," "try to") |
+| **Completeness** | Required sections present, constraints stated, open questions flagged            |
+| **Specificity**  | Concrete enough for next step (brainstorm → can plan, plan → can implement)      |
+| **YAGNI**        | No hypothetical features, simplest approach chosen                               |
+
+If invoked within a workflow (after `/workflows:brainstorm` or `/workflows:plan`), also check:
+
+- **User intent fidelity** — Document reflects what was discussed, assumptions validated
+
+## Step 4: Identify the Critical Improvement
+
+Among everything found in Steps 2-3, does one issue stand out? If something would significantly improve the document's quality, this is the "must address" item. Highlight it prominently.
+
+## Step 5: Make Changes
+
+Present your findings, then:
+
+1. **Auto-fix** minor issues (vague language, formatting) without asking
+2. **Ask approval** before substantive changes (restructuring, removing sections, changing meaning)
+3. **Update** the document inline—no separate files, no metadata sections
+
+### Simplification Guidance
+
+Simplification is purposeful removal of unnecessary complexity, not shortening for its own sake.
+
+**Simplify when:**
+
+- Content serves hypothetical future needs, not current ones
+- Sections repeat information already covered elsewhere
+- Detail exceeds what's needed to take the next step
+- Abstractions or structure add overhead without clarity
+
+**Don't simplify:**
+
+- Constraints or edge cases that affect implementation
+- Rationale that explains why alternatives were rejected
+- Open questions that need resolution
+
+## Step 6: Offer Next Action
+
+After changes are complete, ask:
+
+1. **Refine again** - Another review pass
+2. **Review complete** - Document is ready
+
+### Iteration Guidance
+
+After 2 refinement passes, recommend completion—diminishing returns are likely. But if the user wants to continue, allow it.
+
+Return control to the caller (workflow or user) after selection.
+
+## What NOT to Do
+
+- Do not rewrite the entire document
+- Do not add new sections or requirements the user didn't discuss
+- Do not over-engineer or add complexity
+- Do not create separate review files or add metadata sections
+
+
+ARGUMENTS: scoring-sandbox/docs/brainstorms/2026-02-18-sprint-centroid-radial-view-brainstorm.md
+[A22 16:39] Let me read the document and review it.
+  -> Read: 2026-02-18-sprint-centroid-radial-view-brainstorm.md
+[A24 16:39] ## Review Findings
+
+**Scoring:**
+
+| Criterion | Rating | Notes |
+|-----------|--------|-------|
+| Clarity | Good | One vague area: the view selector UX |
+| Completeness | Good | All items documented, decisions captured |
+| Specificity | Good | Concrete enough to plan from |
+| YAGNI | Good | No scope creep |
+| User intent fidelity | Good | Faithfully captures brainstorm discussion |
+
+**Issues found:**
+
+1. **View selector placement is unspecified** (the critical one) — There are now *two* radio selectors: scoring mode (Schelling/Bullseye/Dark Horse) and view mode (PCA/Radial). The document doesn't say where the view toggle lives or what it's labeled. Two unlabeled radio groups near each other could confuse users.
+
+2. **Scope boundaries on P2 items are soft** — "Surface ollama availability" (006) and "consolidate error handling" (009) could each expand. A one-liner capping scope would help during planning.
+
+3. Minor: vague language — "response labels shown on each point" doesn't specify truncation (the PCA scatter truncates to 20 chars).
+
+I'll auto-fix #3 and the minor wording. For #1 and #2, let me propose changes:
+  -> AskUserQuestion
+[A26 16:40] Good. Now let me apply all fixes — including the view toggle placement, scope boundaries, the label truncation note, and the updated `todos` path.
+  -> Read: 2026-02-18-sprint-centroid-radial-view-brainstorm.md
+  -> Edit: 2026-02-18-sprint-centroid-radial-view-brainstorm.md
+  -> Edit: 2026-02-18-sprint-centroid-radial-view-brainstorm.md
+  -> Edit: 2026-02-18-sprint-centroid-radial-view-brainstorm.md
+[A31 16:40] Now add the view toggle to the Key Decisions table:
+  -> Edit: 2026-02-18-sprint-centroid-radial-view-brainstorm.md
+[A33 16:40] Review changes applied:
+
+1. **View toggle placement** — specified above the chart, separate from scoring mode selector, with non-jargony labels
+2. **Scope boundaries** — capped 006 (single status check, no polling) and 009 (one file, no new abstractions)
+3. **Label truncation** — matched to existing 20-char convention
+  -> AskUserQuestion
+  x AskUserQuestion failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to
+[U5 16:40] [Request interrupted by user for tool use]
+[U6 16:40] Base directory for this skill: /Users/rhhart/.claude/skills/handoff-test
+
+# Handoff Test
+
+## The Naive Reader
+
+A fresh Claude instance with no session history. Technically competent — can read the codebase, run code, check git history. Has access to standard tooling, CLAUDE.md, and memory files. But has seen nothing from this conversation: no decisions made, options rejected, constraints discovered, or terminology coined. The only things that exist for the naive reader are what's written in persistent artifacts.
+
+The test: could that instance pick up the artifact and execute without asking clarifying questions?
+
+## Process
+
+1. Identify what was created or modified this session. Read each artifact in full.
+2. From the naive reader perspective, find implicit dependencies:
+   - Session-local terminology used without definition
+   - References to "the bug," "the approach," "what we discussed" without grounding
+   - Decisions recorded without rationale (a future reader needs *why* to know when the decision expires)
+   - Scope assumed but not stated
+   - Next steps that depend on conversation memory
+3. Report gaps. For each: what's missing, where it goes, concrete suggested text. Offer to apply fixes.
+
+If the artifact passes, say so in one sentence.
+
+
+ARGUMENTS: for the planning agent
+[A36 16:41] Let me read the current state of the brainstorm document and assess it from a naive reader's perspective.
+  -> Read: 2026-02-18-sprint-centroid-radial-view-brainstorm.md
+[A38 16:41] Now let me verify the todo files' actual location, since you mentioned moving them.
+  -> Glob: scoring-sandbox/docs/todos/**/*
+  -> Glob: scoring-sandbox/todos/**/*
+  -> Glob: scoring-sandbox/**/todos*
+  -> Glob: scoring-sandbox/docs/**/*.md
+[A43 16:41] Good — todos are at `scoring-sandbox/docs/todos/`. The brainstorm doesn't reference the todos path directly, so no path fix needed there. Now, the handoff test.
+
+---
+
+## Handoff Test Results
+
+**Audience:** A fresh planning agent with access to the codebase, CLAUDE.md, and this document — but zero conversation history.
+
+### Gaps Found
+
+**1. No pointer to the todo files**
+The document references todos by number (002, 004, 005, 006, 009) but never says where they live. A planning agent would have to search for them.
+
+> **Fix:** Add a line to the top section.
+> **Where:** After line 9, before the P1 heading.
+> **Text:** `Todo files: \`scoring-sandbox/docs/todos/\``
+
+**2. No mention of the score range**
+The radial view maps score to distance-from-center, but the document never states the expected range. Cosine similarity produces 0–1 for normalized embeddings; Dark Horse is also 0–1. A planning agent might wonder if negative values are possible or how to scale the axis.
+
+> **Fix:** Add to the "How it works" section.
+> **Where:** After line 55 (the gridlines bullet).
+> **Text:** `- Score range is 0–1 for all modes (cosine similarity of normalized embeddings). Radial axis maps 0 at center to 1 at outer edge.`
+
+**3. The scoring mode descriptions (todo 002) have no content guidance**
+The document says "add brief explanatory text" but doesn't specify *what* each description should say. The planning agent would need to either read the todo file or invent descriptions.
+
+> **Fix:** Add a brief note or defer explicitly.
+> **Where:** After line 14.
+> **Text:** `See todo 002 for suggested description text; if absent, derive from the scoring formulas in \`scoring.ts\`.`
+
+**4. "Mode-aware point sizing" has no size range**
+"Higher score = larger dot" — but what's the min/max size? Without this, the planning agent must make a judgment call that could look wrong.
+
+> **Fix:** Add a brief constraint to the Key Decisions table or to the 004 description.
+> **Where:** Inline with the point s [...truncated]
+[U7 16:42] yes, and i'm realizing the radial view may actually invert my intent for display -- i'd like the *closest* point to the center to be the response that was nearest to the goal. can you revise the specifications to thoroughly adhere to this requirement?
+[A45 16:43] Good catch — that's a meaningful inversion. Center-as-goal is the bullseye metaphor: best response lands closest to the center, worst at the outer edge. Let me apply all fixes including this revision.
+  -> Read: 2026-02-18-sprint-centroid-radial-view-brainstorm.md
+[A47 16:43] Now I'll apply all changes — the 5 handoff fixes plus the radial inversion. Doing them in sequence since they're close together in the file.
+  -> Edit: 2026-02-18-sprint-centroid-radial-view-brainstorm.md
+  -> Edit: 2026-02-18-sprint-centroid-radial-view-brainstorm.md
+  -> Edit: 2026-02-18-sprint-centroid-radial-view-brainstorm.md
+  -> Edit: 2026-02-18-sprint-centroid-radial-view-brainstorm.md
+[A52 16:43] Now the big one — inverting the radial view semantics and updating everything that follows from it:
+  -> Edit: 2026-02-18-sprint-centroid-radial-view-brainstorm.md
+  -> Edit: 2026-02-18-sprint-centroid-radial-view-brainstorm.md
+[A55 16:43] Now update the "Why This Approach" and "Key Decisions" sections to reflect the inversion:
+  -> Edit: 2026-02-18-sprint-centroid-radial-view-brainstorm.md
+  -> Edit: 2026-02-18-sprint-centroid-radial-view-brainstorm.md
+[A58 16:44] Let me verify the final document reads cleanly end to end.
+  -> Read: 2026-02-18-sprint-centroid-radial-view-brainstorm.md
+[A60 16:44] Document looks clean. Here's a summary of all changes applied:
+
+**Handoff fixes (5):**
+1. Added todo files path pointer (line 11)
+2. Added score range spec — 0–1, center = best, outer = worst (lines 64–66)
+3. Added content guidance for todo 002 descriptions (lines 17–18)
+4. Added size range guidance for mode-aware dots (lines 21–23)
+5. Status updated from "Draft" to "Ready for planning" (line 4)
+
+**Radial inversion (throughout):**
+- Core mechanic flipped: distance from center = `1 - score` (line 62)
+- Explicit statement: center = goal, closer = better (line 59)
+- Centroid reference circle formula updated to `1 - centroid score` (line 69)
+- All three centroid edge cases rewritten with inverted semantics (lines 78–86) — Schelling circle collapses to center, Dark Horse circle sits at outer edge
+- "Center-as-goal" rationale added (lines 96–98)
+- New Key Decision row for axis direction (line 107)
+- Mode interaction language corrected (lines 74–76)
+  -> AskUserQuestion
+  x AskUserQuestion failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to
+[U8 16:45] [Request interrupted by user for tool use]

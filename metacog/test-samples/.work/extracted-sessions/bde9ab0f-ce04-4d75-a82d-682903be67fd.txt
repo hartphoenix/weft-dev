@@ -1,0 +1,531 @@
+[U1 15:05] /Users/rhhart/Documents/GitHub/weft/guides/safer-yolo-mode.md I want to explore the possibility of creating a skill for the WEFT users to be able to use that Claude could also suggest using if the user is talking about bypassing permissions or using YOLO mode. And the skill would have Claude use this safer YOLO mode guide as a rubric for checking the security of the user's system. It would also check the URL within this guide that points to the gist article that I posted and plan to keep up-to-date. I also plan to update the guide in the harness so that the skill has an up-to-date source of truth on the security checks to run. and essentially I want the user to have Claude be able to check over the settings currently on their system to see what safeguards are in place, if any, and to make recommendations for fixes based upon the guide that customize themselves to the user's current setup. So it would be checking against the guide as a source of truth, but also customizing the recommendations to the user based on their own configuration. and it would need to be dialogue focused rather than build focused as a skill so that the changes recommended are not automatically made but surfaced to the user in layman's terms. So explore the documents in question and the current skills available in the weft harness. and then enter plan mode and help me design this skill.
+  -> ToolSearch: select:Read,Glob,EnterPlanMode
+[A2 15:05] Let me read the guide and explore the current skills structure.
+  -> Read: safer-yolo-mode.md
+  -> Glob: .claude/skills/*.md
+  -> Glob: guides/**/*
+  -> Glob: .claude/skills/**/*.md in weft
+[A7 15:05] Let me look at a few representative skills and the guard hook to understand the patterns.
+  -> Read: SKILL.md
+  -> Read: SKILL.md
+  -> Glob: .claude/hooks/* in weft
+  -> Read: guard.sh
+[A12 15:05] Good. Now let me look at the gist URL mentioned in the guide and check one more dialogue-focused skill for pattern reference.
+  -> Read: SKILL.md
+[A14 15:06] I've read the guide, the existing skills, and the guard hook. Good material to work with. Let me enter plan mode.
+  -> EnterPlanMode
+  -> ToolSearch: select:Agent,AskUserQuestion,Write
+[A17 15:06] Before I draft the plan, a couple of design questions.
+  -> AskUserQuestion
+[A19 15:07] Good calls. `safety-help` — approachable, clear, and broad enough that Claude can suggest it naturally. Always-fetch keeps recommendations current without user friction.
+
+Let me draft the plan.
+  -> Write: tingly-skipping-flurry.md
+  -> ToolSearch: select:ExitPlanMode
+[A22 15:08] The plan covers:
+
+- **Name:** `safety-help` — suggested by Claude when users mention YOLO/bypass/permissions/security
+- **Always fetches** the gist for freshness, degrades gracefully if fetch fails
+- **4 phases:** load sources → audit 6 layers → plain-language report → guided remediation on request
+- **Dialogue-only** — reads config files, never writes without explicit approval
+- **Customized to the user** — compares their actual `settings.json`, hooks, and installed tools against the guide's recommendations
+
+One file to create: `.claude/skills/safety-help/SKILL.md`
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). To tell you how to proceed, the user said:
+I've 
+[A24 15:13] Important observation. Claude doesn't reliably know whether it's running in terminal CLI vs. VS Code extension vs. sidebar — and the guide documents that the VS Code extension ignores `settings.json` entirely. So even if the audit finds a perfect config, it might not be protecting the user at all.
+
+This means the skill needs to **ask the user where they're running Claude**, not try to detect it. Let me update the plan.
+  -> Read: tingly-skipping-flurry.md
+  -> ToolSearch: select:Edit
+  -> Edit: tingly-skipping-flurry.md
+[A28 15:13] Now let me also update the bonus checks and dialogue conventions to reinforce the "ask, don't detect" principle.
+  -> Edit: tingly-skipping-flurry.md
+  -> Edit: tingly-skipping-flurry.md
+[A31 15:13] Good. The plan now has a **Phase 0: Orient** that forces the skill to ask the user where they run Claude before doing any audit work. The VS Code extension warning gets surfaced immediately and prominently if relevant, rather than being a footnote in the bonus checks.
+
+Key addition: the "ask what you can't detect" principle in the dialogue conventions. This is the general rule — the VS Code context is the most consequential instance, but the principle applies to anything environmental that isn't in a config file.
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). To tell you how to proceed, the user said:
+There
+  -> Edit: tingly-skipping-flurry.md
+[A34 15:17] Added a **Source of truth hierarchy** section. The guide is the authority on what to check; the skill just defines how to check it. If the guide evolves (new layers, updated deny rules, new gaps), the skill follows the guide's current content at runtime rather than hardcoded expectations. Same logic applies when the gist is ahead of the local guide — surface the difference to the user.
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to
+[U2 15:17] [Request interrupted by user for tool use]
+[U3 15:17] Uh, correction that the GIST publication is the source of truth, then the guide, then the skill.
+  -> Edit: tingly-skipping-flurry.md
+[A37 15:18] Fixed. Hierarchy is now gist > local guide > skill, with explicit instructions to tell the user when their local guide is behind the gist.
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). To tell you how to proceed, the user said:
+/skil
+  -> ToolSearch: select:Skill
+  -> Skill: 
+[U4 15:19] Base directory for this skill: /Users/rhhart/.claude/skills/skill-sharpen
+
+# Skill Sharpen
+
+The reader is a language model. It knows how to interview, classify
+errors, write summaries, structure output, and avoid leading questions.
+Every line costs context window and competes with the session's work.
+
+## The test
+
+For each line: **would the agent behave differently without it?**
+
+If no, cut it.
+
+## What earns its tokens
+
+- **File paths and invocation commands** — not derivable from training
+- **Schemas and output templates** — exact formats other code depends on
+- **Behavioral overrides** — things the agent would NOT do unprompted
+  ("Do not read files. Work from memory." / "Commit immediately — do
+  not wait for approval.")
+- **Decision trees with specific thresholds** — score cutoffs,
+  conditional branches, dispatch criteria
+- **One concrete example** of good vs. bad output — one calibrates;
+  two is redundant
+- **Graceful degradation tables** — exact behavior per failure mode
+- **Interoperation tables** — how this skill connects to others, compact
+
+## What to cut
+
+- **Negative restatements of positive instructions.** If the workflow
+  says "answer first, be terse, stop," then "don't scaffold, don't
+  elaborate, don't continue" pays double. Write the positive
+  instruction clearly and trust it.
+- **Concepts the model already has.** Don't define syntax errors,
+  describe what a fresh Claude instance can access, or list interview
+  questions a competent interviewer would ask. Direct the capability;
+  don't explain it.
+- **Commentary and philosophy that don't change behavior.** "This is
+  the key design move" / "Debugging fails not from lack of intelligence
+  but lack of visibility" — the behavioral instruction does the work.
+  Cut the rationale.
+- **Downstream documentation.** What other skills do with this skill's
+  output doesn't change this skill's execution. Use an interoperation
+  table if connections matter; don't narrate them.
+- **Boilerplate repeated across skills.** Consent gates, path
+  resolution, "don't teach during X" — reference from one shared
+  location instead of copying into each skill.
+
+## Density reference
+
+persist (8 lines, 95% load-bearing) and handoff-prompt (29 lines, 75%)
+set the standard. When reviewing a draft, estimate what percentage of
+lines pass the behavioral-difference test. Below 65% means a trim pass
+is needed.
+
+## Diction carries persona
+
+Tutor-facing skills don't just direct actions — their word choices
+anchor the agent's posture (direct, Socratic, honest-signal). Trimming
+for density must not flatten this. When editing a skill whose reader
+operates in tutor mode: check that the surviving prose still sounds like
+the tutor, not like a spec sheet. The lever is selective diction, not
+added length.
+
+## Editing existing material
+
+Read the full skill first. Identify lines that fail the test. Propose
+cuts as a batch. Preserve every file path, schema, threshold, and
+behavioral override — these always earn their keep. Check that the
+remaining prose preserves the skill's tonal register.
+[A41 15:19] Let me re-read the plan through the skill-sharpen lens.
+  -> Read: tingly-skipping-flurry.md
+[A43 15:19] Good call invoking this now. Let me apply the sharpen lens to the planned SKILL.md content — not the plan document itself, but what the actual skill file should look like when written.
+
+Lines that pass the behavioral-difference test:
+- File paths, gist URL — not derivable
+- Source of truth hierarchy — override (agent defaults to its own instructions)
+- Phase 0 Orient question — override (agent would skip this)
+- VS Code/CLI/both decision tree — specific conditional
+- 6-layer audit checklist with what to check per layer — specific thresholds
+- "Never auto-apply" — override
+- "Ask what you can't detect" — override
+- "Zero layers → start with sandbox" — specific triage
+
+Lines that fail:
+- "No jargon" / "acknowledge what's working" / "frame as 'here's what I found'" — competent audit behavior, not overrides
+- Phase 4 guided remediation — "help if asked" is default behavior
+- Trigger surface section — redundant with frontmatter description
+- The paragraph explaining *why* the hierarchy matters — the hierarchy itself is the instruction
+- Most of the "bonus checks" explanations — the guide already contains this; the skill just needs to say "surface known gaps from the guide"
+
+Let me draft a tighter version of what the SKILL.md would actually contain and put it in the plan.
+  -> Edit: tingly-skipping-flurry.md
+[A45 15:20] The plan now contains the actual SKILL.md content as it would be written, post-sharpen. Here's what changed:
+
+**Structural moves:**
+- Phase 0 orient branching → decision table (compact, unambiguous)
+- Layer audit checklist → table (same info, ~40% fewer lines)
+- Dialogue conventions → collapsed to "Overrides" — only the three that actually change behavior survived
+- Source of truth → kept but trimmed the rationale paragraph
+
+**Cut ~35% of planned content** that failed the behavioral-difference test. Estimated density of the resulting SKILL.md: ~80% load-bearing.
+  -> ExitPlanMode
+  -> ToolSearch: select:Bash
+  -> Bash: ls /Users/rhhart/Documents/GitHub/weft/.claude/skills/
+  -> Write: SKILL.md
+[A50 15:21] Done. Created `.claude/skills/safety-help/SKILL.md` — 73 lines, matches the plan's post-sharpen content.
+[U5 15:22] I want to check that if the user is simply asking about safety, that this skill offers to run a safety check rather than launching into a search without the user explicitly requesting it. Can you tell me whether the skill functions that way?
+[A51 15:22] Looking at the frontmatter description:
+
+> Use when the user mentions YOLO mode, bypass permissions, skipping permissions, "dangerously-skip-permissions", security setup, or wants to harden their configuration.
+
+That trigger language is broad enough that Claude could auto-launch the skill on a casual question like "is my setup safe?" — which would immediately start Phase 0's orient question rather than offering the audit first.
+
+The skill doesn't have an explicit "offer before launching" gate. Phase 0 asks where they run Claude, which is already an interactive step — but it's an interactive step *inside* the audit, not an offer *to* audit.
+
+The fix is small: add an entry point instruction that distinguishes between the user explicitly invoking `/safety-help` (proceed to Phase 0) vs. Claude suggesting the skill based on conversational cues (offer it, wait for acceptance). Want me to add that distinction?
+[U6 15:23] yes
+  -> Read: SKILL.md
+  -> Edit: SKILL.md
+[A54 15:23] Added an entry point table. Explicit `/safety-help` → proceed. Conversational trigger → offer and wait.
+[U7 15:25] Now I'd like you to do an audit on the README file and make sure that it includes all of the skills that currently ship with the harness, including this new one. and that it is still sequenced in a coherent order that serves the user's need first. That order should be from top to bottom. Everyone who visits the GitHub page would need to read it versus only a few would need to read it versus very few would need to read it versus the agent sent to the page would be able to act on it. That's the top-to-bottom flow. Go ahead and explore all that you need in order to check if the ReadMe is up-to-date and surface any issues that you find but don't make edits yet. just make clear what the gaps are.
+  -> Read: README.md
+  -> Bash: ls -1 /Users/rhhart/Documents/GitHub/weft/.claude/skills/
+[A57 15:26] Here's what I found.
+
+---
+
+## Gap 1: Missing skill
+
+**`safety-help`** is not listed anywhere in the README. It ships with the harness but has no entry in the Skills tables or the Automatic dispatch section.
+
+It needs an entry in "Working tools" (or possibly its own category — see ordering below).
+
+---
+
+## Gap 2: Ordering against your requested flow
+
+Current README order with my annotations:
+
+| Position | Section | Who needs it |
+|----------|---------|-------------|
+| 1 | "Don't have Claude Code yet?" | Everyone |
+| 2 | Description paragraph | Everyone |
+| 3 | Prerequisites | Everyone |
+| 4 | Install | Everyone |
+| 5 | Quick start | Everyone |
+| 6 | The learning loop | Most |
+| 7 | Privacy | Most |
+| 8 | What intake creates | Few |
+| 9 | **Skills** | **Most** — buried below "What intake creates" |
+| 10 | Everything is editable | Most |
+| 11 | Settings | Few |
+| 12 | Update | Most |
+| 13 | Recommended: Install a command guard | Most |
+| 14 | Data sharing (optional) | Few |
+| 15 | Under the hood | Very few |
+| 16 | Uninstall | Very few |
+| 17 | Troubleshooting | Very few |
+| 18 | Setup guide — for Claude | Agent |
+
+Problems:
+- **Skills (9) is below What intake creates (8).** Skills is a "most readers" section — it's the tool catalog. "What intake creates" is a "few readers" detail. These should swap.
+- **"Everything is editable" (10)** is a reassurance/trust signal that belongs near the top of the "most readers" zone, closer to quick start or after the learning loop.
+- **Update (12)** is a "most readers" concern but sits below Settings (11), which is "few readers."
+- **"Recommended: Install a command guard" (13)** is buried. This is security guidance that matters to most users, especially anyone considering bypass mode. It's currently wedged between Settings and Data sharing where few will see it.
+
+---
+
+## Gap 3: Security section doesn't mention `safety-help` or the full guide
+
+The "Recommended: Install a command guard" section only mentions DCG. With `safety-help` now [...truncated]
+[U8 15:29] yes, apply all
+  -> Read: README.md
+[A59 15:30] I'll apply all six changes in sequence. The big structural move is reordering the middle sections, so I'll work from top to bottom.
+
+**Edit 1:** Move Skills section up (swap with "What intake creates" + Privacy reorder).
+  -> Edit: README.md
+[A61 15:30] All six changes applied in one edit:
+
+1. **`safety-help` added** to the Working tools table and Automatic dispatch section
+2. **Skills moved up** — now directly after The learning loop (was below Privacy + What intake creates)
+3. **"Everything is editable" moved up** — now follows Skills
+4. **Update moved up** — now before Safety (was below Settings)
+5. **Security section expanded** — "Recommended: Install a command guard" replaced with broader "Safety" section that references `/safety-help`, the guide, and the gist article
+6. **"What intake creates" moved down** — into the "few readers" zone, between Safety and Settings
+
+New order:
+- Everyone: hero → prerequisites → install → quick start
+- Most: learning loop → **skills** → **everything is editable** → privacy → **update** → **safety**
+- Few: what intake creates → settings → data sharing
+- Very few: under the hood → uninstall → troubleshooting
+- Agent: setup guide
+[U9 15:30] I'd also like the README to link to the Safer YOLO mode guide at the applicable point in the security section.
+[A62 15:30] It already does. The Safety section contains:
+
+> run `/safety-help`. It audits your configuration against the [Safer YOLO guide](guides/safer-yolo-mode.md)
+
+That's a relative link to the guide file, which renders as a clickable link on GitHub. Want it linked in a different spot or with different anchor text?
+[U10 15:31] no that's good. now review the readme for readability, user-friendliness, and call-to-action clarity
+  -> Read: README.md
+[A64 15:32] Here's what I found.
+
+---
+
+### Strong
+
+- **Safety section** — clear CTA (`run /safety-help`), good framing that it works in default mode too, not just bypass. Nothing to change.
+- **Skills tables** — scannable, consistent descriptions, good core-loop / working-tools split.
+- **Everything is editable** — short, reassuring, well-placed.
+- **Privacy** — clean.
+- **Troubleshooting** — good problem → solution format.
+- **Setup guide for Claude** — right place, right audience.
+
+---
+
+### Issues
+
+**1. Hero buries the hook.**
+The first thing a visitor sees is "Don't have Claude Code yet?" — a setup prompt for a minority of visitors. The actual value proposition ("learns how you learn, tracks your growth, adapts its behavior") is below the fold, after a code block and a horizontal rule. Most GitHub visitors already have Claude Code or will decide whether to install it based on what the tool does — which they haven't read yet.
+
+**Fix:** Lead with the description, move the browser bootstrap below it (or into Quick Start).
+
+**2. "Personal development harness" is insider language.**
+A first-time visitor doesn't know what a "harness" means in this context. The second sentence ("Drop some materials, run a ~30-minute interview...") is the plain-language version — it should lead.
+
+**Fix:** Rewrite the opening to lead with what it does for the user, not the category name.
+
+**3. The learning loop is hard to scan.**
+Three levels of nesting (numbered list → bullet → sub-bullet), plus implementation details like "Existing users get a one-time introduction to configure this." This is the densest section in the README and it's in the "most readers" zone. The four-step loop (Work → Update → Plan → Reflect) is a good structure but the nesting under step 2 buries the clarity.
+
+**Fix:** Flatten the nesting. The active/passive distinction matters but can be presented without sub-sub-bullets. Cut implementation details aimed at existing users — those belong in Settings or a changelog, not the lea [...truncated]
+[U11 15:36] One comment is I want to remove the teacher flow part and make the data sharing. I think data sharing is actually inaccurate on the readme because there is no teacher flow right now in the actual function of the harness, and the data sharing doesn't seem to be working, so I don't think it actually turns itself on. Do a quick check on that through the places in the harness that are supposed to set that up. I think that we need to completely remove that section from the readme. We can go ahead and apply all other fixes, and then we'll fix that section.
+[A65 15:36] Let me check the data sharing implementation.
+  -> Grep: consent\.json in weft
+  -> Grep: weft-signals in weft
+  -> Grep: learning-signals in weft
+  -> Grep: relationships\.md in weft
+  -> Grep: consent in SKILL.md
+  -> Grep: consent|signal|share in SKILL.md
+  -> Grep: consent|signal|share in SKILL.md
+  -> Grep: consent|signal|share in SKILL.md
+[A74 15:36] Let me read the relevant sections of these skills to see how the consent/signal flow actually works.
+  -> Grep: consent|signal|share|dispatch in SKILL.md
+  x Grep failed: <tool_use_error>InputValidationError: Grep failed due to the following issue:
+An unexpected parameter `context_lines` was provided</tool_use_error>
+  -> Grep: consent|signal|share in SKILL.md
+  x Grep failed: <tool_use_error>Cancelled: parallel tool call Grep(consent|signal|share|dispatch) errored</tool_use_error>
+  -> Grep: consent in bootstrap.sh
+  x Grep failed: <tool_use_error>Cancelled: parallel tool call Grep(consent|signal|share|dispatch) errored</tool_use_error>
+  -> Bash: grep -n -A5 'consent\|signal\|share' /Users/rhhart/Documents/GitHub/weft/.claude
+  -> Bash: grep -n -A5 'consent\|signal\|share' /Users/rhhart/Documents/GitHub/weft/.claude
+  -> Bash: grep -n -A3 'consent' /Users/rhhart/Documents/GitHub/weft/scripts/bootstrap.sh
+  -> Bash: cat /Users/rhhart/Documents/GitHub/weft/.claude/consent.json 2>/dev/null; echo "
+  -> Bash: cat /Users/rhhart/Documents/GitHub/roger/learning/relationships.md 2>/dev/null; 
+[A83 15:37] Here's what I found:
+
+**The data sharing machinery exists in the skills but is gated on files that don't exist:**
+- `consent.json` — doesn't exist. Created by intake's Phase 4e only if the user opts in.
+- `relationships.md` — doesn't exist. Also created by intake 4e.
+- Without these files, session-review skips the developer signal silently (line 326: "if `.claude/consent.json` doesn't exist... move on silently"), and progress-review skips publishing silently (line 386: "If either is absent, skip silently").
+
+**So the feature is designed but inert** — the code paths exist in the skills, the consent gate works correctly (no files = no sharing), but for your installation at least, intake never created those files. The README documents the feature as if it's active and working, including the teacher flow, invitation instructions, and "Current status" paragraph.
+
+**Recommendation:** Remove the entire "Data sharing (optional)" section from the README. The skill-level implementation can stay (it's harmless — gated on files that don't exist). If/when you activate this feature, add the README section back.
+
+Now applying all fixes — the six readability issues plus removing Data sharing.
+  -> Edit: README.md
+  -> Edit: README.md
+  -> Edit: README.md
+  -> Edit: README.md
+[A88 15:37] Now split the automatic dispatch section to separate programmatic dispatch from contextual activation.
+  -> Edit: README.md
+[A90 15:37] Now remove the Data sharing section.
+  -> Edit: README.md
+[A92 15:38] Now let me also clean up the "Under the hood" table — `relationships.md` was created by the data sharing flow, so it should come out too.
+  -> Edit: README.md
+[A94 15:38] Let me verify the final state reads cleanly.
+  -> Read: README.md
+[A96 15:38] One thing to clean up — line 26 still says "used for usage signals" which was a reference to the data sharing feature. Let me fix that.
+  -> Edit: README.md
+[A98 15:38] Also the Privacy section still references sharing CLAUDE.md content, which was part of the data sharing flow.
+  -> Edit: README.md
+[A100 15:38] All applied. Summary of changes:
+
+1. **Hero leads with value** — description first, browser bootstrap demoted to `###` below it
+2. **"Harness" jargon removed** from the opening — leads with what it does
+3. **Learning loop flattened** — removed nested sub-bullets, cut "existing users" implementation detail, reads in one pass now
+4. **Quick start step 3** — lesson-scaffold is the primary CTA, "use Claude Code normally" is the follow-on
+5. **"Existing users" lines removed** from both learning loop and automatic dispatch
+6. **Automatic dispatch split** into "Automatic dispatch" (programmatic) and "Contextual activation" (conversational cues)
+7. **Data sharing section removed** entirely — feature is gated on files that don't exist
+8. **Residual data-sharing references cleaned** — "usage signals" in prerequisites, CLAUDE.md sharing choice in Privacy, `relationships.md` in Under the hood
+[U12 15:40] Great. One more quality pass for good measure to review all of the things that we have prioritized in this conversation and see if the README is at its best.
+  -> Read: README.md
+[A102 15:40] Reviewing against everything we prioritized this session:
+
+- **safety-help in skills table + contextual activation** — present, accurate
+- **Source of truth hierarchy** — in the skill, not needed in README
+- **Entry point gate** — reflected ("offers to run an audit rather than launching one automatically")
+- **All 15 skills accounted for** — confirmed
+- **Everyone → most → few → agent ordering** — clean
+- **Hero leads with value** — done
+- **Learning loop flattened** — done
+- **Data sharing removed, residual references cleaned** — done
+- **Safety section with guide link and gist link** — done
+
+Three small things remain:
+
+**1. Line 141 — internal language.**
+> "Lightweight learning-state diff from session evidence — no quiz, no file writes. Callers handle approval"
+
+"Callers handle approval" is developer-facing. A user reading the skills table doesn't know what "callers" means.
+
+**2. Line 155 — jargon.**
+> "Use after plan approval or before compaction"
+
+"Compaction" is Claude Code internals. Most users won't know this term.
+
+**3. Line 253-255 — "Existing users" phrasing.**
+> "Existing users are prompted once at session start to set their preference."
+
+Minor — could be clearer about who this applies to.
+  -> Edit: README.md
+  -> Edit: README.md
+  -> Edit: README.md
+[A106 15:40] Clean. Three jargon/internal-language fixes applied. The README is at its best against everything we prioritized this session.
+[U13 15:42] Good, now let's do a brevity pass. Just make sure that the readme is concise enough without loss of important information.
+  -> Read: README.md
+[A108 15:42] Candidates for trimming — nothing structural, just words that don't carry weight:
+  -> Edit: README.md
+  -> Edit: README.md
+  -> Edit: README.md
+  -> Edit: README.md
+  -> Edit: README.md
+  -> Edit: README.md
+  -> Edit: README.md
+  -> Edit: README.md
+  -> Edit: README.md
+  -> Edit: README.md
+  -> Edit: README.md
+[A120 15:43] Let me check the final line count.
+  -> Bash: wc -l /Users/rhhart/Documents/GitHub/weft/README.md
+[A122 15:44] 367 → 323 lines. Cut ~12% without losing information. The trims:
+
+- **Prerequisites:** dropped `gh auth status` check instruction, verbose platform line
+- **Install:** collapsed 4-item numbered list into one sentence, dropped manifest detail
+- **Background:** collapsed 5-bullet list into one sentence (types are self-explanatory)
+- **Intake phases:** collapsed 4-item numbered list into one sentence (the detail lives in the skill itself)
+- **Learning loop closer:** cut "the more sessions you complete, the sharper the system gets" (shown by the loop structure itself)
+- **Safety:** merged two paragraphs, led with the CTA
+- **Update:** tightened three sentences into three shorter ones
+- **Settings:** dropped migration detail
+- **Under the hood intro:** shorter
+- **Troubleshooting:** merged the two digest entries
+- **Everything is editable:** dropped "starting point, not a lock-in" (implied by the section title)
+[U14 15:57] good, i added images and i'm ready to ship. /git-ship both the new skill and the readme (with the two added images) on a single new feature branch and merge. don't do anything with the other open PR, leave it as-is
+  -> Skill: 
+[U15 15:57] Base directory for this skill: /Users/rhhart/.claude/skills/git-ship
+
+# /git-ship
+
+Stage → commit → push → PR in one invocation.
+
+## Flags
+
+| Flag | Effect |
+|------|--------|
+| `--merge` | Squash-merge the PR and delete the branch after creation |
+| `--dry-run` | Show the plan without executing |
+
+## Workflow
+
+### 1. Preflight (parallel)
+
+Run simultaneously:
+- `git status`
+- `git diff --stat` (staged + unstaged)
+- `git log --oneline -5`
+- `git branch -a`
+- `git rev-parse --abbrev-ref HEAD`
+- Detect default branch (`main` or `master`)
+- `gh pr view --json state 2>/dev/null`
+
+**Gate:** if current branch already has an open PR, stop. Report:
+"Branch already has an open PR. Create a fresh branch for new changes."
+
+**Gate:** if on main/master, stop. "Cannot ship directly to main.
+Create a feature branch first."
+
+### 2. Group and filter changes
+
+- **One coherent group:** proceed
+- **Mixed concerns:** identify primary group, report the rest:
+  "Skipping unrelated changes: [file list]"
+- **Ambiguous:** ask which changes to ship
+
+Never stage `.env`, credentials, or secrets files.
+
+### 3. Choose branch
+
+```
+On feature branch + changes fit       → stay
+On feature branch + changes don't fit → find or create matching branch
+```
+
+**Finding a match:** scan local and remote branch names. Confirm with
+user before switching.
+
+**Creating:** generate a descriptive slug (e.g., `fix-auth-redirect`).
+Confirm name with user. `git checkout -b <slug>`.
+
+### 4. Commit
+
+- `git add <file1> <file2> ...` — name each file explicitly
+- Generate a concise commit message (1-2 lines) matching repo's recent
+  style from step 1
+- Append `Co-Authored-By: Claude <noreply@anthropic.com>` trailer
+- Show the message, then commit immediately — do not wait for approval
+
+### 5. Push + PR
+
+Use `AskUserQuestion`: "Ready to push and open PR for `<branch>`."
+Options: **Push** / **Abort**. On abort, stop.
+
+After confirmation:
+- `git push -u origin <branch>`
+- `gh pr create` — inferred title from branch name and commits, brief
+  body summarizing changes. Report URL.
+
+### 6. Merge (--merge flag only)
+
+- `gh pr merge --squash --delete-branch`
+- If merge fails (checks pending, review required): report status, stop
+- After merge: `git checkout <default-branch> && git pull origin <default-branch>`
+
+## Constraints
+
+- `git add`: explicit file names only — never `-A`, `.`, `--all`
+- `git commit`: stage first — never `-a` / `--all`
+- `git push`: only to `origin` — never to other remotes
+- No force-push
+- Never merge without `--merge` flag
+
+
+ARGUMENTS: --merge
+  -> Bash: git status
+  -> Bash: git diff --stat
+  -> Bash: git log --oneline -5
+  -> Bash: git rev-parse --abbrev-ref HEAD
+  -> Bash: git branch -a
+[A129 15:57] On `main` — need a feature branch. Changes are one coherent group: new safety-help skill + README updates + images.
+  -> Bash: git checkout -b feat/safety-help-skill-readme
+  -> Bash: git add .claude/skills/safety-help/SKILL.md README.md learning-loop.png title-he
+  -> Bash: git commit -m "$(cat <<'EOF'
+Add safety-help skill and overhaul README
+
+- New /s
+[A133 15:57] Gitleaks clean. Ready to push and open PR.
+  -> AskUserQuestion
+  -> Bash: git push -u origin feat/safety-help-skill-readme
+  -> Bash: gh pr create --title "Add safety-help skill and overhaul README" --body "$(cat <
+  -> Bash: gh pr merge 16 --squash --delete-branch
+[A138 15:58] Shipped and merged. PR #16: https://github.com/hartphoenix/weft/pull/16
+
+Back on `main` with the merge pulled down. The other open PR is untouched.

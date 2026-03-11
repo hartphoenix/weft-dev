@@ -1,0 +1,608 @@
+[U1 23:34] # Start Work
+
+Pre-work checks before beginning any task. Surfaces conflicts with
+active work so the human can make an informed choice.
+
+## Usage
+
+`/startwork` — pick the highest-priority available task from the board
+`/startwork #<issue-number>` — start a specific issue
+
+## Protocol
+
+### 1. Gather
+
+Fetch all data needed for conflict detection and ranking.
+
+1. Pull latest main (`git pull origin main`)
+2. Fetch board items in Ready, Backlog, In Progress, and In Review
+   (`gh project item-list 1 --owner thrialectics --format json`)
+3. Fetch open PRs
+   (`gh pr list --json number,title,headRefName,files,author`)
+4. Scan `.claude/todos/agent/` for stale working files (created >24h
+   ago) and surface them for verification
+5. Classify fetched items:
+   - **Candidates** — items in Ready and Backlog (these get ranked)
+   - **Active work** — items in In Progress and In Review, plus open
+     PRs (reference data for conflict detection)
+
+If GitHub is unreachable, warn and continue from local branch state.
+If a query partially fails (e.g., PR fetch succeeds but board fails),
+warn which data source is missing and proceed with available data —
+note that conflict detection may be incomplete.
+
+If there are no candidates in Ready or Backlog, say so and stop.
+
+### 2. Detect
+
+Check each candidate against active work for blocking conditions.
+When `/startwork #N` is provided, run Detect only on the specified
+issue. Otherwise, check all candidates.
+
+For each candidate, check for these conditions:
+
+| Type | Definition | How to detect |
+|------|-----------|---------------|
+| dependency | Upstream issue this task depends on is still open | Parse candidate's `### Dependencies` section for `Depends on #N`; check if #N is still open |
+| conflict | Another PR or In Progress task overlaps in scope | See overlap detection below |
+| decision | Unresolved `human-decision` issue that this task presupposes | Search open issues with `human-decision` label; flag if candidate's scope overlaps |
+| review | An upstream PR referenced in dependencies is not yet merged | Parse candidate's `### Dependencies` for PR references; check if still open |
+| external | Blocker outside team control | Check candidate's labels for `blocked`; check body for external dependency mentions |
+
+**Distinguishing `dependency` from `review`:** `dependency` = an open
+*issue* (work not yet done). `review` = an open *PR* (work done, not
+yet merged). Both can appear on the same candidate.
+
+**Overlap detection for `conflict`** — use a layered approach:
+
+1. **PR files** — an open PR's changed files overlap with files the
+   candidate likely touches (from description or related PRs)
+2. **Semantic** — titles or descriptions suggest overlapping scope
+   (flag as "possible conflict" — prefer file-based signals)
+
+Output: a per-candidate list of flags, each with type, related
+issue/PR number, assignee (if any), and a brief description.
+
+### 3. Rank
+
+Rank all candidates (Ready + Backlog) using these priority tiers.
+Ready items surface above Backlog items at the same tier. Within a
+tier, prefer items that also rank well in lower tiers.
+
+1. **Urgency** — `p1-critical` and `p2-important` first, regardless
+   of assignee
+2. **Assigned to current user** — user's tasks above unassigned or
+   others' work
+3. **Unblocks other work** — items referenced in another issue's
+   `### Dependencies` section surface higher; check for issues with
+   the `blocked` label that reference these items
+4. **MVP-critical path** — foundational structure the product needs
+   (core game loop, essential UI flows, shared infrastructure) above
+   nice-to-have improvements
+
+**Then demote:** Any candidate with one or more flags from Detect
+ranks below all clean (unflagged) candidates at the same priority
+tier. Within the demoted group, preserve the original tier ordering.
+
+If a specific issue was provided via `/startwork #N`, skip ranking
+and proceed directly to Present (step 4) to show its flags.
+
+### 4. Present
+
+Show the top candidates as an ordered list. For each item, show:
+
+- Why it ranks where it does (tier + assignment)
+- Any flags from Detect, one line per flag with link:
+
+```
+[conflict] #42 (In Progress, Ulysse) — overlapping scope in scoring logic
+[dependency] #38 (open) — scoring algorithm not yet decided
+[decision] #51 (human-decision) — UX flow for timer display unresolved
+[review] #44 (PR, waiting on review) — shared types refactor
+[external] blocked — waiting on API key from vendor
+```
+
+If any data source was unavailable during Gather, note it:
+
+```
+Note: PR data unavailable — conflict detection may be incomplete.
+```
+
+Let the user choose.
+
+### 5. Validate
+
+After the user picks a task, run these checks on the selected item:
+
+- **Blocking conditions** — if flagged, surface the specific flags
+  and ask whether to proceed anyway or pick a different task.
+- **WIP limit** — count "In Progress" items for the assignee. If at
+  or above their limit (from CLAUDE.md team table), warn and ask for
+  confirmation.
+
+### 6. Activate
+
+Update the board item status to "In Progress". Create or checkout the
+feature branch using the `<person>/<short-description>` convention.
+
+### 7. Summary
+
+Print what's being worked on, the branch name, and any flags that
+were acknowledged during Validate.
+[A1 23:34] Starting pre-work checks. Let me gather the current state.
+  -> Bash: git pull origin main
+  -> Bash: gh project item-list 1 --owner thrialectics --format json 2>&1
+  -> Bash: gh pr list --json number,title,headRefName,files,author 2>&1
+  -> Glob: .claude/todos/agent/*
+[A6 23:34] The board returned 65 items but the output was truncated. Let me get the full picture and check those stale agent todos.
+  -> Bash: gh project item-list 1 --owner thrialectics --format json | bun -e 'const data =
+  x Bash failed: Exit code 1
+1 | tems = data.items.filter(i => i.status \!== "Done"); console.log(JSON.stringify(items.map(i => ({title: i.title, status:
+                                                               
+  -> Bash: stat -f "%Sm" -t "%Y-%m-%d %H:%M" /Users/rhhart/Documents/GitHub/schelling-point
+  x Bash failed: <tool_use_error>Sibling tool call errored</tool_use_error>
+  -> Bash: gh project item-list 1 --owner thrialectics --format json | bun -e "const data =
+  -> Bash: stat -f "%Sm" -t "%Y-%m-%d %H:%M" /Users/rhhart/Documents/GitHub/schelling-point
+  x Bash failed: Exit code 1
+1 | tems = data.items.filter(i => i.status \!== 'Done'); console.log(JSON.stringify(items.map(i => ({title: i.title, status:
+                                                               
+  x Bash failed: <tool_use_error>Sibling tool call errored</tool_use_error>
+  -> Bash: gh project item-list 1 --owner thrialectics --format json | python3 -c "
+import 
+  -> Bash: stat -f "%Sm" -t "%Y-%m-%d %H:%M" /Users/rhhart/Documents/GitHub/schelling-point
+  x Bash failed: Exit code 1
+  File "<string>", line 4
+    items = [i for i in data['items'] if i['status'] \!= 'Done']
+                                                      ^
+SyntaxError: unexpected character after l
+  x Bash failed: <tool_use_error>Sibling tool call errored</tool_use_error>
+  -> Bash: gh project item-list 1 --owner thrialectics --format json | python3 -c '
+import 
+  x Bash failed: Exit code 1
+  File "<string>", line 4
+    items = [i for i in data["items"] if i["status"] \!= "Done"]
+                                                      ^
+SyntaxError: unexpected character after l
+  -> Write: filter_board.py
+  -> Bash: gh project item-list 1 --owner thrialectics --format json | python3 /tmp/filter_
+  -> Bash: stat -f "%Sm" -t "%Y-%m-%d %H:%M" /Users/rhhart/Documents/GitHub/schelling-point
+[A17 23:35] Let me also check for open issues that might not be on the board.
+  -> Bash: gh issue list --state open --json number,title,labels,assignees --limit 50
+[A19 23:36] ## Pre-Work Check Results
+
+### Board Status
+**No candidates in Ready or Backlog.** The board has only one non-Done item:
+- **#95** (In Progress) — Interactive lounge visualization — `blocked` `human-decision` `p3-nice-to-have`
+
+### Open PRs
+None.
+
+### Agent Todos
+Two files in `.claude/todos/agent/` — both created today, not stale:
+- `120-auto-show-direct-link.md`
+- `121-aria-label-instructions.md`
+
+---
+
+### Open Issues Not on Board
+There are **19 open issues** that aren't queued on the board. Here are the ones relevant to you (Hart), ranked by priority:
+
+**p2-important:**
+| # | Title | Labels | Assigned |
+|---|-------|--------|----------|
+| #123 | bug: new players joining lobby not visible to existing players | `bug` `human-decision` | Ulysse |
+| #120 | fix: auto-show instructions for direct game link joins | `agent-resolvable` | **Hart** |
+| #122 | fix: scores view timer circular countdown animation | `agent-resolvable` | Julianna |
+| #77 | style: Apply CSS styling to Scores/Results screen | `agent-resolvable` | Julianna |
+| #94 | enhancement: Two-color pair player identity system | `human-decision` | — |
+| #88 | feat: Add back/leave button handler | `human-decision` | — |
+| #87 | feat: Extract share buttons into shared component | `human-decision` | — |
+| #82 | Join Game by ID input in Lounge | `human-decision` | — |
+
+**p3-nice-to-have:**
+| # | Title | Labels | Assigned |
+|---|-------|--------|----------|
+| #121 | fix: add aria-label to instructions popover button | `agent-resolvable` | **Hart** |
+| #124 | enhancement: add MoodPicker on Scores view | `agent-resolvable` | Julianna |
+| #90 | enhancement: loading state between GUESSES/SCORES | `agent-resolvable` | — |
+| #97 | enhancement: CSS animation for guess lock-in | `agent-resolvable` | — |
+| #32 | Decide: keep or remove dead code | `agent-resolvable` | — |
+
+The board's backlog is empty — nothing is queued to pick up. Your two assigned issues (#120, #121) are both `agent-resolvable` and ready to work. Want to p [...truncated]
+[U2 23:38] find all orphaned issues that don't appear on the board and list them in full, then find how and when they were created (and if possible, what tool or entry point they got onto the issues list)
+  -> Task
+[A21 23:40] Good news — **there are no orphaned issues.** All 19 open issues are on the project board.
+
+My earlier `/startwork` output was misleading. I only filtered for non-Done items with the board statuses I saw in the initial truncated response. The full board actually has items across Ready, Backlog, and In Progress that I missed due to the JSON truncation.
+
+Here's the corrected board state for all open issues:
+
+### In Progress (3)
+| # | Title | Assigned | Labels |
+|---|-------|----------|--------|
+| 95 | Interactive lounge visualization | — | `blocked` `human-decision` `p3` |
+| 114 | Add audio/SFX to buttons, emotes, and game events | — | `human-decision` `p3` |
+| 123 | bug: new players joining lobby not visible | Ulysse | `human-decision` `p2` |
+
+### Ready (5)
+| # | Title | Assigned | Labels |
+|---|-------|----------|--------|
+| 32 | Decide: keep or remove dead code | — | `agent-resolvable` `p3` |
+| 87 | Extract share buttons into shared component | — | `human-decision` `p2` |
+| 88 | Add back/leave button handler | — | `human-decision` `p2` |
+| 97 | CSS animation for guess lock-in | — | `agent-resolvable` `p3` |
+| 101 | Visual feedback for empty name submission | Julianna | `human-decision` `p3` |
+
+### Backlog (11)
+| # | Title | Assigned | Labels |
+|---|-------|----------|--------|
+| 33 | Decide: tuple vs object wire format | — | `human-decision` `p3` |
+| 73 | Avatar Picker | — | `human-decision` `p3` |
+| 77 | CSS styling to Scores/Results screen | Julianna | `agent-resolvable` `p2` |
+| 82 | Join Game by ID input in Lounge | — | `human-decision` `p2` |
+| 90 | Loading state between GUESSES/SCORES | — | `agent-resolvable` `p3` |
+| 94 | Two-color pair player identity system | — | `human-decision` `p2` |
+| 96 | CSS animated results visualization | — | `blocked` `human-decision` `p3` |
+| 120 | Auto-show instructions for direct link joins | Hart | `agent-resolvable` `p2` |
+| 121 | Add aria-label to instructions popover | Hart | `agent-resolvable` `p3` |
+| 122 | Scores view ci [...truncated]
+[U3 23:40] the real issue here is with the startwork command -- what does it need to say in order for you to have the full information on the first try?
+[A22 23:41] Good question. Let me look at what the command actually says and trace the failure.
+  -> Read: startwork.md
+[A24 23:41] Two problems compounded:
+
+**Problem 1: Missing `--limit` flag.** `gh project item-list` has a default limit (likely 30 items). The board has 65 items. Without `--limit`, the CLI silently returns a partial set. The JSON says `totalCount: 65` but the `items` array is truncated by the CLI before I ever see it.
+
+**Problem 2: Raw JSON is too large.** Even if all 65 items were returned, each item includes the full issue body. That blows past the 30,000-character tool output limit, so I see a truncated JSON blob and lose items off the end.
+
+**Problem 3: Shell escaping.** When I tried to fix it by piping through a filter, zsh escapes `!=` as `\!=` inside strings, breaking every inline python/bun script I tried. I burned 3 attempts before writing a temp file.
+
+The fix is to tell the Gather step to **filter server-side or via a pre-written script** so the output stays small. Here's what I'd change on line 19:
+
+```markdown
+2. Fetch board items in Ready, Backlog, In Progress, and In Review.
+   Use `--limit 200` to ensure all items are returned, and pipe
+   through `jq` to extract only the fields needed and filter out
+   Done items — raw JSON with full issue bodies will exceed tool
+   output limits on any non-trivial board:
+   ```
+   gh project item-list 1 --owner thrialectics --format json --limit 200 \
+     | jq '[.items[] | select(.status != "Done") | {number: .content.number, title: .title, status: .status, labels: .labels, assignees: .assignees}]'
+   ```
+```
+
+Want me to make this edit?
+[U4 23:43] make a temp file with your proposed version of the startwork file, then spawn a fresh agent with that temp file and present me with the full results it gives.
+  -> Read: startwork.md
+  -> Write: startwork-v2.md
+[A27 23:44] Now let me spawn a fresh agent to execute it.
+  -> Task
+[A29 23:46] Yes, that was a real subagent — agent ID `a56e489`, 42 tool calls, ~2 minutes of work. I gave it the `/tmp/startwork-v2.md` protocol, the project context, and told it to run steps 1-4. Everything above is what it returned.
+
+The v2 changes worked. On the first try, the agent:
+- Got all 19 non-Done board items (the `--limit 200` + `jq` pipeline kept output small)
+- Correctly classified 17 candidates and 2 active items
+- Ran Detect on all 17 candidates, checking dependency sections and label state
+- Produced a clean ranked list with flags
+
+Compared to my original attempt where I missed 16 of 17 candidates and incorrectly told you "no items in Ready or Backlog."
+
+Want me to apply the changes to the real [startwork.md](.claude/commands/startwork.md)?
+[U5 23:48] was the agent's time wasted on any unimportant data that could be left out of the requests?
+[A30 23:48] Good question. 42 tool calls for what should be a quick triage is a lot. The bottleneck is in Detect.
+
+The Gather step correctly fetches board items with `jq`, but strips out the issue body to keep output small. Then Detect needs the body (for `### Dependencies` sections), so it fetches each candidate individually — that's 17 `gh issue view` calls. Then for each dependency reference it finds (`Depends on #83`, etc.), it checks whether that issue is still open — more individual calls.
+
+**The fix:** Gather should also batch-fetch all open issues with bodies in one call:
+
+```
+gh issue list --state open --json number,body,labels --limit 100
+```
+
+That gives Detect everything it needs without per-issue round-trips. The board query provides statuses, the issue list provides bodies and labels. Cross-reference by number. 42 calls drops to ~6.
+
+Want me to update the temp file with this and run the agent again to verify?
+[U6 23:50] how about getting all the bodies but not having the agent read them directly, and instead designing a script to run locally on the fetched data to deliver what the agent needs? how would this compare?
+[A31 23:50] That's a much better architecture. The agent's value is in judgment — ranking, flagging semantic overlaps, presenting context. Parsing `### Dependencies` sections and cross-referencing issue numbers is mechanical work that a script does faster, cheaper, and more reliably.
+
+Here's the comparison:
+
+| | Agent reads bodies | Script pre-digests |
+|---|---|---|
+| **API calls** | ~6 | ~3 (same data, script batches better) |
+| **Agent tool calls** | ~10-15 (read protocol, run commands, parse results) | ~4-5 (read protocol, run script, read output) |
+| **Tokens consumed** | High — agent reads 17 issue bodies, reasons about regex matches | Low — agent gets a compact summary |
+| **Reliability** | Agent might miss a `Depends on` reference or parse inconsistently | Script uses regex, deterministic every time |
+| **Speed** | ~2 min | Should be ~30-40 sec |
+
+The script would:
+1. Fetch board items + all open issues in 2-3 `gh` calls
+2. Join by issue number (board status + issue details)
+3. Regex-extract `Depends on #N` / `Blocks #N` from bodies
+4. Resolve each dependency ref against the fetched issue set (open = flag, closed = resolved)
+5. Check for `blocked` and `human-decision` labels
+6. Output a compact JSON or markdown table: candidates with status, labels, assignees, and pre-computed flags
+
+The agent then just ranks and presents. No body-parsing, no per-issue lookups.
+
+The tradeoff: the script can only detect **structural** flags (dependency refs, labels). It can't do the **semantic** overlap detection ("these two issues touch similar scope"). But that's fine — the protocol already says to prefer file-based signals for conflicts, and with zero open PRs most of the time, that check is usually a no-op anyway.
+
+Want me to write the script and updated protocol, then test-run it?
+[U7 23:52] let's A/B test both approaches. write the script and persist it locally, then create the prompt to equip an agent to use it. separately, write the prompt you proposed and persist it locally. then spawn each agent with its separate tasks & compare the results.
+  -> TodoWrite
+  -> Bash: ls /Users/rhhart/Documents/GitHub/schelling-points/.claude/
+  -> Bash: ls /Users/rhhart/Documents/GitHub/schelling-points/.claude/commands/
+  -> Write: startwork-gather.ts
+  -> TodoWrite
+[A37 23:54] Now writing both prompts in parallel.
+  -> Write: startwork-v3-script.md
+  -> Write: startwork-v3-agent.md
+  -> TodoWrite
+[A41 23:55] Both prompts written. Spawning agents in parallel now.
+  -> Task
+  -> Task
+  -> TodoWrite
+[A45 23:58] ## A/B Results
+
+### Head-to-head comparison
+
+| Metric | v3-script (bun gather) | v3-agent (jq inline) |
+|--------|----------------------|---------------------|
+| **Tool calls** | 7 | 20 |
+| **Tokens** | 26,634 | 29,349 |
+| **Duration** | 95s | 143s |
+| **Shell failures** | 0 | 4 (zsh `!=` escaping hit again, required retry) |
+| **Candidates found** | 17 | 17 |
+| **Flags correct** | Yes | Yes |
+| **Ranking correct** | Yes | Yes |
+
+### What each got right
+Both produced the same 17 candidates with the same flags and the same final ranking. Both correctly identified #96's multi-flag situation, #94's unblocking potential, and the clean vs flagged split.
+
+### Where they diverged
+
+**v3-script** was faster and more reliable — zero retries, 7 tool calls total (1 read + 1 bash + 5 internal bookkeeping). The bun script handled all the shell escaping issues internally and delivered clean JSON on the first try.
+
+**v3-agent** hit the exact `!=` escaping bug we documented in the prompt, despite the warning. It had to retry with `select(.status == "Done" | not)` as a workaround. That cascade failure (zsh escaping → sibling error → retry all 4 parallel commands) cost 4 extra tool calls and ~48 seconds.
+
+### Interesting detail
+The v3-script agent flagged a `[conflict]` between #120 and #88 ("both modify game screen UX flows") that the v3-agent didn't catch. The script agent had more budget left for semantic analysis since it didn't burn cycles on data wrangling.
+
+### Verdict
+The script approach is strictly better on every axis: faster, cheaper, more reliable, and the agent had more headroom to do the judgment work that actually requires LLM reasoning.
+
+The `!=` escaping issue in zsh is a landmine that no amount of prompt documentation reliably prevents — the script sidesteps it entirely.
+[U8 00:02] okay, let's keep the script version and upate the startwork file accordingly.
+  -> Read: startwork-v3-script.md
+[A47 00:02] The v3-script version is clean. Just need to drop the "(v3-script)" subtitle since it's becoming the real file.
+  -> Write: startwork.md
+[A49 00:02] Done. Two files updated:
+
+- [startwork.md](.claude/commands/startwork.md) — now uses the script-based gather approach
+- [startwork-gather.ts](.claude/scripts/startwork-gather.ts) — the bun script that pre-digests board + issue data
+
+The temp files at `/tmp/startwork-v3-*.md` and `/tmp/filter_board.py` can be ignored — they were just test artifacts.
+[U9 00:03] let's make sure claude's permissions allow the script and tool calls for this workflow
+  -> Read: settings.local.json
+[A51 00:03] The startwork workflow needs these commands:
+
+1. `git pull origin main` — covered by `Bash(git pull:*)`
+2. `bun .claude/scripts/startwork-gather.ts` — **not covered**
+3. `gh project item-edit` — covered by `Bash(gh project item-edit:*)`
+4. `git checkout -b` — covered by `Bash(git checkout:*)`
+
+Missing the `bun .claude/scripts/` permission. Let me add it.
+  -> Edit: settings.local.json
+[A53 00:03] Added `Bash(bun .claude/scripts/:*)` — covers the gather script and any future scripts in that directory. Everything else the workflow needs (`git pull`, `gh project item-edit`, `git checkout`) was already allowed.
+[U10 00:04] excellent work. commit these to a new branch, push, pr, and merge
+  -> Bash: git status
+  -> Bash: git diff
+  -> Bash: git log --oneline -5
+  -> Bash: git checkout -b hart/startwork-gather-script
+  -> Bash: git add .claude/commands/startwork.md .claude/scripts/startwork-gather.ts .claud
+  x Bash failed: Exit code 1
+The following paths are ignored by one of your .gitignore files:
+.claude/settings.local.json
+hint: Use -f if you really want to add them.
+hint: Turn this message off by running
+hint: "git 
+[A59 00:04] `settings.local.json` is gitignored (it's per-machine config). Committing without it — the permission will stay local.
+  -> Bash: git add .claude/commands/startwork.md .claude/scripts/startwork-gather.ts && git
+  -> Bash: git push -u origin hart/startwork-gather-script
+  -> Bash: gh pr create --title "feat: local bun script for startwork data gathering" --bod
+  -> Bash: gh pr merge 131 --merge --delete-branch
+[A64 00:06] Done. PR [#131](https://github.com/hartphoenix/schelling-points/pull/131) merged to main. The `settings.local.json` permission stays local (gitignored) — each team member's machine will prompt once for the `bun .claude/scripts/` permission and then it's saved.
+[U11 00:06] # /compound
+
+Coordinate multiple subagents working in parallel to document a recently solved problem.
+
+## Purpose
+
+Captures problem solutions while context is fresh, creating structured documentation in `docs/solutions/` with YAML frontmatter for searchability and future reference. Uses parallel subagents for maximum efficiency.
+
+**Why "compound"?** Each documented solution compounds your team's knowledge. The first time you solve a problem takes research. Document it, and the next occurrence takes minutes. Knowledge compounds.
+
+## Usage
+
+```bash
+/workflows:compound                    # Document the most recent fix
+/workflows:compound [brief context]    # Provide additional context hint
+```
+
+## Execution Strategy: Two-Phase Orchestration
+
+<critical_requirement>
+**Only ONE file gets written - the final documentation.**
+
+Phase 1 subagents return TEXT DATA to the orchestrator. They must NOT use Write, Edit, or create any files. Only the orchestrator (Phase 2) writes the final documentation file.
+</critical_requirement>
+
+### Phase 1: Parallel Research
+
+<parallel_tasks>
+
+Launch these subagents IN PARALLEL. Each returns text data to the orchestrator.
+
+#### 1. **Context Analyzer**
+   - Extracts conversation history
+   - Identifies problem type, component, symptoms
+   - Validates against schema
+   - Returns: YAML frontmatter skeleton
+
+#### 2. **Solution Extractor**
+   - Analyzes all investigation steps
+   - Identifies root cause
+   - Extracts working solution with code examples
+   - Returns: Solution content block
+
+#### 3. **Related Docs Finder**
+   - Searches `docs/solutions/` for related documentation
+   - Identifies cross-references and links
+   - Returns: Links and relationships
+
+#### 4. **Prevention Strategist**
+   - Develops prevention strategies
+   - Creates best practices guidance
+   - Generates test cases if applicable
+   - Returns: Prevention/testing content
+
+#### 5. **Category Classifier**
+   - Determines optimal `docs/solutions/` category
+   - Validates category against schema
+   - Suggests filename based on slug
+   - Returns: Final path and filename
+
+#### 6. **Session Log Analyzer** (subagent: `session-log-analyzer`)
+   - Reads Claude Code session logs from `~/.claude/projects/` for this project
+   - Filters to sessions since the last compound run (by `docs/solutions/` modification time)
+   - Extracts human observations, decisions, errors, workflow friction, and unresolved concerns from conversation transcripts
+   - Returns: Structured summary of human context that would otherwise be lost between `/clear` boundaries
+
+</parallel_tasks>
+
+### Phase 2: Assembly & Write
+
+<sequential_tasks>
+
+**WAIT for all Phase 1 subagents to complete before proceeding.**
+
+**Verify completeness:** After all agents return, check that each returned
+a non-empty result. If any agent returned empty or errored, note which
+analysis is missing in the final document (e.g., "Session log analysis
+unavailable — no recent session logs found").
+
+The orchestrating agent (main conversation) performs these steps:
+
+1. Collect all text results from Phase 1 subagents
+2. Assemble complete markdown file from the collected pieces
+3. Validate YAML frontmatter against schema
+4. Create directory if needed: `mkdir -p docs/solutions/[category]/`
+5. Write the SINGLE final file: `docs/solutions/[category]/[filename].md`
+
+</sequential_tasks>
+
+## What It Captures
+
+- **Problem symptom**: Exact error messages, observable behavior
+- **Investigation steps tried**: What didn't work and why
+- **Root cause analysis**: Technical explanation
+- **Working solution**: Step-by-step fix with code examples
+- **Prevention strategies**: How to avoid in future
+- **Cross-references**: Links to related issues and docs
+- **Human observations**: What the user noticed during testing and implementation (from session logs)
+- **Workflow friction**: Where the process itself caused problems or required workarounds
+- **Unresolved concerns**: Things flagged but not fully addressed
+
+## What It Creates
+
+**Organized documentation:**
+
+- File: `docs/solutions/[category]/[filename].md`
+
+**Categories:** Auto-detected from the problem. See
+`.claude/skills/compound-docs/schema.yaml` for the canonical `problem_type`
+list. Use an existing category directory when one fits; create a new one
+(kebab-case) when none does.
+
+## The Compounding Philosophy
+
+This creates a compounding knowledge system:
+
+1. First time you solve "N+1 query in brief generation" → Research (30 min)
+2. Document the solution → docs/solutions/performance-issues/n-plus-one-briefs.md (5 min)
+3. Next time similar issue occurs → Quick lookup (2 min)
+4. Knowledge compounds → Team gets smarter
+
+**Each unit of engineering work should make subsequent units of work easier—not harder.**
+
+## Auto-Invoke
+
+<auto_invoke>
+<trigger_phrases>
+- "that worked"
+- "it's fixed"
+- "working now"
+- "problem solved"
+</trigger_phrases>
+</auto_invoke>
+
+## Routes To
+
+`compound-docs` skill
+[A65 00:06] Launching Phase 1 subagents in parallel to capture this while the context is fresh.
+  -> Task
+  -> Task
+  -> Task
+  -> Task
+  -> Task
+  -> Task
+[A72 00:10] All 6 subagents returned. Let me check the existing related doc before assembling the final file.
+  -> Read: 2026-02-20-startwork-conflict-surfacing.md
+  -> Bash: ls /Users/rhhart/Documents/GitHub/schelling-points/docs/solutions/
+[A75 00:10] Good — the existing doc covers the spec restructure (PR #119). This new doc covers the data-gathering fix (PR #131). Distinct problems, same category. Now assembling.
+  -> Write: 2026-02-20-startwork-pagination-fix.md
+[A77 00:11] Written to [docs/solutions/workflow-spec-gaps/2026-02-20-startwork-pagination-fix.md](docs/solutions/workflow-spec-gaps/2026-02-20-startwork-pagination-fix.md). Want me to commit this too, or do you want to review/edit first?
+[U12 00:17] using the design principles surfaced by this report as a lens, review the entire claude.md and .claude directory workflow to check the current steps of the workflow. report back about how well the current system adheres to these newly noticed principles and recommend changes where appropriate.
+  -> Task
+[A79 00:21] The agent finished but the full report was truncated. Let me get the details.
+  -> Task
+[A81 00:25] Here's the full audit. The system is mostly clean — 20 of 25 files have zero violations. The issues concentrate in 5 files:
+
+## High Severity
+
+| File | Issue |
+|------|-------|
+| **triage.md** | `gh project item-list` with no `--limit`, no `--format json` — the exact pattern that broke `/startwork` |
+
+## Medium Severity
+
+| File | Issue |
+|------|-------|
+| **work.md** | `gh issue list --label blocked --json number,title,body` — no `--limit`, agent manually parses bodies for dependency cross-referencing |
+| **review.md** | N separate `gh issue list --search` calls per finding during triage loop — cumulative output risk, mechanical dedup |
+| **CLAUDE.md** | Dependency Protocol says "Search ALL open issues" with no `--limit` — convention multiplier, every issue-creating workflow inherits this |
+| **session-log-analyzer.md** | ~30-line inline Python for JSONL parsing — bare `except: pass`, no output cap, platform-specific `stat -f` |
+
+## Low Severity
+
+| File | Issue |
+|------|-------|
+| **plan.md** | `$(cat <plan_path>)` in Linear CLI path — shell expansion risk with special characters |
+| **startwork-gather.ts** | `gh pr list` missing `--limit` — consistency gap, functionally fine |
+
+## Recommended Script Roadmap (priority order)
+
+1. **`board-status.ts`** — Serves triage.md + work.md. Pre-computes board items by status, WIP counts per person, blocked issues with resolved dependency status. Eliminates the highest-severity violation.
+
+2. **`triage-helper.ts`** — Serves review.md + triage.md. Batch dedup-searches findings against existing issues, suggests assignees. Eliminates N separate `gh issue list --search` calls.
+
+3. **`session-log-extract.ts`** — Serves session-log-analyzer.md. Replaces inline Python with a proper bun script that has output caps, real error handling, and cross-platform stat.
+
+4. **CLAUDE.md text fix** — Add `--limit 50 --json number,title,labels,state` to the Dependency Protocol search command. Reword "Search ALL" to remove the unbounded-search sig [...truncated]
+[U13 00:29] create todos for each of these along with this full report and have each todo reference the report.
+[A82 00:29] Let me persist the report first, then create todos that reference it.
+  -> Write: 2026-02-20-workflow-data-gathering-audit.md
+  -> TodoWrite
+[A85 00:30] Done. Full audit report saved to [2026-02-20-workflow-data-gathering-audit.md](docs/solutions/workflow-spec-gaps/2026-02-20-workflow-data-gathering-audit.md) and 9 todos created, each referencing the report by section.
+
+Summary: 1 high, 6 medium, 2 low — grouped by the script roadmap so related fixes land together (e.g., `board-status.ts` + triage.md update + work.md update).

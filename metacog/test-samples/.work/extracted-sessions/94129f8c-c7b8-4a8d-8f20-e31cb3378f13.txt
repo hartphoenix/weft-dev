@@ -1,0 +1,305 @@
+[U1 22:40] # Review Command
+
+<command_purpose> Perform exhaustive code reviews using multi-agent analysis. </command_purpose>
+
+## Introduction
+
+<role>Senior Code Review Architect with expertise in security, performance, architecture, and quality assurance</role>
+
+## Prerequisites
+
+<requirements>
+- Git repository with GitHub CLI (`gh`) installed and authenticated
+- Clean main/master branch
+- Proper permissions to access the repository
+</requirements>
+
+## Main Tasks
+
+### 1. Determine Review Target & Setup (ALWAYS FIRST)
+
+<review_target> #a near-complete review has already been run, but there are minimal steps to finish up before it's ready for the next step. consult todos/000-review-summary.md and complete the review process-- noting that todos/ already has 14 todos recorded </review_target>
+
+#### Immediate Actions:
+
+- [ ] Determine review type: PR number (numeric), GitHub URL, file path (.md), or empty (current branch)
+- [ ] Check current git branch
+- [ ] If ALREADY on the target branch → proceed with analysis on current branch
+- [ ] If DIFFERENT branch → checkout the target branch
+- [ ] Fetch PR metadata using `gh pr view --json` for title, body, files, linked issues
+- [ ] Make sure we are on the branch we are reviewing
+
+#### Protected Artifacts
+
+<protected_artifacts>
+The following paths are pipeline artifacts and must never be flagged for deletion:
+
+- `docs/plans/*.md` — Plan files created by `/workflows:plan`
+- `docs/solutions/*.md` — Solution documents created during the pipeline
+</protected_artifacts>
+
+#### Load Review Agents
+
+Read `compound-engineering.local.md` in the project root. Use `review_agents` from YAML frontmatter. If the markdown body contains review context, pass it to each agent as additional instructions.
+
+#### Parallel Agents to review the PR:
+
+<parallel_tasks>
+
+Run all configured review agents in parallel using Task tool. For each agent in the `review_agents` list:
+
+```
+Task {agent-name}(PR content + review context from settings body)
+```
+
+Additionally, always run this regardless of settings:
+- Task learnings-researcher(PR content) - Search docs/solutions/ for past issues related to this PR's modules and patterns
+
+</parallel_tasks>
+
+### 4. Deep Dive Phases
+
+#### Phase 3: Stakeholder Perspective Analysis
+
+1. **Developer Perspective** — How easy is this to understand and modify?
+2. **Operations Perspective** — How do I deploy this safely?
+3. **End User Perspective** — Is the feature intuitive?
+4. **Security Team Perspective** — What's the attack surface?
+
+#### Phase 4: Scenario Exploration
+
+- [ ] **Happy Path**: Normal operation with valid inputs
+- [ ] **Invalid Inputs**: Null, empty, malformed data
+- [ ] **Boundary Conditions**: Min/max values, empty collections
+- [ ] **Concurrent Access**: Race conditions, deadlocks
+- [ ] **Network Issues**: Timeouts, partial failures
+- [ ] **Security Attacks**: Injection, overflow, DoS
+
+#### Phase 5: Feature-UI Completeness Audit
+
+For every state field, config value, or mechanic introduced in the PR:
+
+- [ ] **Visibility**: Is every piece of internal state that affects gameplay surfaced to the user somewhere in the UI? Flag any "invisible mechanics" — systems that work in code but give the player/user zero feedback.
+- [ ] **Feedback loop**: When the user takes an action (purchase, toggle, input), is there immediate visible confirmation that something changed?
+- [ ] **Consumables & counters**: Are quantities shown before purchase, after purchase, and on consumption? Can the user tell when they're running low?
+- [ ] **Dead-end UX**: Can the user reach a state where a feature exists but they have no way to discover or understand it from the UI alone?
+
+### 4. Simplification and Minimalism Review
+
+Run the Task code-simplicity-reviewer() to see if we can simplify the code.
+
+### 5. Findings Synthesis and Todo Creation Using file-todos Skill
+
+<critical_requirement> ALL findings MUST be stored in the todos/ directory using the file-todos skill. Create todo files immediately after synthesis. </critical_requirement>
+
+#### Step 1: Synthesize All Findings
+
+- [ ] Collect findings from all parallel agents
+- [ ] Surface learnings-researcher results: if past solutions are relevant, flag them as "Known Pattern" with links to docs/solutions/ files
+- [ ] Discard any findings that recommend deleting files in `docs/plans/` or `docs/solutions/`
+- [ ] Categorize by type: security, performance, architecture, quality, etc.
+- [ ] Assign severity levels: P1 (CRITICAL), P2 (IMPORTANT), P3 (NICE-TO-HAVE)
+- [ ] Remove duplicate or overlapping findings
+- [ ] Estimate effort for each finding (Small/Medium/Large)
+
+#### Step 2: Create Todo Files Using file-todos Skill
+
+Use the file-todos skill to create todo files for ALL findings immediately.
+
+- Create todo files directly using Write tool
+- Use standard template from `.claude/skills/file-todos/assets/todo-template.md`
+- Follow naming convention: `{issue_id}-pending-{priority}-{description}.md`
+
+**Examples:**
+```
+001-pending-p1-path-traversal-vulnerability.md
+002-pending-p1-api-response-validation.md
+003-pending-p2-concurrency-limit.md
+004-pending-p3-unused-parameter.md
+```
+
+#### Step 3: Summary Report
+
+After creating all todo files, present comprehensive summary:
+
+```markdown
+## Code Review Complete
+
+**Review Target:** PR #XXXX - [PR Title]
+**Branch:** [branch-name]
+
+### Findings Summary:
+- **Total Findings:** [X]
+- **CRITICAL (P1):** [count] - BLOCKS MERGE
+- **IMPORTANT (P2):** [count] - Should Fix
+- **NICE-TO-HAVE (P3):** [count] - Enhancements
+
+### Created Todo Files:
+[list all created todo files]
+
+### Next Steps:
+1. Address P1 Findings (CRITICAL - must be fixed before merge)
+2. Triage All Todos: `ls todos/*-pending-*.md`
+```
+
+### Important: P1 Findings Block Merge
+
+Any P1 (CRITICAL) findings must be addressed before merging the PR. Present these prominently and ensure they're resolved before accepting the PR.
+[A2 22:40] Let me start by reading the existing review summary and understanding what's already been done.
+  -> Read: 000-review-summary.md
+  -> Bash: git branch --show-current
+  -> Bash: ls /Users/rhhart/Documents/GitHub/claude-game/todos/
+[A6 22:40] Good — already on the correct branch, 14 todos filed. The review summary shows Phase 5 (Feature-UI Completeness Audit) is partial. Three invisible state fields were flagged but not yet filed. Let me verify them and complete the review.
+  -> TodoWrite
+  -> Task
+  -> Read: todo-template.md
+[A10 22:41] All three findings verified. Now let me create the todo files for them.
+  -> TodoWrite
+  -> Write: 015-pending-p2-agents-field-dead-stub.md
+  -> Write: 016-pending-p2-agent-efficiency-invisible.md
+  -> Write: 017-pending-p2-autonomy-level-invisible-during-sim.md
+[A15 22:42] Good, all three filed. Now let me update the review summary to reflect completion.
+  -> TodoWrite
+  -> Edit: 000-review-summary.md
+  -> Edit: 000-review-summary.md
+  -> Edit: 000-review-summary.md
+  -> Edit: 000-review-summary.md
+  -> Edit: 000-review-summary.md
+  -> TodoWrite
+[A23 22:43] ## Code Review Complete
+
+**Review Target:** `feat/engine-extensions-widgets` (4 commits, 25 files, ~2,719 LOC)
+**Branch:** feat/engine-extensions-widgets → hart
+
+### Findings Summary
+- **Total Findings:** 17
+- **CRITICAL (P1):** 4 — BLOCKS MERGE
+- **IMPORTANT (P2):** 13 — Should Fix
+- **NICE-TO-HAVE (P3):** 12 — Batched into 1 file
+
+### P1 Findings (must fix before merge)
+
+| # | Issue | Effort |
+|---|-------|--------|
+| 001 | Double sanity recovery on burnout (80 instead of 40) | S |
+| 002 | Save data validation missing — loadGame() trusts raw JSON | S |
+| 003 | Burnout event reference bug — marks wrong event as applied | S |
+| 004 | Sanity display vs state mismatch — coffee_spill double-counted | S |
+
+### Created Todo Files (new this session)
+- [015-pending-p2-agents-field-dead-stub.md](todos/015-pending-p2-agents-field-dead-stub.md) — `state.agents` is set but never read
+- [016-pending-p2-agent-efficiency-invisible.md](todos/016-pending-p2-agent-efficiency-invisible.md) — efficiency multiplier hidden from player
+- [017-pending-p2-autonomy-level-invisible-during-sim.md](todos/017-pending-p2-autonomy-level-invisible-during-sim.md) — autonomy choice invisible during sim/results
+
+### Next Steps
+1. Address P1 findings (all small effort — one session)
+2. Triage P2s: `ls todos/*-pending-p2-*.md`
+[U2 22:46] did any of the review steps notice that the gameplay mechanics are shaped such that the most effective strategy is to accept every contract, every agent request, and every purchase opportunity (until meters are full)? the trade-offs lack balance and essentially reward all "yes" decisions. if this isn't detected by the review step, it needs amending
+[A25 22:46] No, none of the review steps caught that. Here's why:
+
+- **code-simplicity-reviewer** — scoped to code structure, not game design
+- **security-and-correctness** — looks for bugs and validation gaps, not balance
+- **Phase 5 (Feature-UI Completeness)** — checks whether state is *visible*, not whether it creates *meaningful decisions*
+
+The closest thing was Phase 4's "Scenario Exploration," but that checklist is oriented toward edge cases and failure modes, not degenerate strategies.
+
+This is a real gap. A "yes-to-everything is optimal" problem means the decision mechanics are decorative — the player has choices but no real trade-offs. That's a design-level bug that code review should surface, especially for a game.
+
+**The fix is to add a Phase 6 to the review command** — something like a "Decision & Balance Audit" that asks:
+
+1. For every player choice, is there a scenario where each option is correct?
+2. Is there a dominant strategy that makes other options irrelevant?
+3. Do resource constraints actually force trade-offs, or can the player afford everything?
+4. Does saying "no" to something ever produce a better outcome than "yes"?
+
+Want me to amend the review command with this phase? I'd add it after Phase 5 and scope it to any PR that introduces game mechanics or interactive decision points.
+[U3 22:48] yes. make sure that the phase 5 and 6 sections are each handled by their own subagents and are not polluting the orchestrator's context
+  -> Read: review.md
+[A28 22:48] Now I can see the structure. Phase 5 is currently inline (the orchestrator runs it directly), and there's no Phase 6. I need to:
+
+1. Convert Phase 5 into a subagent call
+2. Add Phase 6 (Decision & Balance Audit) as a subagent call
+3. Run both in parallel alongside the other agents
+  -> Edit: review.md
+[A30 22:50] Now update the parallel agents section to include Phase 5 and 6 as subagents instead of leaving them as inline orchestrator work:
+  -> Edit: review.md
+[A32 22:51] Now let me also file the balance finding the user identified as a todo, since the review missed it and it's a real issue.
+  -> Write: 018-pending-p1-yes-to-everything-dominant-strategy.md
+[A34 22:51] Now update the review summary to reflect this addition.
+  -> Edit: 000-review-summary.md
+  -> Edit: 000-review-summary.md
+  -> Edit: 000-review-summary.md
+[A38 22:52] Done. Here's what changed:
+
+**Review command** ([review.md](.claude/commands/workflows/review.md)):
+- **Phase 5** (Feature-UI Completeness) — converted from inline orchestrator checklist to a subagent with full instructions. Runs in parallel with the other agents.
+- **Phase 6** (Decision & Balance Audit) — new subagent. Analyzes every player decision point for dominant strategies, meaningful trade-offs, resource pressure, downside existence, and escalation curves. Severity: P1 if a mechanic is decorative, P2 if trade-offs are too weak, P3 if balance is close.
+- Both are listed in the `<parallel_tasks>` block so they launch alongside the code agents and learnings-researcher, keeping results out of the orchestrator's context until synthesis.
+
+**New todo** ([018-pending-p1-yes-to-everything-dominant-strategy.md](todos/018-pending-p1-yes-to-everything-dominant-strategy.md)) — filed as P1 since it means the core gameplay loop has no real decisions. P1 count is now 5.
+[U4 22:53] is the review step now complete? any questions surfaced for me to answer before moving on?
+[A40 22:53] The review is complete. All phases covered, 18 todos filed, summary up to date.
+
+One thing to flag before you move on: the summary's "Next Steps" still says P1 fixes are "all small effort — one session," but that was written before 018. The four bug-fix P1s (001–004) are still small, but 018 (balance/dominant strategy) is M-L and is a design problem, not a code fix. 
+
+Worth deciding now: do you want to treat 018 as a P1 blocker on the same level as the bugs, or reclassify it as P2 and handle it as a design pass after the bug fixes ship?
+[U5 22:54] pretend you were aware of all the todos before writing the summary. how would you write it?
+[A42 22:54] I'd split the P1s into two tiers and rewrite Next Steps to reflect the actual shape of the work:
+
+```markdown
+### P1 Findings
+
+#### Bug fixes (blocks merge, all small effort)
+
+| Todo | Issue | File(s) | Effort |
+|------|-------|---------|--------|
+| 001 | Double sanity recovery on burnout (80 instead of 40) | PlanningPhase.ts:134, SlopTycoonScene.ts:251 | S |
+| 002 | Save data validation missing — loadGame() trusts raw JSON | persistence.ts:9-16 | S |
+| 003 | Burnout event reference bug — marks wrong event as applied | SimulationPhase.ts:344 | S |
+| 004 | Sanity display vs state mismatch — coffee_spill double-counted | SlopTycoonScene.ts:200-227 | S |
+
+#### Design (blocks merge, requires design pass)
+
+| Todo | Issue | Effort |
+|------|-------|--------|
+| 018 | "Yes to everything" is always the dominant strategy — no real trade-offs | M-L |
+
+### Next Steps
+
+1. Fix bug P1s (001–004) — all small effort, one session
+2. Design pass on 018 — brainstorm balance changes before implementing
+3. Triage P2s: `ls todos/*-pending-p2-*.md`
+```
+
+The key difference: 018 gets its own row and its own step. Lumping it with the bug fixes hides the fact that it needs a design conversation, not just a code fix.
+
+Want me to apply this to the summary?
+[U6 22:55] yes
+  -> Read: 000-review-summary.md
+  -> Edit: 000-review-summary.md
+  -> Edit: 000-review-summary.md
+[A46 22:55] Done. P1s are now split into bug fixes vs. design, and next steps reflect the actual work shape.
+[U7 22:57] are we now ready to hand off the work to a fresh context? pretend you had none of the foregoing conversation & ask yourself if you'd be ready to run the next step of the process
+[A48 22:57] Good question. Let me actually check the artifacts a cold reader would land on.
+  -> Read: 001-pending-p1-double-sanity-recovery-burnout.md
+  -> Read: 002-pending-p1-save-data-validation.md
+  -> Read: 003-pending-p1-burnout-event-reference-bug.md
+  -> Read: 004-pending-p1-sanity-cost-display-mismatch.md
+[A53 22:58] The P1 bug todo files (001–004) are solid — full paths, line numbers, root cause, recommended fix, acceptance criteria. A fresh context could implement all four without re-investigating. 
+
+Two gaps a cold reader would hit:
+
+**1. The "Review Agents Run" table doesn't reconcile with the totals.**
+
+It shows 3 agents producing 4 P1s total (1 + 3), but the summary says 5 P1s. The Phase 5/6 audits and 018 aren't reflected in that table. A fresh context trying to understand provenance would be confused.
+
+**2. Step 2 ("Design pass on 018") doesn't say *how*.**
+
+It says "brainstorm balance changes before implementing" but doesn't point to `/workflows:brainstorm` or any specific approach. A fresh context might jump straight into coding economy constants instead of doing the design work first.
+
+Want me to fix both in the summary?
+[U8 22:59] yes
+  -> Read: 000-review-summary.md
+  -> Edit: 000-review-summary.md
+  -> Edit: 000-review-summary.md
+[A57 22:59] Done. Agent table now reconciles (5 agents → 5 P1s, 13 P2s), and next steps point to specific workflow commands. Ready for handoff.

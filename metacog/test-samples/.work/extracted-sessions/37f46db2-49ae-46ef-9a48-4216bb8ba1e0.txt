@@ -1,0 +1,115 @@
+[U1 01:22] bucket all unstaged changes onto fresh branches with relevant titles, push, and PR.
+[A1 01:22] Let me first understand what's changed across the repo.
+  -> Bash: git status
+  -> Bash: git diff --stat
+  -> Bash: git diff --stat --cached
+  -> Bash: git log --oneline -5
+[A6 01:22] Let me read the diffs to understand what belongs together.
+  -> Bash: git diff .claude/skills/session-review/SKILL.md
+  -> Bash: git diff .claude/skills/lesson-scaffold/SKILL.md
+  -> Bash: git diff .claude/skills/startwork/SKILL.md
+  -> Bash: git diff .claude/references/scoring-rubric.md
+  -> Bash: git diff design/build-plan-week4.md design/build-registry.md design/harness-feat
+  -> Bash: git diff design/compound-skill-plan.md 2>/dev/null; ls -la .claude/skills/progre
+  -> Bash: git diff package/README.md
+[A14 01:23] Let me check the relationship to main and read the new untracked files.
+  -> Bash: git log --oneline main..HEAD
+  -> Bash: git log --oneline origin/hart/skill-integration-package..HEAD 2>/dev/null || ech
+  -> Read: compound-skill-plan.md
+[A18 01:23] I see two clean buckets:
+
+1. **Skill implementation** — progress-review skill + cross-skill integration (session-review, lesson-scaffold, startwork, scoring rubric, package copies)
+2. **Design docs** — build plan, registry, features, schedule updates + compound skill plan
+
+Here's my plan:
+- Branch `hart/progress-review-skill` for all skill/reference/package files
+- Branch `hart/design-docs-progress-review` for all design docs
+- Both branch from current HEAD, PR against main
+  -> TodoWrite
+  -> Bash: git stash -u -m "all unstaged changes for bucketing"
+  -> Bash: git checkout -b hart/progress-review-skill
+  -> Bash: git stash pop
+[A23 01:26] Now stage and commit only the skill/reference/package files for branch 1.
+  -> Bash: git add \
+  .claude/skills/progress-review/ \
+  .claude/skills/startwork/SKILL.m
+  -> Bash: git diff --cached --stat
+  -> Bash: git commit -m "$(cat <<'EOF'
+Add progress-review skill and cross-skill integrati
+[A27 01:26] Now stash remaining design changes and create branch 2.
+  -> Bash: git stash -u -m "design doc changes for branch 2"
+  -> Bash: git checkout hart/skill-integration-package && git checkout -b hart/design-docs-
+  -> Bash: git stash pop
+  -> Bash: git add \
+  design/build-plan-week4.md \
+  design/build-registry.md \
+  design/h
+  -> Bash: git commit -m "$(cat <<'EOF'
+Update design docs for progress-review build
+
+Track
+  -> TodoWrite
+[A34 01:26] Now push both branches and create PRs.
+  -> Bash: git push -u origin hart/progress-review-skill
+  -> Bash: git push -u origin hart/design-docs-progress-review
+  -> Bash: gh pr create --head hart/progress-review-skill --base main --title "Add progress
+  -> Bash: gh pr create --head hart/design-docs-progress-review --base main --title "Update
+  -> TodoWrite
+[A40 01:27] Done. Two PRs, both targeting main:
+
+**PR #5** — [Add progress-review skill and cross-skill integration](https://github.com/hartphoenix/maestro/pull/5)
+`hart/progress-review-skill` — 11 files: new progress-review skill + startwork/session-review/lesson-scaffold integration + scoring rubric + package copies
+
+**PR #6** — [Update design docs for progress-review build](https://github.com/hartphoenix/maestro/pull/6)
+`hart/design-docs-progress-review` — 5 files: build registry, schedule, features, build plan calibration loop, compound-skill-plan design doc
+
+You're currently on `hart/design-docs-progress-review`. The original `hart/skill-integration-package` branch is clean (no remaining unstaged changes).
+[U2 01:28] good, merge both
+  -> Bash: gh pr merge 5 --merge
+  -> Bash: gh pr merge 6 --merge
+[A43 01:28] Both merged. Let me sync main locally.
+  -> Bash: git checkout main && git pull
+[A45 01:28] Both merged. Main is up to date with all changes from both PRs.
+[U3 01:36] another agent reviewed the learning loop and described its stages in the following sequence: "Learning loop data flow: intake → session-review → lesson-scaffold → startwork (+ progress-review)" -- double-check the learning loop and verify if this is how signal flows through the system
+[A46 01:36] Let me trace the actual read/write contracts across the skills.
+  -> Task
+[A48 01:37] The claimed sequence is wrong. Here's why.
+
+## Claimed flow
+> intake → session-review → lesson-scaffold → startwork (+ progress-review)
+
+## Actual flow
+
+The learning loop is a **cycle**, not a linear chain. Within a session, the order is:
+
+```
+intake (once, seeds everything)
+  ↓
+┌─────────── session cycle ───────────┐
+│                                     │
+│  startwork (session open)           │
+│    ↓ dispatches progress-review     │
+│    ↓ if unreviewed sessions > 2     │
+│                                     │
+│  lesson-scaffold (before work)      │
+│    ↓ writes predictions to          │
+│      scaffolds/ + session log stub  │
+│                                     │
+│  [ actual work ]                    │
+│                                     │
+│  session-review (session close)     │
+│    ↓ validates scaffold predictions │
+│    ↓ updates current-state, logs    │
+│                                     │
+└──────── feeds next cycle ───────────┘
+```
+
+**Three errors in the claimed sequence:**
+
+1. **lesson-scaffold comes before session-review, not after.** Scaffold writes *predictions* about concept difficulty before the work happens. Session-review then *validates* those predictions against actual evidence. The scaffold → session-review direction is the calibration loop.
+
+2. **startwork is the session opener, not the endpoint.** It reads all accumulated state to compose a briefing. It sits at the top of each cycle, not the end.
+
+3. **The relationship between lesson-scaffold and session-review is bidirectional, not one-directional.** Session-review reads scaffold predictions to check for calibration mismatches (scaffold said "solid" but learner struggled). Lesson-scaffold reads session-log frontmatter to classify concepts. They feed each other across sessions.
+
+**Progress-review** sits correctly as a side-channel — it's conditionally dispatched by startwork and reads across multiple sessions rather than within one.

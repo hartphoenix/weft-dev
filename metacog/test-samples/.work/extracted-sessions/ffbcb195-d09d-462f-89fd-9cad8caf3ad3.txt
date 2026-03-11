@@ -1,0 +1,435 @@
+[U1 14:51] due to permission bugs and the friction of having to authorize minor things multiple times without making progress, i'm considering switching to 'yolo mode' (dangerously skip permissions) and creating a really thorough and thoughtful blacklist of commands that might be dangerous. i do already have the dcg hook installed that prevents many worst-case scenarios. i'd like you to do a lot of research on best practices used by permission-skippers that would help me prevent 99% of known issues & see who's thought through the arms race problem (malicious attackers always adapting to the shifting attack surface presented by complex privacy & security systems). do a lot of thorough investigation on this including recent publications. discern between conjecture, anecdote, and empiricism with replicated evidence. don't throw out conjecture, but rank it as such when weighing advice. produce a thorough report on the current landscape including accidental and malicious harms and how to avoid them. consider productivity trade-offs as well as unknown-unknowns.
+[A1 14:51] This is a great question — the permission friction vs. security trade-off is real. Let me do thorough research across multiple angles.
+  -> Agent: Research yolo mode best practices
+  -> Agent: Research AI agent security landscape
+  -> Agent: Research practical blocklist patterns
+[A5 14:57] All three research tracks are back. Let me synthesize this into a structured report.
+
+---
+
+# Yolo Mode Security Landscape: Research Report
+
+## Executive Summary
+
+The evidence is clear on three things: (1) permission friction is real and costly to productivity, (2) command denylists alone are fundamentally broken as a security boundary, and (3) the viable path is **layered defense with structural controls that don't depend on the model's judgment**.
+
+You already have DCG installed, which puts you ahead of 98.9% of yolo mode users (only 1.1% of 18,470 public settings files had any deny rules at all — UpGuard study). The question is what else to layer on.
+
+---
+
+## The Threat Model: What Actually Goes Wrong
+
+### Accidental Harm (the common case)
+
+**Evidence level: Empirical, multiple confirmed incidents**
+
+- **The `rm -rf ~/` disaster** (Reddit, Dec 2025): User asked Claude to clean packages. Claude generated `rm -rf tests/ patches/ plan/ ~/` — trailing `~/` expanded to the entire home directory. Desktop, Keychain, application data: gone.
+- **The root deletion attempt** (Oct 2025): Claude ran `rm -rf /` starting from root. Only Linux file permissions stopped it; every user-owned file was destroyed.
+- These aren't theoretical. They're the agent making honest mistakes with catastrophic blast radius.
+
+### Prompt Injection (the sophisticated case)
+
+**Evidence level: Empirical, replicated across studies**
+
+- **"Your AI, My Shell" (Sep 2025)**: 314 attack payloads against coding agents. **84% success rate** for executing malicious commands via poisoned READMEs, code comments, and dependency metadata.
+- **Trail of Bits (Oct 2025)**: Demonstrated prompt-injection-to-RCE across three agent platforms. Even agents with "safe command" allowlists were vulnerable through **argument injection** — crafting flags for pre-approved commands that achieve code execution. The GTFOBINS catalog documents hundreds of legitimate binaries abusable this way.
+- **Hidden text in `.docx`** (1-point w [...truncated]
+[U2 15:23] first let's investigate sandbox further, i don't know anything about the term in this context. i'm aware of 'sandboxed' in the context of ios apps as far as what it means practically, but i'm not clear on what's happening under the hood. give me a clear and thorough picture that will inform both my design decisions in weft and my personal safety/security/privacy configuration choices
+  -> Agent: Research sandboxing fundamentals
+  -> Agent: Research sandbox design patterns
+[A8 15:29] Here's the full picture, built from fundamentals up.
+
+---
+
+# Sandboxing: From OS Primitives to Your Configuration Choices
+
+## The Core Idea
+
+A sandbox is a set of **kernel-enforced restrictions** on what a process can do. The key word is *kernel-enforced* — the restrictions live below the process's privilege level, so the process cannot remove them by its own action. This is what distinguishes a sandbox from a convention, a hook, or a denylist.
+
+Everything you know about iOS app sandboxing applies: each app gets a restricted view of the filesystem, can only access resources it has entitlements for, and can't escape those boundaries through its own code. The mechanism under the hood is the same on macOS — it's just not mandatory for non-App-Store software.
+
+## The Stack: How Isolation Actually Works
+
+### Layer 1: Hardware + Kernel (the hard floor)
+
+Every process on your machine already lives in a basic sandbox:
+
+- **Virtual memory**: Each process gets its own address space. The CPU's MMU hardware enforces this — Process A literally cannot address Process B's memory. This is a hardware guarantee.
+- **Privilege rings**: Your code runs in Ring 3 (userspace). The kernel runs in Ring 0. Every interaction with the outside world — files, network, other processes — goes through a **system call** that transfers control to the kernel. The kernel is the gatekeeper.
+
+Sandboxing = restricting what happens when a process makes syscalls. Everything else is implementation detail.
+
+### Layer 2: System Call Filtering
+
+**Linux (seccomp-BPF)**: A BPF program attached to a process that inspects every syscall and decides: allow, kill, return error, or trap. Once applied, it **cannot be removed** — this is kernel-enforced. The filter sees syscall numbers and register values but deliberately cannot dereference pointers (prevents time-of-check/time-of-use attacks). Docker's default profile blocks ~44 syscalls.
+
+**macOS (Seatbelt)**: Apple's equivalent. A kernel extension (`Sandbox.kext`) hoo [...truncated]
+[U3 15:49] one potential frustration -- writes only allowed in the cwd. the weft harness is designed to register global skills and hooks that accompany the user in every project, including skills that update learning state (stored in the weft harness's own directory). if they activate one of these skills or hooks while working in another project, would the sandbox deny claude the write permission to update their learning state?
+[A9 15:50] Yes — that's exactly what would happen. The sandbox restricts writes to the working directory tree. If you're working in `~/Documents/GitHub/roger` and a skill tries to write to `~/Documents/GitHub/weft/learning/current-state.md`, the Seatbelt profile would deny that write at the kernel level. No hook or settings override can relax it — that's the point of kernel enforcement.
+
+This is a real architectural tension, not just a configuration annoyance. The weft harness's design assumes **cross-project write access** as a fundamental capability: skills update learning state, session logs get written, current-state.md gets modified — all in the weft directory regardless of which project is active.
+
+### Your options
+
+**1. Add weft to the sandbox's allowWrite list**
+
+The sandbox-runtime accepts additional write paths. In settings:
+
+```json
+{
+  "sandbox": {
+    "allowWrite": [
+      "/Users/rhhart/Documents/GitHub/weft/learning",
+      "/Users/rhhart/Documents/GitHub/weft/.claude"
+    ]
+  }
+}
+```
+
+This punches a hole in the sandbox for exactly those paths. The write restriction remains for everything else. This is the **capability attenuation** pattern — you're granting a specific, scoped capability rather than broad access.
+
+The risk is real but bounded: if a prompt injection in a project triggers a weft skill, it could corrupt learning state. But it can't touch SSH keys, shell configs, or anything outside those two paths. The blast radius of that hole is "learning state gets messed up" — annoying, recoverable from git, not catastrophic.
+
+**2. Accept the split: sandbox for project work, unsandboxed for harness updates**
+
+Run sandboxed by default. Skills that need cross-project writes would fail, then you'd approve the unsandboxed retry (if `allowUnsandboxedCommands` is true). This preserves the hard boundary but adds exactly the permission friction you're trying to eliminate.
+
+**3. Redesign weft writes to go through a mediated channel**
+
+Instead of skills writing directly  [...truncated]
+[U4 15:53] option 1 seems good. the harness is already configured to keep the human in the loop on all updates to learning state or claude.md , so option 2 could seamlessly work into that same permission flow with no additional prompting (i think? check if this is true). option 3 seems out of scope for now.
+[A10 15:53] Let me check how weft's consent and approval flow actually works.
+  -> Glob: **/consent* in weft
+  -> Grep: consent|approval|human.in.the.loop|require.*approv in weft
+  -> Grep: consent|approv|propose.*change|human.*loop|confirm.*before|present.*user in SKILL.md
+  -> Grep: consent|approv|propose.*change|human.*loop|confirm.*before|present.*user in SKILL.md
+  -> Grep: consent|approv|propose.*change|human.*loop|confirm.*before|present.*user in SKILL.md
+  -> Grep: consent|approv|propose|confirm|present.*user|human in CLAUDE.md
+  -> Read: CLAUDE.md
+[A18 15:54] Now let me check what the actual write flow looks like — does the skill propose changes via text output, or does it call Write/Edit directly (which would be the sandbox boundary)?
+  -> Grep: Write|Edit|write.*file|update.*current-state|write.*session in SKILL.md
+  -> Grep: Write|Edit|write.*approved|write.*change in SKILL.md
+[A21 15:54] Here's what I found:
+
+**The approval flow is conversational, not tool-level.** Skills propose changes in text, the user approves/edits/skips, and *then* the agent calls Write/Edit to apply them. The human-in-the-loop gate is at the proposal stage — before the file write happens.
+
+**The problem with option 2**: The sandbox deny would hit at the *Write/Edit tool execution* — after the user has already approved the change. The flow would be:
+
+1. Skill proposes update to `current-state.md` → you approve
+2. Claude calls Edit on `/Users/rhhart/Documents/GitHub/weft/learning/current-state.md`
+3. Sandbox denies the write (kernel level)
+4. Claude retries with `dangerouslyDisableSandbox: true`
+5. **This triggers a separate permission prompt** — the unsandboxed command approval
+
+So you'd get prompted **twice**: once at the skill's conversational approval ("here are the proposed changes"), then again at the sandbox escape approval ("allow this command to run unsandboxed?"). The second prompt isn't about learning state content — it's a generic "this command wants to escape the sandbox" dialog with no context about what you already approved.
+
+Not seamless. The existing human-in-the-loop design assumes the approval *is* the gate, and the subsequent write is execution of an already-approved action. The sandbox adds a second, less-informed gate on top.
+
+**Option 1 remains the cleaner path.** The `allowWrite` for the weft learning directory lets the existing conversational approval flow work as designed — your approval is the meaningful gate, and the write executes without a redundant sandbox prompt. The security rule from your CLAUDE.md ("all persistent-context writes require human approval") is already enforced at the skill layer, so the sandbox isn't adding protection for those paths — it's adding friction.
+[U5 16:09] ok option 1 is best. question: does the sandbox command run once and toggle claude code into sandbox mode until revoked, or does it run once per session and sandbox the rest of that session only?
+  -> Agent: Research sandbox persistence behavior
+[A23 16:10] It's a persistent setting, not per-session. Add this to your `~/.claude/settings.json`:
+
+```json
+{
+  "sandbox": {
+    "enabled": true
+  }
+}
+```
+
+That turns it on for every session automatically — no `/sandbox` command needed.
+
+The key settings for your setup would be:
+
+```json
+{
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true,
+    "allowUnsandboxedCommands": false,
+    "filesystem": {
+      "allowWrite": [
+        "//Users/rhhart/Documents/GitHub/weft/learning",
+        "//Users/rhhart/Documents/GitHub/weft/.claude"
+      ]
+    }
+  }
+}
+```
+
+- `enabled: true` — always on
+- `autoAllowBashIfSandboxed` — bash commands that stay within sandbox boundaries execute without prompting (this is the friction reduction you're after)
+- `allowUnsandboxedCommands: false` — closes the escape hatch so nothing runs outside the sandbox
+- `allowWrite` with the `//` prefix for absolute paths — the weft hole we discussed
+
+One thing to note on path syntax: `//` means absolute filesystem path, `~/` means home directory, bare `/` resolves relative to the settings file's directory. The `//` prefix is what you want for the weft paths since they're fixed absolute locations.
+[U6 16:28] okay, plan out this settings change in full, including a complete blocklist of the dangerous commands based on your research (belt-and-suspenders ones included) and all settings to be applied. provide filepath links to all the settings that i must change myself, and a task list of explicit edits you can make yourself. create a summary at the end for things that will need to change about my procedures and practices going forward. (don't execute the plan yet)
+
+also make a version of the plan to be weft-user-facing, designed to ship with the weft harness as an optional "how to yolo a little more safely" guide. include a brief summary of the findings from your research translated to accessible language for a new claude code user, a conclusions section about the rationale of this configuration, and an agent-facing section at the bottom for how to apply these settings to the weft harness. include a risk profile and moderate language about the responsibilities they still have for their own use.
+
+separately, persist a complete summary of your findings in this session's research as they apply to an engineer working with claude code in yolo mode. the language register should match moderately knowledgeable bootcamp students already working with these tools.
+
+persist all three documents in roger/drafts prepended with today's date and informative title slugs
+[A24 16:28] Let me read the current settings files and drafts directory first.
+  -> Read: settings.json
+  -> Read: settings.json
+  -> Bash: ls /Users/rhhart/Documents/GitHub/roger/drafts/ 2>/dev/null
+  -> Read: settings.local.json
+  x Read failed: File does not exist. Note: your current working directory is /Users/rhhart/Documents/GitHub/roger.
+  -> TodoWrite
+  -> Write: 2026-03-04-yolo-sandbox-settings-plan.md
+  -> TodoWrite
+  -> Write: 2026-03-04-weft-yolo-safety-guide.md
+  -> TodoWrite
+  -> Write: 2026-03-04-yolo-mode-security-research.md
+  -> TodoWrite
+[A36 16:32] Three documents written to [roger/drafts/](drafts/):
+
+1. **[2026-03-04-yolo-sandbox-settings-plan.md](drafts/2026-03-04-yolo-sandbox-settings-plan.md)** — Your implementation plan. Contains the complete replacement `settings.json` with all deny rules, sandbox config, and preserved hooks/statusLine. Notes that you must edit `~/.claude/settings.json` manually (security-critical file). Lists procedure changes, what stays the same, and what to watch for (false positives, `gh` CLI under sandbox, domain approvals).
+
+2. **[2026-03-04-weft-yolo-safety-guide.md](drafts/2026-03-04-weft-yolo-safety-guide.md)** — User-facing guide for weft. Accessible language, incident summaries, four-layer explanation, full config template with placeholder paths, risk profile with honest limits, and an agent-facing section at the bottom for skill authors and harness bootstrap.
+
+3. **[2026-03-04-yolo-mode-security-research.md](drafts/2026-03-04-yolo-mode-security-research.md)** — Research summary at bootcamp-engineer register. Covers incidents, attack vectors, the four defense layers, what each catches, honest limits, the Pareto frontier of deny rules, key statistics with evidence quality labels, and full source links.
+[U7 16:44] Base directory for this skill: /Users/rhhart/.claude/skills/handoff-test
+
+# Handoff Test
+
+## The Naive Reader
+
+A fresh Claude instance with CLAUDE.md and tooling but nothing from this conversation. The only things that exist for it are what's written in persistent artifacts.
+
+## Process
+
+1. Identify what was created or modified this session. Read each artifact in full.
+2. From the naive reader perspective, find implicit dependencies:
+   - Session-local terminology used without definition
+   - References to "the bug," "the approach," "what we discussed" without grounding
+   - Decisions recorded without rationale (a future reader needs *why* to know when the decision expires)
+   - Scope assumed but not stated
+   - Next steps that depend on conversation memory
+3. Report gaps. For each: what's missing, where it goes, concrete suggested text. Offer to apply fixes.
+
+If the artifact passes, say so in one sentence.
+
+
+ARGUMENTS: the agent-facing portion of the weft harness guide
+  -> Read: 2026-03-04-weft-yolo-safety-guide.md
+[A38 16:44] Now let me also check the CLAUDE.md path resolution rules and the skill consent patterns being referenced, to verify the naive reader could follow the references.
+  -> Read: CLAUDE.md
+[A40 16:44] ## Handoff Test: Agent-Facing Section
+
+### Gaps Found
+
+**1. "The existing human-approval flow (propose changes, user approves, then write)" — undefined for the naive reader**
+
+A fresh agent reading this guide has no idea what this approval flow is, where it's defined, or how it works mechanically. The weft CLAUDE.md says "all persistent-context writes require human approval" but doesn't describe the propose-then-approve pattern. The skill files do — but a skill author reading this guide shouldn't have to reverse-engineer the convention from existing skill implementations.
+
+**Where it goes:** After line 341, expand the description.
+
+**Suggested text:**
+```
+The approval flow works like this: the skill presents proposed changes
+in conversation text (diffs, YAML entries, or prose descriptions). The
+user reviews and responds with approval, edits, or rejection. Only
+after explicit approval does the skill call Write or Edit to apply
+changes. This is documented in weft's Security — Context Files rules
+(CLAUDE.md) and implemented consistently across session-review,
+session-digest, startwork, and progress-review. New skills that write
+to learning state must follow the same pattern.
+```
+
+**2. "sandbox's `allowWrite` list" — no explanation of what happens if a skill author forgets to add a path**
+
+A skill author writing a new skill that writes to a novel path (say, `learning/scaffolds/`) might not realize the sandbox will block it even though `learning/` is in the allowWrite list. The `//` prefix `subpath` semantics (does `learning` include `learning/scaffolds/`?) are not stated.
+
+**Where it goes:** In the "Path resolution under sandbox" section.
+
+**Suggested text:**
+```
+The `allowWrite` entry for `//Users/.../weft/learning` covers all files
+and subdirectories under `learning/` — including `learning/scaffolds/`,
+`learning/arcs/`, and session logs. You do not need to add subdirectory
+entries. If a new skill writes to a path outside `learning/` or
+`.claude/` in the weft root, tha [...truncated]
+[U8 16:45] yes
+  -> Edit: 2026-03-04-weft-yolo-safety-guide.md
+  -> Edit: 2026-03-04-weft-yolo-safety-guide.md
+[A43 16:45] All four gaps patched.
+[U9 16:51] for my own system drafts/2026-03-04-yolo-sandbox-settings-plan.md since i most often start claude conversations in the vscode sidebar, what's the config to use?
+[A44 16:51] For VS Code sidebar (Claude Code extension), you can't pass CLI flags. The setting you need is:
+
+```json
+"defaultMode": "bypassPermissions"
+```
+
+Add that to the top level of `~/.claude/settings.json`. That makes every session — sidebar, terminal, wherever — start in bypass mode without needing `--dangerously-skip-permissions`.
+
+Let me update the plan to reflect this.
+  -> Edit: 2026-03-04-yolo-sandbox-settings-plan.md
+[A46 16:52] Now let me add it to the actual settings JSON in the plan:
+  -> Edit: 2026-03-04-yolo-sandbox-settings-plan.md
+[A48 16:52] Done. The plan now includes `"defaultMode": "bypassPermissions"` in the replacement settings.json, and drops the CLI flag / alias section since it's unnecessary when the mode is set in config.
+[U10 16:54] let's add a note about this in the user-facing guide as well (as part of step 2 "if you usually run claude code in an IDE like VSCode"
+  -> Read: 2026-03-04-weft-yolo-safety-guide.md
+  -> Edit: 2026-03-04-weft-yolo-safety-guide.md
+[A51 16:54] Done. Step 2 now covers both terminal and IDE workflows.
+[U11 16:56] given this recommended setup, could a prompt injection attack cause claude to change .gitignore and push secrets to a public repo?
+[A52 16:57] Yes. Here's the chain:
+
+1. **Edit `.gitignore`** — in the working directory, sandbox allows it, no deny rule blocks it, DCG doesn't flag it. Succeeds.
+2. **`git add .env`** — no deny rule. The `Read(./.env)` deny only blocks Claude's Read tool, not shell commands. Succeeds.
+3. **`git commit`** — no deny rule on commits. Succeeds.
+4. **`git push`** — only force-push is denied. Regular push succeeds.
+
+All four steps work under the proposed config. The `.env` Read deny rule is a tool-level restriction — it stops Claude from using the Read tool on `.env`, but a bash `cat .env` or `git add .env` bypasses it entirely.
+
+### Mitigations to add
+
+**In the deny rules** (catches the explicit case):
+```json
+"Bash(git add .env*)",
+"Bash(git add -A*)",
+"Bash(git add .)"
+```
+
+Blocking `git add -A` and `git add .` is independently good practice — they're how secrets accidentally get staged. The CLAUDE.md instructions already say "prefer adding specific files by name," but that's a suggestion to the model, not an enforcement.
+
+**Outside Claude Code** (catches everything including bypass):
+- A **pre-commit hook** using `git-secrets` or `truffleHog` that scans staged files for secret patterns. This is the structural defense — it runs at the git level regardless of what staged the files.
+- Secrets shouldn't live in the project directory at all. Environment variables via a secrets manager or system keychain are the right pattern.
+
+The pre-commit hook is the real answer here. It's the same principle as the sandbox: a structural control that doesn't depend on recognizing the attack, just the outcome (a secret-shaped string entering git history).
+
+Want me to add the `git add` deny rules to all three documents and add a note about pre-commit secret scanning to the procedures section?
+[U12 16:59] yes
+  -> TodoWrite
+  -> Read: 2026-03-04-yolo-sandbox-settings-plan.md
+  -> Read: 2026-03-04-yolo-sandbox-settings-plan.md
+  -> Read: 2026-03-04-yolo-sandbox-settings-plan.md
+[A57 16:59] Now I have the full picture. Let me make all the edits.
+  -> Edit: 2026-03-04-yolo-sandbox-settings-plan.md
+  -> Edit: 2026-03-04-yolo-sandbox-settings-plan.md
+[A60 16:59] Now add the rationale section and procedures notes.
+  -> Read: 2026-03-04-yolo-sandbox-settings-plan.md
+  -> Edit: 2026-03-04-yolo-sandbox-settings-plan.md
+[A63 17:00] Now add pre-commit hook to procedures.
+  -> Read: 2026-03-04-yolo-sandbox-settings-plan.md
+  -> Edit: 2026-03-04-yolo-sandbox-settings-plan.md
+  -> TodoWrite
+[A67 17:00] Now update the weft user guide — add the rules to the deny list and a note about secret scanning.
+  -> Read: 2026-03-04-weft-yolo-safety-guide.md
+  -> Read: 2026-03-04-weft-yolo-safety-guide.md
+  -> Edit: 2026-03-04-weft-yolo-safety-guide.md
+[A71 17:00] Now add a note in the "Your responsibilities" section.
+  -> Read: 2026-03-04-weft-yolo-safety-guide.md
+  -> Edit: 2026-03-04-weft-yolo-safety-guide.md
+  -> TodoWrite
+[A75 17:01] Now update the research summary — add to the "What Each Layer Catches" table and the Pareto frontier.
+  -> Read: 2026-03-04-yolo-mode-security-research.md
+  -> Edit: 2026-03-04-yolo-mode-security-research.md
+[A78 17:01] Now add to the Pareto frontier section.
+  -> Read: 2026-03-04-yolo-mode-security-research.md
+  -> Edit: 2026-03-04-yolo-mode-security-research.md
+  -> TodoWrite
+[A82 17:01] All three documents updated:
+
+- **Settings plan**: Added 7 `git add` deny rules to the JSON, new "Git staging of secrets" rationale section, pre-commit scanner procedure, and updated the implicit allowlist note
+- **Weft user guide**: Same 7 deny rules added to the config template, new responsibility #6 about pre-commit secret scanning
+- **Research summary**: New row in the "What Each Layer Catches" table showing the `.gitignore` attack chain, note explaining the attack and structural defense, updated Pareto frontier from 5 to 6+1 items
+[U13 17:07] launch two red-team subagents each with instructions to write a plan for breaching the security of the plans described in these three documents. launch two 'yellow-team' subagents to report on the most likely accidental harms that could still arise given the planned system. summarize their findings and advise on updates
+  -> Agent: Red team: prompt injection attacks
+  -> Agent: Red team: deny list bypasses
+  -> Agent: Yellow team: accidental file damage
+  -> Agent: Yellow team: workflow friction points
+[A87 17:11] Good findings across all four. Here's the synthesis.
+
+---
+
+## Red/Yellow Team Findings: Summary and Recommendations
+
+### Critical gaps (fix before deploying)
+
+**1. `Write()` tool bypasses all `Edit()` deny rules.**
+Every shell config path protected by `Edit()` is writable via `Write()`. The deny rules block `Edit(~/.bashrc)` but not `Write(~/.bashrc)`. The sandbox catches this for out-of-project paths, but if you ever expand `allowWrite`, this gap widens silently.
+**Fix:** Add `Write()` deny rules mirroring every `Edit()` deny rule.
+
+**2. `Bash(cat .env)` bypasses `Read(./.env)`.**
+The `Read()` deny rules only block the Read tool. `cat .env`, `head .env`, `strings .env`, `grep pattern .env` via Bash, and even the Grep tool all bypass them. For files inside the project directory, the sandbox doesn't help.
+**Fix:** Add `Bash(cat .env*)`, `Bash(cat */secrets/*)`, `Bash(cat *credentials*)` deny rules. Accept that this is still cat-and-mouse — the sandbox is the real defense for out-of-project secrets.
+
+**3. `git commit -a` bypasses all `git add` deny rules.**
+Combines staging + committing in one step. The bulk-add deny rules are useless if the attacker uses `git commit -a -m "msg"`.
+**Fix:** Add `Bash(git commit -a *)` and `Bash(git commit --all *)`.
+
+**4. `git add --all` bypasses `git add -A`.**
+Long-form flag not covered. Also missing: `git add ./`, `git add :/`, `git -C path add`.
+**Fix:** Add `Bash(git add --all*)`, `Bash(git add ./)`, `Bash(git add :/)`, `Bash(git -C * add *)`.
+
+**5. `weft/.claude` in `allowWrite` exposes skill files to modification.**
+A prompt injection that writes to `weft/.claude/skills/session-review/SKILL.md` achieves persistent behavioral control across all future sessions. This is the highest-value single vulnerability in the config.
+**Fix:** Narrow `allowWrite` to only the paths skills actually need to write: `weft/learning` stays; replace `weft/.claude` with specific subdirectories that need runtime writes (if any), or remove it and accept [...truncated]
+[U14 17:14] you're low on context, first /persist the fixes and then /handoff-test the persisted list
+  -> Skill: 
+[U15 17:14] Base directory for this skill: /Users/rhhart/.claude/skills/persist
+
+# Persist
+
+Copy the most recent file from `~/.claude/plans/` to `<cwd>/plans/YYYY-MM-DD-<slug>.md`. Derive the slug from the first heading (kebab-case, max 50 chars). Create the directory if needed. Report the path. Stop.
+
+
+ARGUMENTS: red-yellow-team-fixes
+  -> Bash: ls -t /Users/rhhart/.claude/plans/ 2>/dev/null
+  -> Read: peaceful-launching-hennessy.md
+[A91 17:14] That's not from this session. There's no plan file for this session since we didn't use plan mode. The content to persist is the red/yellow team fixes list I just summarized. Let me write it directly.
+  -> Bash: mkdir -p /Users/rhhart/Documents/GitHub/roger/plans
+  -> Write: 2026-03-04-red-yellow-team-fixes.md
+[A94 17:15] Persisted to [plans/2026-03-04-red-yellow-team-fixes.md](plans/2026-03-04-red-yellow-team-fixes.md).
+
+Now the handoff test:
+  -> Read: 2026-03-04-red-yellow-team-fixes.md
+[A96 17:15] ## Handoff Test
+
+Reading as a naive agent with only CLAUDE.md and this file:
+
+**1. "All three drafts in `roger/drafts/2026-03-04-*`" — sufficient.** The glob is unambiguous. A naive reader can find the files.
+
+**2. Fix #5 says "check this" but doesn't resolve the question.** The naive reader doesn't know whether any weft skills or hooks actually write to `.claude/`. They'd need to audit every skill. The answer from this session: session-review's Phase 3 can propose CLAUDE.md updates (which live in `weft/.claude/` for the project CLAUDE.md, vs `~/.claude/` for the global one). The session-start hook reads from `.claude/hooks/` but doesn't write there. No skill currently writes to `.claude/skills/` or `.claude/references/`.
+
+**Gap:** Add the resolution.
+
+**Suggested text for fix #5:**
+```
+Current skill audit (2026-03-04): No skill writes to `weft/.claude/skills/`
+or `weft/.claude/references/`. The session-start hook reads from
+`.claude/hooks/` but doesn't write. The weft project CLAUDE.md lives at
+`weft/CLAUDE.md` (project root), not `weft/.claude/CLAUDE.md`, so
+CLAUDE.md updates don't require `.claude/` write access. Safe to remove
+`weft/.claude` from allowWrite entirely.
+```
+
+**3. Fix #8 says "remove npx and pip install" but doesn't state the decision.** The session discussion leaned toward removing them, but the fix says "optionally add back targeted rules" without specifying which. A naive reader would need to decide.
+
+**Gap:** Resolve the optionality.
+
+**Suggested text:**
+```
+Decision: Remove both. The sandbox constrains postinstall script blast
+radius. If a specific dangerous npx/pip pattern emerges, add a targeted
+rule then.
+```
+
+**4. Fix #12 says `brew install git-secrets` — but `brew install` is in the deny list.** The irony was noted by the yellow team but not resolved here. A naive reader applying fixes in order would hit this.
+
+**Gap:** Add a note.
+
+**Suggested text:**
+```
+Note: Run this manually before applying the deny rules, or after
+removing `brew inst [...truncated]
+[U16 17:15] yes
+  -> Edit: 2026-03-04-red-yellow-team-fixes.md
+  -> Edit: 2026-03-04-red-yellow-team-fixes.md
+  -> Edit: 2026-03-04-red-yellow-team-fixes.md
+[A100 17:16] Three gaps patched. The plan is now self-contained for a naive reader.

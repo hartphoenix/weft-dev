@@ -1,0 +1,169 @@
+[U1 23:01] remind me the command to run ollama nomic-embed-text
+[A1 23:01] ```
+ollama run nomic-embed-text
+```
+
+Or if you just need to pull it first:
+
+```
+ollama pull nomic-embed-text
+```
+
+Note: `nomic-embed-text` is an embedding model, so `ollama run` will give you an interactive prompt but it returns vectors, not chat text. If you want to generate embeddings programmatically, you'd hit the API:
+
+```bash
+curl http://localhost:11434/api/embeddings -d '{
+  "model": "nomic-embed-text",
+  "prompt": "your text here"
+}'
+```
+[U2 23:04] having trouble getting the scoring-sandbox to connect to ollama even though curl commands in the terminal are working
+[A3 23:04] This is almost certainly a CORS issue — browsers block cross-origin requests that `curl` doesn't care about. Let me look at your sandbox code to confirm.
+  -> Glob: scoring-sandbox/**/*
+  -> Glob: scoring-sandbox/*.{html,js,ts,json}
+  -> Glob: scoring-sandbox/src/**/*.{ts,tsx,js}
+  -> Read: embeddings.ts
+  -> Read: vite.config.ts
+[A9 23:04] Your code already has a Vite proxy set up in [vite.config.ts](scoring-sandbox/vite.config.ts) to avoid CORS — it proxies `/api/*` to Ollama at `localhost:11434`. But that proxy only works when you run the Vite dev server.
+
+**Are you opening `index.html` directly in the browser** (file:// URL) instead of running the dev server? That would bypass the proxy entirely.
+
+Make sure you're running:
+
+```bash
+cd scoring-sandbox && bun run dev
+```
+
+Then open the `localhost` URL Vite gives you (usually `http://localhost:5173`). The proxy will handle routing `/api/*` requests to Ollama, sidestepping CORS completely.
+[U3 23:05] no i'm navigating to localhost:5173 and seeing 'ollama disconnected'
+[A11 23:05] Let me check if Ollama is actually running and what the proxy is doing.
+  -> Bash: curl -s http://localhost:11434/api/tags | head -c 500
+  -> Bash: curl -s http://localhost:5173/api/tags | head -c 500
+[A14 23:05] Ollama is running fine with `nomic-embed-text` loaded, but the Vite proxy isn't working — it's returning the HTML page instead of proxying to Ollama:
+
+```
+curl localhost:11434/api/tags  → ✅ JSON with model list
+curl localhost:5173/api/tags   → ❌ HTML (index.html fallback)
+```
+
+The proxy config in [vite.config.ts](scoring-sandbox/vite.config.ts) looks correct. Most likely the dev server was started before the proxy config was added, or needs a restart. Try killing the dev server and restarting it:
+
+```bash
+cd scoring-sandbox && bun run dev
+```
+
+If it's already running, kill it first (Ctrl+C) and re-launch. Vite doesn't hot-reload config changes — you have to restart the server for proxy changes to take effect.
+[U4 23:06] check the schelling-point project settings -- it could be that setting up vite in the parent directory is overriding the settings inside scoring-sandbox.
+  -> Glob: vite.config.*
+  -> Glob: package.json
+[A17 23:06] There it is — there's a `vite.config.ts` in the parent directory too. Let me check it.
+  -> Read: vite.config.ts
+  -> Read: package.json
+  -> Read: package.json
+[A21 23:07] That's your problem. The parent project also has a Vite dev server, and it's likely claiming port 5173 first.
+
+The parent's [vite.config.ts](vite.config.ts) only proxies `/ws` — it has no `/api` proxy. So when you hit `localhost:5173/api/tags`, you're hitting the **parent's** Vite server, which has no idea about Ollama and just returns its `index.html` fallback.
+
+**Fix:** Make sure the parent dev server isn't running when you start the scoring-sandbox one. If both need to run simultaneously, add an explicit port to the scoring-sandbox config:
+
+```ts
+server: {
+  port: 5174,  // avoid colliding with the parent project
+  proxy: { ... }
+}
+```
+
+Or just kill the parent dev server, then `cd scoring-sandbox && bun run dev` — it'll get port 5173 and the proxy will work.
+[U5 23:08] i keep ending up with persistent localhost servers even when i think i've killed the terminals they live in. how do i see which ones are still running and optionally kill them?
+[A22 23:08] List everything listening on localhost ports:
+
+```bash
+lsof -iTCP -sTCP:LISTEN -nP
+```
+
+That'll show the process name, PID, and port. To kill a specific one:
+
+```bash
+kill <PID>
+```
+
+Or if you want to nuke everything on a specific port (e.g. 5173):
+
+```bash
+lsof -ti:5173 | xargs kill
+```
+
+The persistent servers are probably orphaned Vite/node processes that survived their terminal closing. VSCode terminals in particular can leave these behind.
+[U6 23:09] those are gonna be tough to remember. is there a utility on mac that would make this more accessible?
+[A24 23:09] Easiest option: add a couple aliases to your `~/.zshrc`:
+
+```bash
+alias ports='lsof -iTCP -sTCP:LISTEN -nP'
+alias killport='f() { lsof -ti:$1 | xargs kill; }; f'
+```
+
+Then it's just:
+
+```bash
+ports              # see everything listening
+killport 5173      # kill whatever's on that port
+```
+
+If you'd prefer a GUI, **Sloth** is a free open-source Mac app that shows all open connections/ports with a nice interface — you can find and kill processes visually. Install with `brew install --cask sloth`.
+
+Want me to add those aliases to your `.zshrc`?
+[U7 23:10] yes add those aliases
+  -> Bash: wc -l ~/.zshrc
+  -> Read: .zshrc
+  -> Edit: .zshrc
+[A28 23:11] Done. Open a new terminal (or run `source ~/.zshrc`) and you'll have `ports` and `killport` available.
+[U8 23:14] 5173 & 5174 are not listed in ports, but there are three running node commands: node      96088 rhhart   18u  IPv6 0xfe8f4066386af666      0t0  TCP [::1]:5173 (LISTEN)
+node      96296 rhhart   18u  IPv6 0xe117eb975cf0c017      0t0  TCP [::1]:5199 (LISTEN)
+node      96630 rhhart   18u  IPv6 0x302fd6bcbad5b184      0t0  TCP [::1]:5200 (LISTEN)
+
+are these the ones running the zombie react apps i'm trying to kill? why are they on these port numbers?
+[A30 23:14] Yes, those are your zombie Vite servers. They're on `[::1]` (IPv6 localhost) which is why they looked different — same machine, just the IPv6 address instead of `127.0.0.1`.
+
+Port 5173 is Vite's default. 5199 and 5200 are likely subsequent Vite instances that found 5173 taken and auto-incremented, or HMR WebSocket ports.
+
+Kill all three:
+
+```bash
+kill 96088 96296 96630
+```
+
+Then `ports` should be clean and you can start fresh in `scoring-sandbox`.
+[U9 23:16] the 'ports' list is sorted by PID -- is there a way to sort it by the actual port number (eg 5173) rather than PID (96088) ?
+  -> Edit: .zshrc
+[A32 23:16] Updated. It prints the header row first, then sorts the rest by port number. `source ~/.zshrc` to pick it up.
+[U10 23:17] that didn't change the output at all -- still looks like:
+COMMAND     PID   USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
+rapportd    612 rhhart    8u  IPv4 0x1493bf0181509383      0t0  TCP *:63619 (LISTEN)
+rapportd    612 rhhart    9u  IPv6 0xc2ede8a876744378      0t0  TCP *:63619 (LISTEN)
+ControlCe   624 rhhart    8u  IPv4 0x25f0c80716701ed4      0t0  TCP *:7000 (LISTEN)
+ControlCe   624 rhhart    9u  IPv6 0x426fa4fd100b1c46      0t0  TCP *:7000 (LISTEN)
+ControlCe   624 rhhart   10u  IPv4  0x27765d9f757150c      0t0  TCP *:5000 (LISTEN)
+ControlCe   624 rhhart   11u  IPv6 0x2e4a62acc4b7f055      0t0  TCP *:5000 (LISTEN)
+WavesLoca   868 rhhart   10u  IPv4 0x17e0bc30b0e4140c      0t0  TCP 127.0.0.1:6985 (LISTEN)
+WavesLoca   868 rhhart   11u  IPv6 0x94982d421a94612c      0t0  TCP [::1]:6985 (LISTEN)
+node       8253 rhhart   31u  IPv6 0xfdfdff3fa4640895      0t0  TCP [::1]:5174 (LISTEN)
+LM\x20Stu 40436 rhhart   92u  IPv4 0x67471ef362309c67      0t0  TCP 127.0.0.1:1234 (LISTEN)
+LM\x20Stu 40436 rhhart   93u  IPv4 0xa44bb0cd174edf00      0t0  TCP 127.0.0.1:41343 (LISTEN)
+GitHub    42173 rhhart   29u  IPv4 0x58f6bae687285e92      0t0  TCP 127.0.0.1:50954 (LISTEN)
+Obsidian  64684 rhhart   24u  IPv4 0x2c14ffab40bce461      0t0  TCP 127.0.0.1:27124 (LISTEN)
+Discord   65552 rhhart   43u  IPv4 0x62c5859dbf02fd82      0t0  TCP 127.0.0.1:6463 (LISTEN)
+Code\x20H 65774 rhhart   51u  IPv4  0xb94adc81f27a149      0t0  TCP 127.0.0.1:40251 (LISTEN)
+Ollama    80673 rhhart    4u  IPv4 0xcf75abececd50661      0t0  TCP 127.0.0.1:58834 (LISTEN)
+ollama    80676 rhhart    5u  IPv4 0x73c1e6d85398ef65      0t0  TCP 127.0.0.1:11434 (LISTEN)
+Code\x20H 88816 rhhart   23u  IPv4 0xded6cc70a4d7f4ed      0t0  TCP 127.0.0.1:3875 (LISTEN)
+Code\x20H 93927 rhhart   36u  IPv4 0x377806ee482222f3      0t0  TCP 127.0.0.1:56205 (LISTEN)
+Code\x20H 94260 rhhart   20u  IPv4 0xeeb1205b3ad338ca      0t0  TCP 127.0.0.1:5677 (LISTEN)
+node      96088 rhhart   18u  IPv6 0xfe8f4066386af666      0t0  TCP [::1]:5173 (LISTEN)
+node      96296 rhhart   18u  IPv6 0xe117eb975cf0c017      0t0  TCP [::1]:5199 (LISTEN)
+node      96630 rhhart   18u  IPv6 0x302fd6bcbad5b184      0t0  TCP [::1]:5200 (LISTEN)
+[A34 23:17] The sort didn't work because the port number's position after `:` varies between `*:63619`, `127.0.0.1:6985`, and `[::1]:5173`. Let me switch to a function that extracts the actual port number.
+  -> Edit: .zshrc
+[A36 23:17] Updated. The trick: it uses `awk` to extract the port from after the last `:` in the address column (works for `*:5000`, `127.0.0.1:6985`, and `[::1]:5173` alike), prepends it as a sort key, sorts numerically, then strips it back out. `source ~/.zshrc` and try it.
+[U11 23:19] hmm, this is harder to read now -- let's go back to how it sorted by default
+  -> Edit: .zshrc
+[A38 23:19] Reverted. PID sort is honestly the most useful anyway — groups related processes together.

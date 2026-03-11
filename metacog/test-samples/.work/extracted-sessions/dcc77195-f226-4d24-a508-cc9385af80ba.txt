@@ -1,0 +1,70 @@
+[U1 23:31] let's update the readme to include a brief description of each skill in .claude/skills in the appropriate section. some of the skills are new so they'll need to be added, and some of their descriptions are outdated and need to be replaced. get a clear picture before writing
+  -> Read: README.md
+  -> Bash: ls /Users/rhhart/Documents/GitHub/weft/.claude/skills/
+[A3 23:31] Let me read all the skill files to get their current descriptions.
+  -> Agent: Read all weft skill files
+  -> Agent: Check for new skills
+[A6 23:32] Let me check the lesson-scaffold description more carefully — the README says "paste a URL" but the skill seems broader.
+  -> Read: SKILL.md
+  -> Read: SKILL.md
+[A9 23:32] Good. Now I have a clear picture. Let me write the plan.
+  -> Write: peaceful-launching-hennessy.md
+[A11 23:32] 7 descriptions need updating, 7 are fine as-is. The automatic dispatch section is accurate. No skills to add or remove — all 14 weft skills are already listed.
+  -> ExitPlanMode
+  -> Edit: README.md
+  -> Edit: README.md
+  -> Edit: README.md
+  -> Edit: README.md
+  -> Edit: README.md
+  -> Edit: README.md
+  -> Edit: README.md
+[A20 23:34] All 7 descriptions updated. Let me verify the result looks right.
+  -> Read: README.md
+[A22 23:34] Done. Seven descriptions updated to match the actual SKILL.md files:
+
+- **startwork** — now mentions git status, schedule, and time-budgeted plans
+- **session-digest** — clarifies it returns a diff without writing files
+- **lesson-scaffold** — no longer says "paste a URL"; covers all input types
+- **quick-ref** — more precise about what it does
+- **debugger** — describes the actual workflow (hypotheses, rescoping)
+- **handoff-test** — specifies what it identifies (implicit assumptions)
+- **skill-sharpen** — scope now includes agent-facing instruction documents
+[U2 23:40] the skills in this project directory are newer than those in weft-dev, which need to be replaced by the updated versions. can you copy them into /Users/rhhart/Documents/GitHub/weft-dev/.claude/skills
+  -> Bash: ls /Users/rhhart/Documents/GitHub/weft-dev/.claude/skills/
+  -> Bash: cp -R /Users/rhhart/Documents/GitHub/weft/.claude/skills/* /Users/rhhart/Documen
+  x Bash failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to
+[U3 23:40] [Request interrupted by user for tool use]
+[U4 23:43] hmm, actually i think it may be better to remove the duplicates from weft-dev and not replace them with those here, because the symlinks registered in the global skills directory need to resolve to a single source of truth. let's remove the duplicates, leave the uniques, and fix the symlinks afterward by running bootstrap.sh
+[A25 23:43] Let me identify the duplicates vs. uniques.
+
+**Weft skills:** debugger, git-ship, handoff-prompt, handoff-test, intake, lesson-scaffold, persist, progress-review, quick-ref, session-digest, session-discovery, session-review, skill-sharpen, startwork
+
+**Weft-dev skills:** browser-qa, debugger, design-iterate, diagram, handoff-prompt, handoff-test, intake, lesson-scaffold, progress-review, quick-ref, session-digest, session-discovery, session-review, startwork
+
+**Duplicates to remove from weft-dev (11):** debugger, handoff-prompt, handoff-test, intake, lesson-scaffold, progress-review, quick-ref, session-digest, session-discovery, session-review, startwork
+
+**Unique to weft-dev (keep):** browser-qa, design-iterate, diagram
+  -> Bash: rm -rf /Users/rhhart/Documents/GitHub/weft-dev/.claude/skills/debugger /Users/rh
+  x Bash failed: BLOCKED by dcg
+
+Tip: dcg explain "rm -rf /Users/rhhart/Documents/GitHub/weft-dev/.claude/skills/debugger /Users/rhhart/Documents/GitHub/weft-dev/.claude/skills/handoff-prompt /Users/rhhart/Documents/G
+[A27 23:44] DCG blocked the `rm -rf`. You'll need to run this manually:
+
+```bash
+rm -rf /Users/rhhart/Documents/GitHub/weft-dev/.claude/skills/{debugger,handoff-prompt,handoff-test,intake,lesson-scaffold,progress-review,quick-ref,session-digest,session-discovery,session-review,startwork}
+```
+
+That removes the 11 duplicates and keeps the 3 unique to weft-dev: browser-qa, design-iterate, diagram.
+
+After that, run bootstrap from weft to re-register the symlinks:
+
+```bash
+cd ~/weft && bash scripts/bootstrap.sh
+```
+[U5 23:44] just rm without the rf should be ok
+  -> Bash: rm -r /Users/rhhart/Documents/GitHub/weft-dev/.claude/skills/debugger /Users/rhh
+  -> Bash: ls /Users/rhhart/Documents/GitHub/weft-dev/.claude/skills/
+[A30 23:45] Three uniques remain. Ready for `bash scripts/bootstrap.sh` from weft whenever you want to re-register the symlinks.
+[U6 23:45] go ahead
+  -> Bash: bash scripts/bootstrap.sh
+[A32 23:45] Done. Linked persist and skill-sharpen (the two that were new to weft and hadn't been symlinked before). The other 12 were already pointing to weft. All 14 skills registered.

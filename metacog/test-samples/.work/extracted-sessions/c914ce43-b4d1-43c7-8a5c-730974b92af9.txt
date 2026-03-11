@@ -1,0 +1,144 @@
+[U1 21:49] Review and execute the plan at design/claudemd-hardening-plan.md. The plan edits 5 files (workspace CLAUDE.md, maestro/CLAUDE.md, package/CLAUDE.md, package/README.md, and the intake SKILL.md template in both package/ and root .claude/skills/). Start by creating a feature branch, then follow the execution sequence and verification steps in the plan. The plan has passed a handoff test — all context needed to execute is in the document.
+[A1 21:49] I'll start by reading the plan document, then create a feature branch and execute it.
+  -> Read: claudemd-hardening-plan.md
+[A3 21:49] Good, I have the full plan. Let me read all the files that need editing, then create the branch and execute.
+  -> TodoWrite
+  -> Read: CLAUDE.md
+  -> Read: CLAUDE.md
+  -> Read: CLAUDE.md
+  -> Read: README.md
+  -> Read: SKILL.md
+  -> Read: SKILL.md
+[A11 21:50] All files read. Now I'll create the feature branch and start executing.
+  -> Bash: git checkout -b hart/claudemd-hardening
+  -> TodoWrite
+[A14 21:54] **Step 1: Workspace CLAUDE.md** — "ship fast" line + recovery protocol.
+  -> Edit: CLAUDE.md
+  -> Edit: CLAUDE.md
+  -> TodoWrite
+[A18 21:54] **Step 2: package/README.md** — DCG recommendation section after Privacy.
+  -> Edit: README.md
+  -> TodoWrite
+[A21 21:55] **Step 3: maestro/CLAUDE.md** — surprise-trigger + decision-point + recovery.
+  -> Edit: CLAUDE.md
+  -> TodoWrite
+[A24 21:55] **Step 4: package/CLAUDE.md** — recovery + two new sections.
+  -> Edit: CLAUDE.md
+  -> TodoWrite
+[A27 21:55] **Step 5: Intake SKILL.md** — template extension + invariant note. Both copies (`package/` and root `.claude/`).
+
+The template code fence closes at line 373 in both files. I need to insert the three new sections after line 372 (`4. **No secrets in context files, ever.**`) and before the closing ` ``` ` at line 373.
+  -> Edit: SKILL.md
+[A29 21:55] Now apply the same changes to the root dev copy.
+  -> Edit: SKILL.md
+  -> TodoWrite
+[A32 21:55] All edits done. Now running the verification checks from the plan.
+  -> Grep: ship.*fast in CLAUDE.md
+  -> Grep: Don't re-read files already in context in GitHub
+  -> Grep: ship.*fast in maestro
+[A36 21:58] Verification check 1 (`ship.*fast` in workspace CLAUDE.md): **PASS** — zero matches.
+
+The `ship.*fast` matches in intake SKILL.md are the expected template placeholder `[Workflow: ship fast vs. plan first, iteration style]` — the plan confirmed this is a neutral prompt, not an emitted directive. The `Don't re-read files already in context` matches are in the plan doc itself, the source transcript, and roger/CLAUDE.md (different project, out of scope). All expected.
+
+Now let me verify the intake template code fence is valid and the recovery items are consistent.
+  -> Read: SKILL.md
+  -> Read: SKILL.md
+[A39 21:58] Both intake SKILL.md copies are identical and correct:
+- All four sections (Security, Recovery, Complex operations, Unexpected behavior) are **inside** the template code fence (closing ` ``` ` at line 397)
+- The invariant note at line 399-401 names all four sections
+
+Now let me spot-check the recovery protocol items 1-6 are identical across all four locations.
+  -> Grep: If the user interrupted and gave a new instruction in GitHub
+  -> Grep: When in doubt about scope or next step after an interruption, ask in GitHub
+[A42 21:58] Recovery item 5 appears in 5 files (4 target files + plan doc), and item 6 appears in the same 5 files. That's:
+1. Workspace `CLAUDE.md` (`/Users/rhhart/Documents/GitHub/CLAUDE.md`)
+2. Maestro `CLAUDE.md` (`CLAUDE.md` in repo root)
+3. Package `CLAUDE.md` (`package/CLAUDE.md`)
+4. Package intake SKILL.md (`package/.claude/skills/intake/SKILL.md`)
+5. Root intake SKILL.md (`.claude/skills/intake/SKILL.md`)
+
+Plus the plan doc itself — all correct.
+
+All verification checks pass:
+- `ship.*fast` in workspace CLAUDE.md: **zero matches**
+- `Don't re-read files already in context` in edited files: **zero matches** (only in plan doc, transcript, and out-of-scope roger)
+- Intake template code fence: **valid** — four sections inside the fence, closing ` ``` ` at line 397
+- Invariant note: **names all four sections**
+- Recovery protocol items 1-6: **identical across all four locations** (5 files total counting both intake copies)
+  -> TodoWrite
+[A44 21:59] All done. Here's a summary of what was executed on branch `hart/claudemd-hardening`:
+
+**Files edited (6):**
+
+| File | Changes |
+|------|---------|
+| [/Users/rhhart/Documents/GitHub/CLAUDE.md](file:///Users/rhhart/Documents/GitHub/CLAUDE.md) | "Ship fast" → iteration preference; recovery protocol expanded to 6 items |
+| [package/README.md](package/README.md) | Added DCG command guard recommendation section |
+| [CLAUDE.md](CLAUDE.md) | Concrete surprise-trigger, new decision-point bullet, recovery protocol expanded to 6 items |
+| [package/CLAUDE.md](package/CLAUDE.md) | Recovery protocol expanded to 6 items + two new sections (decision points, unexpected behavior) |
+| [package/.claude/skills/intake/SKILL.md](package/.claude/skills/intake/SKILL.md) | Template extended with 3 new sections inside code fence; invariant note updated |
+| [.claude/skills/intake/SKILL.md](.claude/skills/intake/SKILL.md) | Mirror of package copy |
+
+**Verification:** All 5 checks from the plan pass. Ready for commit whenever you'd like.
+[U2 22:00] push and merge
+  -> Bash: git status
+  -> Bash: git diff --stat
+  -> Bash: git log --oneline -5
+[A48 22:01] I see there are additional modified files beyond the hardening plan (design docs, other SKILL.md files). I'll stage only the files from this plan, plus the plan doc.
+  -> Bash: git add CLAUDE.md package/CLAUDE.md package/README.md .claude/skills/intake/SKIL
+  -> Bash: git commit -m "$(cat <<'EOF'
+Harden CLAUDE.md files: recovery protocol, decision
+[A51 22:01] Note: the workspace CLAUDE.md at `/Users/rhhart/Documents/GitHub/CLAUDE.md` is outside this repo — that change is applied locally but won't be part of this PR.
+  -> Bash: git push -u origin hart/claudemd-hardening
+  -> Bash: gh pr create --title "Harden CLAUDE.md files against agent workflow mistakes" --
+  -> Bash: gh pr merge 12 --merge
+  -> Bash: git checkout main && git pull
+  x Bash failed: Exit code 1
+error: Your local changes to the following files would be overwritten by checkout:
+	.claude/skills/intake/SKILL.md
+	package/.claude/skills/intake/SKILL.md
+Please commit your changes or sta
+[A56 22:04] The remaining unstaged changes (from outside this plan) conflict with checkout. Let me stash them first.
+  -> Bash: git stash push -m "pre-hardening uncommitted changes" && git checkout main && gi
+  -> Bash: git stash pop
+[A59 22:04] Done. PR [#12](https://github.com/hartphoenix/maestro/pull/12) merged to main. Back on `main` with the pre-existing uncommitted changes restored.
+
+One note: the workspace CLAUDE.md at `/Users/rhhart/Documents/GitHub/CLAUDE.md` was edited locally (new recovery protocol + "ship fast" fix) but lives outside this repo, so it's not part of the PR — that change is applied on disk already.
+[U3 22:05] you've just stashed some important changes a parallel agent was making that i want applied to the project. can you make sure the edits are applied in full?
+[A60 22:05] Let me check what's currently in the working tree from that stash pop.
+  -> Bash: git status
+  -> Bash: git diff --stat
+[A63 22:05] Good — the stash popped cleanly. All 12 files are showing as modified/deleted in the working tree. Let me explore what these changes actually contain to verify they're complete and coherent.
+  -> Task
+[A65 22:06] The stash popped cleanly and all changes are intact. Here's what's in the working tree from the parallel agent:
+
+**4 groups of changes, all complete and coherent:**
+
+1. **Intake SKILL.md** (both copies in sync) — feedback.json shifted from pre-populated to created-on-consent during intake
+2. **3 other skills** (progress-review, session-review, startwork — all 6 copies in sync) — added consent gate sections that check for feedback.json before any network calls
+3. **Design docs** (schedule, teacher-relationship, teacher-relationship-buildout) — status tracking updates + architecture shift from private repo + collaborator invites to public repo + link sharing
+4. **Deleted `package/.claude/feedback.json`** — removed the pre-populated test fixture, consistent with the consent-gate model
+
+No truncation, no sync mismatches between root and package copies. The changes are ready to commit — just need to exit plan mode first.
+  -> Write: playful-plotting-milner.md
+  -> ExitPlanMode
+  -> Bash: git checkout -b hart/consent-gate-and-teacher-arch
+  -> Bash: git add .claude/skills/intake/SKILL.md package/.claude/skills/intake/SKILL.md .c
+  -> Bash: git diff --cached --stat
+[A71 22:09] 12 files, 100 insertions, 38 deletions — matches expected.
+  -> Bash: git commit -m "$(cat <<'EOF'
+Add consent-gated data sharing and simplify teacher
+  -> Bash: git push -u origin hart/consent-gate-and-teacher-arch
+  -> Bash: gh pr create --title "Add consent-gated data sharing, simplify teacher setup" --
+  -> Bash: gh pr merge 13 --merge
+  -> Bash: git checkout main && git pull
+  x Bash failed: Exit code 1
+error: Your local changes to the following files would be overwritten by checkout:
+	.claude/skills/intake/SKILL.md
+	package/.claude/skills/intake/SKILL.md
+Please commit your changes or sta
+  -> Bash: git diff --stat
+  -> Bash: git diff
+[A79 22:15] Small leftover — the signal repo name was corrected from `rhhart/maestro-signals` to `hartphoenix/maestro-signals` (matching the actual GitHub org). I'll include this in the checkout.
+  -> Bash: git stash push -m "repo name fix" && git checkout main && git pull && git stash 
+[A81 22:15] Done. PR [#13](https://github.com/hartphoenix/maestro/pull/13) merged to main. Back on `main` with one remaining uncommitted fix: the signal repo name correction (`rhhart` → `hartphoenix`) in both intake SKILL.md copies. Want me to commit that too?

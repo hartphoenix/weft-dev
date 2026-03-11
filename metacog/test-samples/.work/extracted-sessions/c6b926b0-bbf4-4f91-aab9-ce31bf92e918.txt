@@ -1,0 +1,35 @@
+[U1 22:16] lets add bash ls and bash ls -la to the global claude permissions
+  -> Glob: **/.claude/settings.* in rhhart
+  -> Read: settings.json
+[A3 22:17] You already have `"Bash(ls *)"` on line 17, which covers both `ls` and `ls -la` (the `*` wildcard matches any arguments). Those commands should already be auto-allowed.
+
+Are you getting prompted for `ls` commands? If so, the issue might be something else — maybe the bare `ls` with no arguments isn't matching the `ls *` pattern. I can add a bare `"Bash(ls)"` entry if that's the case.
+[U2 22:17] yes i'm getting prompted for permission but it's for ls some/file/path or ls -la some/path
+[A4 22:18] Weird — `Bash(ls *)` should cover those. The colon-delimited patterns (like `Bash(git checkout:*)`) seem to work more reliably in your config. Let me switch `ls` to that format.
+  -> Edit: settings.json
+[A6 22:18] Added `"Bash(ls)"` for bare `ls` and `"Bash(ls:*)"` for the colon-delimited pattern. Between the three entries, one of those formats should catch it. If you're still getting prompted after this, let me know and we can dig into which matching syntax Claude Code is actually using.
+[U3 15:56] is it possible these permission alerts keep coming from a claude.md somewhere in the hierarchy?
+[A7 15:56] Good question. Let me check for any project-level settings that might have their own permission rules.
+  -> Glob: **/.claude/settings*.json in roger
+  -> Glob: **/.claude/settings*.json in GitHub
+  -> Read: settings.local.json
+  -> Read: settings.local.json
+[A12 15:56] No — none of these settings files have deny lists or `ls`-specific restrictions. The permission prompts aren't coming from settings files.
+
+The more likely culprit is your **PreToolUse hook** — the `dcg` script on line 60-66 of your global settings. That hook runs on every Bash command and can block execution. If it returns a non-zero exit code or outputs a rejection, Claude Code treats it as a permission prompt.
+
+Want to check what `dcg` does?
+  -> Read: dcg
+  x Read failed: File content (911.4KB) exceeds maximum allowed size (256KB). Please use offset and limit parameters to read specific portions of the file, or use the GrepTool to search for specific content.
+  -> Read: dcg
+[A15 15:57] That's a compiled binary, not a script. `dcg` is a compiled program that intercepts every Bash tool call. It's the most likely source of your `ls` permission prompts — the allow list in settings.json controls what Claude Code auto-approves, but the hook can independently prompt or block.
+
+Do you know what `dcg` is / where it came from? If it's something you installed intentionally, the fix would be to configure it to allow `ls` rather than adding more entries to settings.json.
+[U4 15:58] no, it only prevents destructive edits. i've seen the way it fires & its behavior is sound. the issue in question predates my dcg installation. could you check the contents of all claude.md files and see if one is the culprit?
+  -> Glob: **/CLAUDE.md in GitHub
+  -> Glob: **/CLAUDE.md in .claude
+[A18 15:58] The ones already in context are roger's and the global one. Let me check the parent directory CLAUDE.md — that sits above roger and would apply to every project under `Documents/GitHub/`.
+  -> Read: CLAUDE.md
+[A20 15:58] None of the CLAUDE.md files contain permission rules — they're all behavioral instructions, not tool permissions. CLAUDE.md files can't set `allow`/`deny` permissions anyway; that's only in `settings.json` and `settings.local.json` files.
+
+The permission prompts you're seeing are Claude Code's built-in behavior. The allow list uses glob matching, and `Bash(ls *)` should match `ls -la some/path` — but there may be a matching bug or edge case in how Claude Code evaluates the patterns. The three entries we added (`ls`, `ls *`, `ls:*`) should cover it. If you're still getting prompted after restarting the session, it might be worth filing at https://github.com/anthropics/claude-code/issues since it could be a pattern-matching bug.

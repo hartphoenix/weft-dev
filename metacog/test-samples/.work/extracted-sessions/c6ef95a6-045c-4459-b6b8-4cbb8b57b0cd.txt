@@ -1,0 +1,33 @@
+[U1 02:31] bucket all unstaged changes into correlated commits and give them descriptive comments.
+[A1 02:31] Let me look at what's changed.
+  -> Bash: git status
+  -> Bash: git diff
+  -> Bash: git diff --cached
+  -> Bash: git log --oneline -10
+  -> Read: bd00d27.txt
+[A7 02:32] Let me also read the untracked files.
+  -> Read: current-state.md
+  -> Read: goals.md
+[A10 02:32] Here's what I see — four correlated groups:
+
+1. **ARCS → current-state rename** (5 files: new `current-state.md` + reference updates in skills, BUILD_CHECKLIST, CLAUDE.md)
+2. **skill-tree → goals rename** (1 new file: `drafts/goals.md`)
+3. **Design principles expansion** (boundary conditions, P3 rework, P8 play, P9 challenge calibration)
+4. **Harness features refactor** (extract principle text, add P8/P9 feature tables, reorganize)
+
+I'll commit them in dependency order.
+  -> Bash: git add daily-notes/current-state.md .claude/skills/lesson-scaffold/SKILL.md .cl
+  -> Bash: git add drafts/goals.md && git commit -m "$(cat <<'EOF'
+Add goals.md — learning 
+  -> Bash: git add drafts/design-principles.md && git commit -m "$(cat <<'EOF'
+Expand desig
+  -> Bash: git add drafts/harness-features.md && git commit -m "$(cat <<'EOF'
+Refactor harn
+  -> Bash: git log --oneline -6
+  -> Bash: git status
+[A17 02:33] Clean. Four commits, dependency-ordered:
+
+1. **a002417** — ARCS → current-state rename across all references
+2. **c0b138f** — goals.md (structural framework, renamed from skill-tree)
+3. **79c8d3e** — Design principles expansion (boundary conditions, P3 rework, P8 play, P9 challenge)
+4. **52e04d4** — Harness features refactor (extract principles, add P8/P9 tables, reorganize)

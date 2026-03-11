@@ -1,0 +1,656 @@
+[U1 16:07] Implement the following plan:
+
+# Plan: Wire embedding retrieval into MetaClaude observer
+
+## Context
+
+Phase 2 embedding index is built (1432 chunks, validated). `query.ts`
+exports `queryIndex()` and returns formatted results with source paths.
+Two items remain before Phase 2 is complete: (1) update `prompt.md` with
+source attribution instruction, (2) wire retrieval into `observer.sh`.
+The log viewer and session log format also need updating so the full
+meta-agent prompt (including retrieved chunks) is viewable.
+
+## Files to modify
+
+| File | Change |
+|------|--------|
+| `weft/tools/metaclaude/embedding/query.ts` | Add `--json` CLI flag |
+| `weft/tools/metaclaude/prompt.md` | Add `retrieved_chunks` docs, attribution instruction, examples |
+| `weft/tools/metaclaude/observer.sh` | Wire retrieval stage, update USER_MESSAGE, update session log |
+| `metacog/log-viewer/src/lib/types.ts` | Add retrieval fields to MetaEntry |
+| `metacog/log-viewer/src/components/MetaEntry.tsx` | Add expandable retrieval section |
+
+## Step 1: Add `--json` flag to query.ts
+
+In `main()` (line 94), add `--json` flag to arg parser. When set,
+output `JSON.stringify(results.map(r => r.formatted))` — a JSON array
+of formatted strings, one per chunk, each containing the source path
+in its `[Retrieved from ...]` header.
+
+```typescript
+let jsonMode = false;
+// in loop:
+} else if (args[i] === "--json") { jsonMode = true; }
+// before human-readable output:
+if (jsonMode) {
+  console.log(JSON.stringify(results.map(r => r.formatted)));
+  return;
+}
+```
+
+## Step 2: Update prompt.md
+
+Three additions, all brief. Current file is 77 lines.
+
+**2a. "What you receive" section (after line 76):** Document the new field.
+
+```markdown
+- `retrieved_chunks`: array of strings from the embedding index,
+  each formatted as `[Retrieved from {path}]\n{text}`. Semantically
+  similar to the current conversation. May be empty. Each chunk
+  carries its source file path.
+```
+
+**2b. "Output format" section (after line 38, the inject description):**
+Add attribution instruction.
+
+```markdown
+When your observation draws on a retrieved chunk, include `(ref: path)`
+so Builder Claude can read the source. Use the path from the chunk's
+`[Retrieved from ...]` header.
+```
+
+**2c. Compact examples (after output format section, before Alignment):**
+Two examples showing the input→output flow. One where retrieval informs
+the observation (with ref: citation), one where retrieval is present
+but irrelevant (inject: null).
+
+```markdown
+## Examples
+
+Retrieved chunk in input:
+`[Retrieved from learning/current-state.md — useReducer]\nscore: 2, gap: recall. Understands concept, can't reproduce syntax.`
+
+User asks: "can you walk me through useReducer again?"
+→ `{"inject": "Hart's useReducer gap is recall, not conceptual — he needs to write it, not hear it explained again. (ref: learning/current-state.md)", "context": "Session: useReducer practice. Retrieval confirmed recall gap."}`
+
+Retrieved chunk in input:
+`[Retrieved from design/design-principles.md — composability]\n...`
+
+User is debugging a CSS grid issue, making progress.
+→ `{"inject": null, "context": "CSS grid debugging, on track. Retrieved design-principles not relevant this turn."}`
+```
+
+## Step 3: Wire retrieval into observer.sh
+
+**All line numbers reference observer.sh as it exists before this plan's
+modifications.** Steps 3a-3b insert ~25 lines after line 170; subsequent
+references (3c, 3d) describe the *original* line numbers — find them by
+content, not by number, after earlier steps are applied.
+
+**3a. Extract query text** (after line 170, fingerprint skip):
+
+Pull last 3 user messages from `$RECENT`, concatenate. User messages
+carry the intent signal; assistant messages (mostly tool calls) add
+noise to embedding.
+
+```bash
+QUERY_TEXT=$(echo "$RECENT" | jq -r \
+  '[.[] | select(.role == "user") | .content] | .[-3:] | join(" ")' 2>/dev/null)
+```
+
+`$RECENT` is a JSON array built by observer.sh (lines 94-147). Each
+element: `{"role": "user"|"assistant", "content": "..."}`. Constructed
+from transcript parsing with tool-collapsing applied.
+
+**3b. Call query.ts, capture results** (immediately after):
+
+```bash
+# --- Embedding retrieval (Fast mode) ---
+RETRIEVED_CHUNKS="[]"
+RETRIEVAL_LATENCY=0
+RETRIEVAL_SOURCES=""
+RETRIEVAL_COUNT=0
+RETRIEVAL_ERROR=""
+QUERY_SCRIPT="$(dirname "$0")/embedding/query.ts"
+
+if [ -n "$QUERY_TEXT" ] && [ ${#QUERY_TEXT} -gt 10 ]; then
+    RETR_START=$(date +%s%3N 2>/dev/null || date +%s000)
+    RETR_ERR_FILE="${TMPDIR:-/private/tmp/claude-501}/mc_retr_err_$$"
+    if RETR_RAW=$(bun "$QUERY_SCRIPT" --json --top 3 --threshold 0.65 \
+                  "$QUERY_TEXT" 2>"$RETR_ERR_FILE"); then
+        if echo "$RETR_RAW" | jq 'type == "array"' 2>/dev/null | grep -q true; then
+            RETRIEVED_CHUNKS="$RETR_RAW"
+            RETRIEVAL_COUNT=$(echo "$RETR_RAW" | jq 'length')
+            RETRIEVAL_SOURCES=$(echo "$RETR_RAW" | jq -r \
+              '.[] | capture("\\[Retrieved from (?<s>[^]\\n—]+)") | .s' \
+              2>/dev/null | sort -u | paste -sd, -)
+        fi
+    else
+        RETRIEVAL_ERROR=$(cat "$RETR_ERR_FILE" 2>/dev/null)
+        [ -z "$RETRIEVAL_ERROR" ] && RETRIEVAL_ERROR="retrieval_failed (exit $?)"
+    fi
+    rm -f "$RETR_ERR_FILE"
+    RETR_END=$(date +%s%3N 2>/dev/null || date +%s000)
+    RETRIEVAL_LATENCY=$(( RETR_END - RETR_START ))
+fi
+```
+
+Guards: skip if query < 10 chars (e.g. "yes"). Failure → empty array,
+doesn't block inference. Stderr captured to temp file so stdout stays
+clean for JSON parsing; error message preserved for the log. Logged in
+Step 3d as `retrieval:{..., error:$retr_error}` — omit key when empty,
+matching the conditional pattern used for `injection_content`.
+
+**3c. Add `retrieved_chunks` to USER_MESSAGE** (modify lines 199-203):
+
+```bash
+USER_MESSAGE=$(jq -n \
+    --argjson recent "$RECENT" \
+    --argjson turn_count "$TURN_COUNT" \
+    --arg accumulator "$ACCUMULATOR" \
+    --argjson retrieved "$RETRIEVED_CHUNKS" \
+    '{recent_turns: $recent, user_turn_count: $turn_count,
+     accumulator: $accumulator, retrieved_chunks: $retrieved}')
+```
+
+`RETRIEVED_CHUNKS` defaults to `"[]"`, so this always produces valid JSON.
+
+**3d. Update session log entry** (find by anchor: `# --- Structured session log entry ---`):
+
+**Principle: the log captures exactly what the meta-agent saw and said,
+untruncated and unembellished.** The meta-agent receives two inputs
+(system prompt, user message) and produces one output (full response).
+All three must be logged verbatim.
+
+Changes:
+1. **Remove the 2000-char truncation** of `user_message` (delete the line
+   `USER_MSG_LOG=$(printf '%.2000s' "$USER_MESSAGE")`). Log `$USER_MESSAGE`
+   directly — it now contains `retrieved_chunks` and must be preserved whole.
+   In the jq call, change `--arg user_msg "$USER_MSG_LOG"` to
+   `--arg user_msg "$USER_MESSAGE"`.
+2. **Add `system_prompt` field** to the log entry. Currently not logged at
+   all. Log `$SYSTEM_PROMPT` (prompt.md + session instruction) verbatim.
+   This is the same string passed to curl/claude-cli. Add to the jq call:
+   ```bash
+   --arg system_prompt "$SYSTEM_PROMPT" \
+   ```
+   And in the JSON object: `system_prompt:$system_prompt,`
+3. **`full_response`** is already logged untruncated — no change needed.
+
+Add retrieval pipeline metadata (for query/filter, not for display of
+what the model saw — that's in `user_message`):
+
+```bash
+--argjson retr_latency "$RETRIEVAL_LATENCY" \
+--argjson retr_count "$RETRIEVAL_COUNT" \
+--arg retr_sources "$RETRIEVAL_SOURCES" \
+--arg retr_error "$RETRIEVAL_ERROR" \
+--argjson inf_latency "$INFERENCE_LATENCY" \
+```
+
+Pipeline becomes (update the existing `pipeline` object in the jq call):
+```
+pipeline:{
+  retrieval:{latency_ms:$retr_latency, chunk_count:$retr_count, sources:$retr_sources}
+    + if $retr_error != "" then {error:$retr_error} else {} end,
+  inference_1:{purpose:"assess_and_decide", latency_ms:$inf_latency, metadata:$inf_meta}
+}
+```
+
+**3e. Fix inference timing** to isolate it from retrieval. Currently
+`START_TIME` captures everything and `LATENCY_MS` is used for both
+`pipeline.inference_1.latency_ms` and `total_latency_ms`. With retrieval
+inserted before inference, `LATENCY_MS` would include retrieval time —
+making inference_1 latency wrong and total redundant.
+
+Fix: add `INFERENCE_START` / `INFERENCE_END` around the curl/claude-cli
+block (find by anchor: `# --- Inference ---`):
+
+```bash
+INFERENCE_START=$(date +%s%3N 2>/dev/null || date +%s000)
+# ... existing inference code ...
+INFERENCE_END=$(date +%s%3N 2>/dev/null || date +%s000)
+INFERENCE_LATENCY=$(( INFERENCE_END - INFERENCE_START ))
+```
+
+Then in the log entry:
+- `pipeline.retrieval.latency_ms` = `$RETRIEVAL_LATENCY` (around bun call)
+- `pipeline.inference_1.latency_ms` = `$INFERENCE_LATENCY` (around curl)
+- `total_latency_ms` = `$LATENCY_MS` (unchanged — `END_TIME - START_TIME`,
+  captures full pipeline including retrieval, inference, and parsing)
+
+## Step 4: Update log viewer to surface everything the log contains
+
+### Data path audit
+
+Traced the full path: JSONL → `parse-meta.ts` (JSON.parse, lossless) →
+server.ts (JSON.stringify, lossless) → client (JSON.parse, lossless —
+TS interfaces don't strip fields at runtime) → `MetaEntry.tsx`
+(**selectively displayed — this is where data is lost**).
+
+Fields currently **logged but not displayed** by MetaEntry.tsx:
+- `full_response` — complete meta-agent output including thinking tags
+- `pipeline` — inference metadata (latency, model, usage, stop reason)
+- `accumulator_in` / `accumulator_out` — session memory before/after
+
+Fields **not yet logged** (added in Step 3d):
+- `system_prompt` — prompt.md + session instruction
+- `pipeline.retrieval` — retrieval latency, chunk count, sources
+
+Fields **displayed but truncated** by MetaEntry.tsx:
+- `user_message` — sliced to 2000 chars on line 73
+
+### 4a. types.ts — Add new fields and fix type union
+
+Fix the `type` union (line 51) to include `observation_skipped`:
+```typescript
+type: "observation" | "observation_skipped" | "injection" | "error" | "session_header";
+```
+
+Add optional fields:
+```typescript
+system_prompt?: string;
+accumulator_in?: string;
+accumulator_out?: string;
+reason?: string;       // observation_skipped: "window_unchanged"
+fingerprint?: string;  // observation_skipped: SHA1 hash
+// full_response already exists on line 67
+// pipeline already typed as Record<string, unknown> on line 76
+```
+
+All optional → old logs without them don't break.
+
+### 4b. MetaEntry.tsx — Full rewrite of the detail section
+
+Replace the existing single-toggle detail section (lines 56-76) with
+a structured expandable area. Each section is independently togglable.
+
+**Guiding principle:** the viewer reveals all of what the log contains.
+No truncation, no elision, no embellishment. If a field exists in the
+entry, it's accessible.
+
+Extract a reusable `ExpandableSection` helper (local to the component,
+not a separate file):
+
+```typescript
+function ExpandableSection({ label, content }: { label: string; content: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="meta-detail">
+      <button className="detail-toggle" onClick={() => setOpen(!open)}
+        style={{ background: "none", border: "none", color: "var(--text-dim)",
+                 cursor: "pointer", padding: 0, fontSize: "0.85em" }}>
+        {open ? "▾" : "▸"} {label}
+      </button>
+      {open && (
+        <pre style={{ fontSize: "0.8em", opacity: 0.7, whiteSpace: "pre-wrap",
+                      overflow: "auto", marginTop: "4px" }}>
+          {content}
+        </pre>
+      )}
+    </div>
+  );
+}
+```
+
+Sections to render (each only if the field is present and non-empty):
+
+1. **system prompt** — `entry.system_prompt`
+2. **user message** — `entry.user_message` (full, no 2000-char slice)
+3. **accumulator in** — `entry.accumulator_in`
+4. **full response** — `entry.full_response`
+5. **accumulator out** — `entry.accumulator_out`
+6. **pipeline** — `JSON.stringify(entry.pipeline, null, 2)` (structured)
+
+**Summary line** (always visible when retrieval data exists): extract
+from `entry.pipeline` → `retrieval` sub-object. Format:
+"retrieval: N chunks ({latency}ms)" or omit for entries without it.
+
+**What gets removed:**
+- The existing `detailText` logic (lines 29-31) and its toggle (lines 56-76)
+- The 2000-char truncation (line 73)
+
+**What's preserved:**
+- The header section (label, model tag, decision, timestamp, latency)
+- The content line (injection_content / error)
+- The mode + context_window summary
+
+### Backward compatibility
+
+All field accesses use optional chaining or truthiness checks. For old
+log entries:
+- Missing fields → section simply doesn't render (no empty toggles)
+- `user_message` still works (just no longer truncated)
+- `pipeline` without `retrieval` → no retrieval summary line
+- Type widening (new optional fields) is additive — no runtime impact
+- `observation_skipped` entries have only turn, timestamp, reason,
+  fingerprint — all expandable sections will be absent, which is correct
+
+## Step 5: Update PRD
+
+**5a. Mark Phase 2 items complete:**
+- `[ ] Update prompt.md: ...` → `[x]`
+- `[ ] Wire into observer as Fast mode baseline: ...` → `[x]`
+
+**5b. Add logging fidelity convention** to the "Session logging" section
+(around line 717). Insert after the existing format description, before
+the `jq` examples. This codifies the principle as a project convention:
+
+```markdown
+### Logging fidelity convention
+
+Every step of log functionality — recording, storage, viewing,
+rendering — preserves the log in high fidelity for development
+purposes. Specifically:
+
+1. **Recording:** The observer logs the exact inputs sent to the
+   meta-agent (`system_prompt`, `user_message`) and its exact output
+   (`full_response`), untruncated. Pipeline metadata (latency, model,
+   retrieval stats) is logged alongside but kept separate from the
+   verbatim content.
+2. **Storage:** JSONL entries are complete JSON objects. No fields are
+   omitted to save space. If a field is empty, it's logged as `""` or
+   `null`, not dropped.
+3. **Viewing:** The log viewer surfaces all fields present in each
+   entry. Missing fields (from older entries) simply don't render —
+   no empty sections, no errors. Present fields render in full — no
+   viewer-side truncation.
+4. **Error handling:** "Graceful degradation" in logging context means
+   reporting every error and minimizing data loss at every handoff —
+   not silently swallowing failures. If a pipeline stage fails, the
+   error is captured in the log entry alongside whatever partial data
+   was collected. The observation still completes and logs what it can.
+```
+
+## Verification
+
+1. **query.ts --json:** `bun weft/tools/metaclaude/embedding/query.ts --json --top 3 --threshold 0.65 "useReducer state management"` → JSON array of formatted strings
+2. **observer.sh pipeline:** Enable MetaClaude, run a session, check:
+   - Session log has `pipeline.retrieval` with latency and chunk count
+   - `user_message` contains `retrieved_chunks` array, untruncated
+   - `system_prompt` field present and matches prompt.md content
+   - `full_response` present and untruncated
+   - Meta-agent response includes `(ref: path)` when citing retrieved content
+3. **Log fidelity:** Compare the logged `system_prompt` + `user_message`
+   against what curl actually sent. They must be byte-identical. Spot-check
+   with: `jq -r 'select(.type=="observation" and .turn==N) | .system_prompt' session.jsonl | diff - weft/tools/metaclaude/prompt.md`
+   Note: if a session instruction is active, the logged `system_prompt`
+   will be longer than prompt.md alone (prompt.md + "\n\n## Session
+   instruction\n\n" + instruction content). Inspect with `| head` or
+   diff against the concatenation.
+4. **Log viewer:** `cd metacog/log-viewer && bun run server.ts`:
+   - New sessions: expand system prompt, user message, full response —
+     each shows complete content with no truncation
+   - Retrieval summary line shows chunk count and latency
+   - Old sessions (pre-retrieval): render without errors, no empty
+     retrieval sections, no system_prompt toggle (field absent)
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/rhhart/.claude/projects/-Users-rhhart-Documents-GitHub-weft-dev/5029e113-cce9-47c7-9847-32893c05c46c.jsonl
+[A1 16:07] Let me read all the files I need to modify first.
+  -> Read: query.ts
+  -> Read: prompt.md
+  -> Read: observer.sh
+  -> Read: types.ts
+  -> Read: MetaEntry.tsx
+[A7 16:07] Now let me read the PRD for Step 5.
+  -> Agent: Find PRD Phase 2 checkboxes
+[A9 16:08] Good, I have everything. Let me implement all five steps. I'll work through them systematically.
+
+**Step 1: Add `--json` flag to query.ts**
+  -> Edit: query.ts
+[A11 16:08] **Step 2: Update prompt.md**
+  -> Edit: prompt.md
+  -> Edit: prompt.md
+  -> Edit: prompt.md
+[A15 16:08] **Step 3: Wire retrieval into observer.sh**
+  -> Edit: observer.sh
+[A17 16:09] **Step 3c: Add `retrieved_chunks` to USER_MESSAGE**
+  -> Edit: observer.sh
+[A19 16:09] **Step 3e: Add inference timing isolation**
+  -> Edit: observer.sh
+  -> Edit: observer.sh
+[A22 16:09] **Step 3d: Update session log entry** — remove truncation, add system_prompt, add retrieval metadata, update pipeline
+  -> Edit: observer.sh
+[A24 16:09] **Step 4a: Update types.ts**
+  -> Edit: types.ts
+  -> Edit: types.ts
+[A27 16:09] **Step 4b: Rewrite MetaEntry.tsx**
+  -> Write: MetaEntry.tsx
+[A29 16:10] **Step 5: Update PRD**
+  -> Read: 2026-03-09-metaclaude-local-prd.md
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+[A32 16:10] Now insert the logging fidelity convention. Let me find the exact insertion point.
+  -> Read: 2026-03-09-metaclaude-local-prd.md
+  -> Edit: 2026-03-09-metaclaude-local-prd.md
+[A35 16:10] All five steps are done. Let me verify the observer.sh is syntactically valid.
+  -> Bash: bash -n /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/observer.sh 2>&1
+  -> Bash: cd /Users/rhhart/Documents/GitHub/weft && bun --print "require('./tools/metaclau
+[A38 16:10] Both pass syntax checks. Let me do a quick sanity read of the final observer.sh to make sure the flow is coherent.
+  -> Read: observer.sh
+  -> Read: observer.sh
+[A41 16:10] Flow looks correct. Retrieval runs before inference, `INFERENCE_START` wraps the inference block, and both timings feed into the log entry separately.
+
+Here's what was done across all five files:
+
+**Step 1 — query.ts:** Added `--json` flag. When set, outputs `JSON.stringify(results.map(r => r.formatted))` — a JSON array of formatted strings with source paths. Empty array `[]` for no results (valid JSON either way).
+
+**Step 2 — prompt.md:** Three additions: (1) `retrieved_chunks` field documented in "What you receive", (2) `(ref: path)` attribution instruction added to output format, (3) two examples showing retrieval-informed injection vs. irrelevant retrieval.
+
+**Step 3 — observer.sh:** 
+- Extracts last 3 user messages as query text
+- Calls `query.ts --json --top 3 --threshold 0.65`, captures results or error
+- Adds `retrieved_chunks` to the USER_MESSAGE JSON
+- Adds `INFERENCE_START`/`INFERENCE_END` around the inference block for isolated timing
+- Removes 2000-char truncation of `user_message` in the log
+- Adds `system_prompt` to the log entry
+- Adds `pipeline.retrieval` with latency, chunk_count, sources, and conditional error
+
+**Step 4 — log viewer:**
+- `types.ts`: Added `observation_skipped` to type union, added `system_prompt`, `accumulator_in`, `accumulator_out`, `reason`, `fingerprint` fields
+- `MetaEntry.tsx`: Replaced single-toggle detail section with `ExpandableSection` helper. Six independently-togglable sections (system prompt, user message, accumulator in, full response, accumulator out, pipeline). No truncation. Retrieval summary in the mode line. Backward compatible — missing fields don't render.
+
+**Step 5 — PRD:** Marked Phase 2 items complete, added logging fidelity convention.
+[U2 16:30] let's make a few tweaks to the session log viewer so the logs have more visible info:
+
+- the columns in list view should be ordered date/time, turns, meta, injections (to be added), and embeddings
+- the 'injections' column should present a count of the number of injections made by a meta-agent in that session
+- currently logfiles are only appended when there's an injection event. we have no sample of the meta-agent's reasoning or inference steps when those don't lead to an injection. research the logging process in use and advise on how we can capture and represent more data while not being inundated with noise in the log viewer. i think this may involve a mode selector on session view (presented on an absolute-positioned header) that allows for viewing injections only or all meta-agent turns including silent ones.
+  -> Read: fluttering-frolicking-wand.md
+[A43 16:30] Different task — this is about log viewer UX changes, not the embedding wiring. Let me explore the current log viewer codebase.
+  -> Agent: Explore log viewer codebase
+  -> Agent: Explore observer logging patterns
+[A46 16:32] Important finding from the research: session JSONL logs only contain `session_header` + `injection` entries — zero `observation` entries despite the code writing them. This is a data path issue that needs investigation. Let me dig into the specifics.
+  -> Read: SessionList.tsx
+  -> Read: SortableTable.tsx
+  -> Read: session-index.ts
+[A50 16:32] Now let me check a sample session log to confirm the observation gap, and look at the ConversationView to understand the session detail rendering.
+  -> Bash: ls -la /Users/rhhart/Documents/GitHub/weft-dev/metacog/sessions/ | tail -10
+  -> Read: ConversationView.tsx
+  -> Bash: cat /Users/rhhart/Documents/GitHub/weft-dev/metacog/sessions/2026-03-10_5ceed018
+  -> Bash: cat /Users/rhhart/Documents/GitHub/weft-dev/metacog/sessions/2026-03-11_9ad57405
+[A55 16:33] Confirmed: session logs contain only `session_header` + `injection` — zero `observation` entries. The user already knows this. Let me now check what's blocking observation writes.
+  -> Bash: cat /Users/rhhart/Documents/GitHub/weft-dev/metacog/sessions/2026-03-10_5ceed018
+  -> Bash: ls -la ~/.claude/metaclaude/logs/ 2>/dev/null && head -3 ~/.claude/metaclaude/lo
+  x Bash failed: Exit code 5
+total 56
+drwxr-xr-x@  4 rhhart  staff    128 Mar 10 14:20 .
+drwxr-xr-x@ 13 rhhart  staff    416 Mar 10 20:02 ..
+-rw-r--r--@  1 rhhart  staff   9522 Mar  9 19:23 2026-03-09.jsonl
+-rw-r--r--
+  -> Bash: cat ~/.claude/metaclaude/logs/2026-03-10.jsonl | jq -c '{type, action, latency_m
+  -> Bash: cat ~/.claude/metaclaude/logs/2026-03-10.jsonl | jq -c '.action' 2>/dev/null | s
+  -> Bash: cat ~/.claude/metaclaude/logs/2026-03-10.jsonl | jq -c '.type' 2>/dev/null | sor
+[A61 16:34] Critical finding: legacy logs also contain ONLY `injection` entries (all 40 entries). This means observer.sh's own log writes (both session and legacy) are never executing. The observer runs inference and stages the injection file (proven by inject.sh successfully delivering), but dies before reaching either log write. Most likely: the large `jq -n` call at the session log entry is failing (something in the args), and `set -euo pipefail` kills the script before reaching legacy write too.
+
+Now let me read the parse-meta.ts to understand the meta index matching.
+  -> Read: parse-meta.ts
+[A63 16:34] Now let me check the server.ts to see how session summaries are served.
+  -> Read: server.ts
+[A65 16:34] Now I have a complete picture. Let me write the plan.
+  -> Write: fluttering-frolicking-wand.md
+  -> ToolSearch: select:AskUserQuestion
+  -> AskUserQuestion
+[A69 16:36] Good call — let me check git history to see when the session log write was actually added.
+  -> Bash: git log --oneline --all -- tools/metaclaude/observer.sh | head -20
+  -> Bash: git log --oneline -- tools/metaclaude/observer.sh | head -20
+  -> Bash: git log --oneline -- tools/metaclaude/observer.sh | head -20
+  -> Bash: git log --oneline --all -- tools/metaclaude/observer.sh | head -20
+  -> Bash: git log --oneline --all -- tools/metaclaude/observer.sh | head -20
+  -> Bash: git log --format="%h %ai %s" --all -- tools/metaclaude/observer.sh
+  -> Bash: git show 2a66017:tools/metaclaude/observer.sh | grep -n "Structured session log\
+  -> Bash: git log --all --format="%h %ai %s" -- tools/metaclaude/observer.sh tools/metacla
+  -> Bash: git log --all --format="%h %ai %s" -- "*.sh" | grep -i "meta\|observer\|inject" 
+  -> Bash: ls -la /Users/rhhart/Documents/GitHub/weft-dev/metacog/sessions/2026-03-09*.json
+  -> Bash: cat /Users/rhhart/Documents/GitHub/weft-dev/metacog/sessions/2026-03-10_03cbc52f
+  -> Bash: # Check if the observer.sh on disk (working tree) differs from the last commit
+#
+  -> Bash: # Check the COMMITTED version's META_LOG_DIR
+git show b7fbef1:tools/metaclaude/o
+  -> Bash: ls /Users/rhhart/Documents/GitHub/weft-dev/meta/ 2>/dev/null | head -10
+  -> Bash: # The committed version writes to weft-dev/meta/, our working tree writes to met
+[A85 16:38] Found it. The committed version of observer.sh points to `weft-dev/meta/` (which doesn't exist), but the working tree version (what actually runs as the hook) points to `metacog/sessions/`. The session_header gets written (creates the file), then the observer continues to inference, stages the injection file, but dies at the large observation jq write. inject.sh later adds the injection entry.
+
+Let me verify this by checking what the observation jq call actually looks like in the committed version.
+  -> Bash: git show b7fbef1:tools/metaclaude/observer.sh | sed -n '320,390p'
+  -> Bash: date +%s%3N
+[A88 16:39] There it is. `date +%s%3N` on macOS outputs `17732471543N` — a literal `N` appended because BSD date doesn't support `%N`. This means:
+
+- `START_TIME` = `17732471543N`
+- `END_TIME` = `17732471573N`  
+- `LATENCY_MS=$(( 17732471573N - 17732471543N ))` → **arithmetic failure** → `set -e` kills the script
+
+This is the root cause. The script crashes at every `$(( END_TIME - START_TIME ))` computation, which is AFTER staging the injection file but BEFORE writing observation/legacy log entries.
+  -> Bash: # Confirm: the fallback path never fires because date exits 0
+date +%s%3N 2>/dev
+[A90 16:39] Confirmed. `date +%s%3N` exits 0 (no error) but outputs garbage. The `|| date +%s000` fallback never fires. Now let me update the plan.
+  -> Read: observer.sh
+  -> Bash: # Check all locations using date +%s%3N in the working tree
+grep -n 'date +%s%3N
+[A93 16:39] Six locations, all broken. Now let me also check the styles.css for the existing CSS variables and patterns.
+  -> Read: styles.css
+[A95 16:39] Good, I have the full picture. Now let me write the final plan.
+  -> Write: fluttering-frolicking-wand.md
+  -> AskUserQuestion
+  -> Edit: fluttering-frolicking-wand.md
+  -> Edit: fluttering-frolicking-wand.md
+  -> Edit: fluttering-frolicking-wand.md
+  -> Edit: fluttering-frolicking-wand.md
+  -> ToolSearch: select:ExitPlanMode
+[A103 16:43] Summary of findings:
+
+- **Root cause of missing observations:** `date +%s%3N` on macOS outputs `17732471543N` (literal N). Exits 0, so fallback never fires. Arithmetic on the result crashes the script under `set -euo pipefail` — after staging the injection file but before any log writes. This has been broken since inception.
+- **Plan:** 3 steps — fix the timing bug (extract `ms_now` helper, replace 6 call sites), reorder columns + add injection count (Date/Time, Branch, Turns, Meta, Injections, Embeddings), add sticky mode selector in session view (Injections / All turns).
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to
+[U3 16:44] add a verification step that validates actual logging script outputs and makes sure the resulting file contains the expected info
+  -> Read: fluttering-frolicking-wand.md
+  -> Edit: fluttering-frolicking-wand.md
+[A107 16:44] Added two concrete verification steps:
+
+**V1** — unit-tests the timing fix in isolation: confirms `ms_now` produces numeric output and arithmetic works, then dry-runs the full observation jq call with representative sample data to prove it produces valid JSON.
+
+**V2** — end-to-end after deploying: runs a real MetaClaude session, then checks the session log for observation entries and validates that each one has the required fields (`system_prompt`, `user_message`, `full_response`, `pipeline.retrieval`, `pipeline.inference_1`). Fails explicitly if zero observations are found.
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). To tell you how to proceed, the user said:
+revie
+  -> Read: fluttering-frolicking-wand.md
+[A110 16:45] The issue: Step 3 (mode selector) depends on Step 1 (timing fix) being verified — there are no observation entries to filter until the timing bug is fixed. But the plan presents them as independent. Also, V1 should gate Step 1 completion, and V2 requires a live session which gates Step 3's usefulness.
+
+Let me restructure with explicit dependency sequencing.
+  -> Edit: fluttering-frolicking-wand.md
+[A112 16:45] Now let me also make the verification section reference the dependency gates explicitly.
+  -> Edit: fluttering-frolicking-wand.md
+  -> Edit: fluttering-frolicking-wand.md
+  -> Edit: fluttering-frolicking-wand.md
+  -> Edit: fluttering-frolicking-wand.md
+[A117 16:46] Dependency chain is now explicit:
+
+- **Step 1 → V1** (timing fix, then unit test it — gate before continuing)
+- **Steps 2 + 3** (viewer changes, independent of each other, both depend on types.ts)
+- **V2** (end-to-end with live session — gate before visual checks)
+- **V3 + V4** (browser verification — after V2 confirms observations are logging)
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). To tell you how to proceed, the user said:
+/hand
+  -> Skill: 
+[U4 16:47] Base directory for this skill: /Users/rhhart/.claude/skills/handoff-test
+
+# Handoff Test
+
+## The Naive Reader
+
+A fresh Claude instance with CLAUDE.md and tooling but nothing from this conversation. The only things that exist for it are what's written in persistent artifacts.
+
+## Process
+
+1. Identify what was created or modified this session. Read each artifact in full.
+2. From the naive reader perspective, find implicit dependencies:
+   - Session-local terminology used without definition
+   - References to "the bug," "the approach," "what we discussed" without grounding
+   - Decisions recorded without rationale (a future reader needs *why* to know when the decision expires)
+   - Scope assumed but not stated
+   - Next steps that depend on conversation memory
+3. Report gaps. For each: what's missing, where it goes, concrete suggested text. Offer to apply fixes.
+
+If the artifact passes, say so in one sentence.
+[A120 16:47] Let me read the plan artifact in full.
+  -> Read: fluttering-frolicking-wand.md
+[A122 16:48] Reviewing as a naive reader with CLAUDE.md but no conversation context:
+
+**Gaps found:**
+
+### 1. File paths are ambiguous — two repos, no roots stated
+
+The plan uses `weft/tools/metaclaude/observer.sh` and `metacog/log-viewer/...` without specifying which repo root each is relative to. A naive reader with CLAUDE.md knows the harness root is `/Users/rhhart/Documents/GitHub/weft` and the working directory is `weft-dev`, but the plan doesn't say `observer.sh` lives in `weft` while the viewer lives in `weft-dev`.
+
+**Where:** Files to modify table (line 22)
+**Fix:**
+  -> Edit: fluttering-frolicking-wand.md
+[A124 16:48] ### 2. "observation" vs "injection" entry types — terminology undefined
+
+The plan references `observation`, `observation_skipped`, `injection`, `session_header` entry types without explaining what writes them or what they mean. A naive reader doesn't know that observer.sh writes observations and inject.sh writes injections.
+
+**Where:** Context section, after line 18
+**Fix:**
+  -> Edit: fluttering-frolicking-wand.md
+[A126 16:48] ### 3. Step 1 line numbers are session-fragile
+
+Line numbers reference "current working tree" but the working tree includes uncommitted changes from the earlier part of this session (embedding retrieval wiring). A naive reader won't have the same working tree state.
+
+**Where:** Step 1, lines 65-71
+**Fix:**
+  -> Edit: fluttering-frolicking-wand.md
+[A128 16:48] ### 4. Step 2b references line 51 without anchoring content
+
+**Where:** Step 2b, line ~97
+**Fix:**
+  -> Edit: fluttering-frolicking-wand.md
+[A130 16:48] ### 5. V1 jq dry-run uses the *new* schema (with retrieval fields) but doesn't say so
+
+The jq template in V1 includes `retr_latency`, `retr_count`, `retr_sources` — fields that were added by the embedding wiring work done earlier in this session. A naive reader executing against the committed observer.sh (which doesn't have retrieval) would be confused.
+
+**Where:** V1 verification block
+**Fix:**
+  -> Edit: fluttering-frolicking-wand.md
+[A132 16:48] ### 6. No mention that observer.sh has uncommitted changes from this session
+
+The embedding retrieval wiring (earlier in this conversation) modified observer.sh but hasn't been committed. The timing fix applies on top of those changes. A naive reader might try to apply Step 1 against the committed version and miss the retrieval-related timestamp locations.
+
+**Where:** Context section
+**Fix:**
+  -> Edit: fluttering-frolicking-wand.md
+[A134 16:49] **Handoff test result:** 6 gaps found and fixed:
+
+1. **Two repos, no roots stated** — added absolute paths and repo labels to file table
+2. **Entry type terminology undefined** — added glossary of all 5 JSONL entry types with what writes them
+3. **Line numbers fragile** — replaced with grep-based find instruction
+4. **Step 2b line ref** — anchored to content string, not line number
+5. **V1 uses post-wiring schema without saying so** — added comment explaining retrieval fields come from uncommitted changes
+6. **Uncommitted working tree state not mentioned** — added explicit note that observer.sh has prior uncommitted embedding changes and this plan applies on top
+
+Plan now passes handoff test — a naive reader with CLAUDE.md can execute it without conversation context.
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to

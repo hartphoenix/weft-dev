@@ -1,0 +1,134 @@
+[U1 17:28] i keep having agents stop work abruptly when they reach a 500 error instead of failing gracefully. they need the ability to back up, check the situation, and take the right action (e.g. not call a file removal twice, not try the same edit twice, not read a file into context twice, but assess what needs to be done) from where work got interrupted. is there some hook that can be created or setting that can be customized to engineer this type of response?
+[A1 17:28] Good question. Let me research what Claude Code actually exposes for this — hooks, settings, retry behavior — so I can give you an accurate answer rather than speculate.
+  -> Task
+[A3 17:29] Good news and bad news here. There are hooks for tool-level failures, but the 500 errors you're hitting are a different beast.
+
+## Two different failure modes
+
+**Tool failures** (Edit can't find the string, Bash command errors, etc.) — Claude Code has a `PostToolUseFailure` hook that fires after these. You can use it to inject recovery guidance.
+
+**API 500 errors** (Anthropic's server returns a 500) — these kill the agent's turn entirely. The agent doesn't get a chance to "decide" what to do because the API call itself failed. Claude Code surfaces the error and waits for you to say "continue." There's no hook for this because it happens at the transport layer, before any agent logic runs.
+
+## What you CAN do
+
+### 1. `PostToolUseFailure` hook for tool-level errors
+
+This catches things like failed edits, permission errors, file-not-found, etc. and feeds recovery context back to the agent:
+
+```json
+// .claude/settings.json
+{
+  "hooks": {
+    "PostToolUseFailure": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/error-recovery.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+The hook receives JSON with `tool_name`, `tool_input`, and `error`, and can return `additionalContext` that tells the agent what to check before retrying.
+
+### 2. CLAUDE.md recovery instructions
+
+For the "agent duplicates work after resuming" problem, this is actually the most practical lever. When you hit a 500 and say "continue," the agent still has its conversation history — it just needs instructions to check state before acting:
+
+```markdown
+## Recovery after interruption
+
+When resuming after an error or interruption:
+1. Check current state before acting (git status, read the file, ls the dir)
+2. Never re-run destructive operations without confirming the target still exists
+3. If an edit failed, read the file first — it may have partially applied
+4. Don't re-read files already in contex [...truncated]
+[U2 17:50] let's implement step 1 in four places -- this project's claude.md, the one in package/ , the one in roger/ , and the one upstream of this directory, in github/
+
+i think the posttoolusefailure hook probably needs to be implemented only in the github/.claude location, but i'm not sure-- advice?
+[A4 17:50] Let me check the lay of the land first — what CLAUDE.md files exist and how hooks settings work at each level.
+  -> Glob: **/CLAUDE.md in GitHub
+  -> Glob: **/.claude/settings*.json in GitHub
+  -> Glob: .claude/settings*.json in rhhart
+[A8 17:50] Good, all four CLAUDE.md files exist. Now let me read them so I know what I'm adding to.
+  -> Read: CLAUDE.md
+  -> Read: CLAUDE.md
+  -> Read: CLAUDE.md
+  -> Read: CLAUDE.md
+  -> Read: settings.local.json
+  -> Read: settings.json
+[A15 17:51] Now I have the full picture. Let me address both questions.
+
+## Hook placement: user-level, not `GitHub/.claude/`
+
+Hooks don't cascade from parent project directories to child projects. When you open a session in `maestro/`, Claude Code reads:
+- `~/.claude/settings.json` (user-level — always)
+- `maestro/.claude/settings.json` (project-level)
+
+It does **not** read `GitHub/.claude/settings.json` unless `GitHub/` itself is the workspace root. So putting the hook in `GitHub/.claude/` would only work for sessions opened at that directory level.
+
+The right place is **`~/.claude/settings.json`** — where your `dcg` PreToolUse hook already lives. One definition, applies everywhere. We can add it alongside the existing hook when you're ready for step 2.
+
+## CLAUDE.md recovery language
+
+Per your security rules, I'm proposing these edits for approval. Same core directive, adapted to each file's voice and context.
+
+**1. `/Users/rhhart/Documents/GitHub/CLAUDE.md`** — workspace root, broadest scope:
+
+```markdown
+## Recovery after interruption
+
+When resuming work after an error or API interruption:
+1. Check current state before acting (git status, read affected files)
+2. Never re-run destructive operations without confirming the target exists
+3. If an edit failed, read the file first — it may have partially applied
+4. Don't re-read files already in context
+5. Use the todo list as a checkpoint — check what's already marked complete
+```
+
+**2. `/Users/rhhart/Documents/GitHub/maestro/CLAUDE.md`** — append after "Surprise-triggered capture":
+
+```markdown
+### Recovery after interruption
+
+When resuming after an error or API interruption:
+1. Check current state before acting (git status, read affected files)
+2. Never re-run destructive operations without confirming the target exists
+3. If an edit failed, read the file first — it may have partially applied
+4. Don't re-read files already in context
+5. Check the todo list for what's already marked complete
+```
+
+**3. `/Users/rhhart/Documents/G [...truncated]
+[U3 19:00] yes
+  -> Edit: CLAUDE.md
+  -> Edit: CLAUDE.md
+  -> Edit: CLAUDE.md
+  -> Edit: CLAUDE.md
+[A20 19:00] All four applied. When you're ready for step 2 (the `PostToolUseFailure` hook), that goes in `~/.claude/settings.json` alongside your existing `dcg` hook — one definition that covers every project.
+[U4 19:01] go ahead and execute step two
+  -> Bash: which jq
+  -> Bash: ls /Users/rhhart/.claude/hooks/ 2>/dev/null || echo "directory does not exist"
+  -> Bash: mkdir /Users/rhhart/.claude/hooks
+  -> Write: error-recovery.sh
+  -> Bash: chmod +x /Users/rhhart/.claude/hooks/error-recovery.sh
+[A26 19:03] Now add the hook to user-level settings alongside the existing `dcg` hook.
+  -> Edit: settings.json
+[A28 19:03] Let me verify it's valid JSON and test the script.
+  -> Bash: jq . /Users/rhhart/.claude/settings.json > /dev/null && echo "valid JSON"
+  -> Bash: echo '{"tool_name":"Edit","error":"old_string not unique in file"}' | /Users/rhh
+  -> Bash: echo '{"tool_name":"Bash","error":"rm: /foo/bar: No such file or directory"}' | 
+  -> Bash: echo '{"tool_name":"Write","error":"API Error: 500 Internal Server Error"}' | /U
+[A33 19:10] Done. Here's what's in place:
+
+- **Script:** `~/.claude/hooks/error-recovery.sh` — classifies the error (server error, not found, already exists, ambiguous edit, permission denied, generic) and returns targeted recovery guidance
+- **Config:** `PostToolUseFailure` hook in `~/.claude/settings.json` with empty matcher (catches all tool types), applied user-wide
+
+The hook fires after any tool failure, and the recovery guidance feeds back into the agent's context so it knows to check state before retrying. Combined with the CLAUDE.md instructions, agents should now assess before acting when they resume from an interruption.
+
+One caveat: this catches **tool-level** failures (Edit can't find the string, Bash command errors, file not found). For API-level 500 errors that kill the agent's turn entirely, the CLAUDE.md instructions are the primary safety net — the agent sees them when it resumes and you say "continue."

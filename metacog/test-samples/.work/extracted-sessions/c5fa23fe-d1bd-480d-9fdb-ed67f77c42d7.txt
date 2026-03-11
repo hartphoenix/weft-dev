@@ -1,0 +1,665 @@
+[U1 13:05] Base directory for this skill: /Users/rhhart/.claude/skills/startwork
+
+# Startwork
+
+Four core phases plus one conditional. Phases 1-4 are read-only —
+startwork never writes to learning state files. It reads the landscape
+and composes a briefing. Phase 5 (Progress Review) fires only when
+enough sessions have accumulated, running in the background during
+Phases 2-4 and presenting findings after the session plan is confirmed.
+
+## Path Resolution
+
+Resolve all harness file paths (learning/, .claude/references/,
+.claude/consent.json) from the harness root in `~/.claude/CLAUDE.md`,
+not the current working directory. If needed, read
+`~/.config/weft/root` for the absolute path.
+
+## Phase 0: Sync (pre-gather)
+
+If the harness directory is a git repo with a remote, pull latest
+learning state before reading it:
+
+```bash
+cd <harness-root> && git pull --ff-only 2>/dev/null
+```
+
+Silent on failure — the session still works with local state. This
+ensures cross-machine sync when the learner has pushed learning state
+from another device.
+
+## Phase 1: Gather
+
+Read all local data sources. Every source is optional — degrade
+gracefully. No network calls.
+
+### Step 1: Learning state check
+
+Check whether `learning/current-state.md`, `learning/goals.md`, and
+`learning/arcs.md` exist.
+
+- **All exist:** Full gather. Proceed normally.
+- **Some exist:** Work with what's available. Silent — don't warn about
+  individual missing files.
+- **None exist:** Tell the user: "No learning profile found. I can work
+  from git state and project context. Run `/intake` for a fuller
+  picture." If they proceed, Tiers 3 (Unblocking) and 4 (Growth-edge)
+  have no data — the briefing focuses on Tiers 1, 2, and 5.
+
+### Step 2: Git state
+
+Run:
+- `git status --short` — uncommitted work (Tier 1 continuation signal)
+- `git branch --show-current` — current branch name
+- `git log --oneline -10` — recent commits
+
+Interpretation:
+- Feature branch + uncommitted changes = strongest Tier 1 signal
+- Feature branch + clean = weaker continuation (finished a unit, may
+  want to continue or switch)
+- Main/master branch + clean = no continuation signal
+
+### Step 3: Session logs
+
+List files in `learning/session-logs/`. For each log file, read the
+YAML frontmatter. Extract:
+
+```yaml
+date: YYYY-MM-DD
+project: project-name
+concepts:
+  - name: concept-name
+    score: N
+    gap: type
+arcs:
+  - arc-name
+```
+
+Also scan the body of the most recent log for a "remaining work" or
+"next steps" section — this feeds directly into Tier 1 continuation.
+
+From the collected frontmatter, build a picture of:
+- **Last session date** — how long since the user last worked
+- **Active project** — what project was last worked on
+- **Recent concepts and scores** — what was just reviewed and where gaps
+  remain
+- **Arcs touched recently** — which developmental lines are active
+- **Unfinished threads** — remaining work noted in recent logs
+
+If no session logs exist, this is the first session. Skip silently.
+
+### Step 3b: Progress-review check
+
+After reading session logs, check whether a progress review is due.
+Two gates must both pass.
+
+1. Read `~/.config/weft/config.json`. Extract `progressReviewDays`
+   (default 3) and `progressReviewSessions` (default 5).
+2. Read `learning/.progress-review-log.md` for last review date. If
+   file doesn't exist: first run. Set window start to intake date
+   (creation date of `learning/current-state.md` via `stat`).
+3. **Day gate:** compute days since last review. If <
+   `progressReviewDays`, skip silently. First run (no prior review):
+   day gate passes.
+4. **Session gate:** run session-discovery for the review window
+   (`--since <window-start>`). Filter manifest: count only sessions
+   where `userMessageCount >= 10` (substantive sessions). If count <
+   `progressReviewSessions`, skip silently.
+   - **Fallback:** if session-discovery fails, count session logs in
+     `learning/session-logs/` since the window start. Apply
+     `progressReviewSessions` threshold against that count.
+5. Both gates pass → dispatch progress-review as a background
+   sub-agent (`subagent_type: "general-purpose"`,
+   `run_in_background: true`). Pass it:
+   - The full session-discovery manifest (unfiltered — all sessions
+     go to analysis, threshold filtering was just for the gate)
+   - All session log frontmatter for the review period
+   - Full contents of `learning/current-state.md`, `learning/goals.md`,
+     `learning/arcs.md`
+   - List of scaffold files in `learning/scaffolds/` (with dates)
+   - `git log --oneline -20`
+   - Contents of `learning/.progress-review-log.md` (for deferred
+     findings)
+   - Full contents of `.claude/skills/progress-review/SKILL.md`
+   Continue to Step 4 without waiting.
+6. If either gate fails: skip silently. No mention to user.
+
+### Step 3c: Digest staleness check
+
+**If progress-review was dispatched in step 3b, skip this step.**
+Progress-review handles its own digest dispatch internally and updates
+`.last-digest-timestamp` in its Phase 4.
+
+If step 3b did not fire:
+
+1. Read `learning/.last-digest-timestamp`. If missing, use the oldest
+   session log filename date. If no logs exist, use
+   `current-state.md` creation date. Last resort: 30 days ago.
+2. Run session-discovery with `--since <window-start>`.
+3. If 3+ undigested sessions: dispatch session-digest as a background
+   sub-agent (`subagent_type: "general-purpose"`,
+   `run_in_background: true`). Pass it:
+   - The session-discovery manifest (limit to 10 most recent sessions)
+   - Full contents of `learning/current-state.md`
+   - The full contents of `.claude/skills/session-digest/SKILL.md`
+   - Instruction: operate in sub-agent mode, return structured diff
+   Continue to Step 4 without waiting.
+4. If < 3: skip silently.
+
+### Step 4: Learning state
+
+If the learning state files exist, read them:
+
+**`learning/current-state.md`** — concept inventory table. Extract:
+- Low-scoring concepts (score ≤ 2) — candidates for growth-edge work
+- Stale concepts (last-updated > 2 weeks) — may need refresh
+- Gap types — conceptual vs. procedural vs. recall informs what kind
+  of work is needed
+- Evidence sources — quiz-verified scores carry more weight than
+  estimates (see `.claude/references/scoring-rubric.md`)
+
+**`learning/goals.md`** — active goals. Extract:
+- Goal aspirations and timeframes
+- Capabilities required for each goal
+
+**`learning/arcs.md`** — developmental lines. Extract:
+- Current state of each arc
+- Next move (reps or abstraction)
+- Dependencies (hard prerequisites, bridges)
+- Which goals each arc serves
+
+Cross-reference: which arcs are closest to their next milestone? Which
+concepts are on the growth edge (score 2-3, gap identified, actively
+being worked)? Consult `.claude/references/developmental-model.md` for
+the ordering heuristic.
+
+### Step 5: Schedule / deadlines
+
+Discover schedule information through convention-based search:
+
+1. Check the project's CLAUDE.md for a schedule reference or path
+2. Look for `schedule.md` or `SCHEDULE.md` at the project root
+3. Check for date-bearing sections in `README.md`
+
+If found, extract items with:
+- Dates (due dates, milestones, demo dates)
+- Status markers (Done, In progress, Planned)
+- Time estimates if annotated
+
+Compute proximity: days until due. Items due within 48 hours rank
+highest within Tier 2.
+
+If no schedule information is found, skip Tier 2 silently.
+
+### Step 6: Project context
+
+Light scan for available work beyond what's already captured:
+
+- Check for `TODO.md`, `.todo`, or similar task files
+- Scan `README.md` for task sections or checklists
+- Note any agent todo files (`.claude/todos` patterns)
+
+Read file names and section headers, not full content. Items marked
+with in-progress or planned status feed into the briefing as available
+work. This step is supplementary — if nothing is found, move on.
+
+---
+
+## Phase 2: Rank
+
+Apply the five-tier priority model to gathered data. Each candidate
+gets a tier assignment and a brief rationale.
+
+### Tier 1: Continuation
+
+Default to finishing what's mid-flight. Signals, strongest to weakest:
+- Uncommitted work on a feature branch
+- In-progress items in local task files
+- "Remaining work" noted in the most recent session log
+- Recent commits on a feature branch (finished a unit but more to do)
+
+### Tier 2: Deadline-driven
+
+What has a hard date. Surface proximity and estimated effort.
+
+Format: "X is due in N days, estimated at Y hours of work."
+
+Ranking within tier: due within 48h > due within a week > further out.
+
+### Tier 3: Unblocking
+
+What needs to happen before other things can. Three detection
+approaches:
+
+- **Learning prerequisites:** goals.md lists required capabilities;
+  current-state.md shows score ≤ 2 for a prerequisite concept; that
+  gap blocks progress on an active project.
+- **Arc dependencies:** arcs.md tracks hard prerequisites and bridge
+  dependencies per arc. If a prerequisite arc is stalled, flag it.
+- **Textual signals:** scan gathered materials for dependency language
+  ("depends on", "requires", "blocked by", "unblocks").
+
+### Tier 4: Growth-edge
+
+Connect a project need to a learning opportunity. Use the ordering
+heuristic from `.claude/references/developmental-model.md`: breadth,
+compounding, upstreamness, time-to-value, complexity-chunking gap.
+
+### Tier 5: Maintenance
+
+Important over time, never urgent in a given session:
+- Stale todos (> 48 hours old)
+- Cleanup and documentation tasks
+- Review items with no deadline pressure
+
+### Demotion rule
+
+Items with flags rank below clean items at the same tier. Flags:
+- `blocked` — explicitly annotated as blocked
+- `needs-decision` — requires a decision before work can proceed
+- `waiting-on-external` — depends on something outside the user's
+  control
+
+---
+
+## Phase 3: Present
+
+### Step 1: Ask for time budget
+
+> How much time do you have today?
+
+Accept natural language ("a couple hours", "30 minutes", "all
+afternoon"). Confirm the number: "Got it — about 2 hours."
+
+### Step 2: Compose session briefing
+
+Given the ranked list and the time budget, compose a session briefing.
+Four sections:
+
+**The gap that matters most right now**
+
+Narrative synthesis of the highest-priority context. Connects goal →
+current state → active project → deadline (as applicable). Answers
+"why this, why now" in 3-5 lines.
+
+**What your project needs today**
+
+Numbered list, time-estimated, fitting within the declared budget.
+Each item includes:
+- Task description (concrete, actionable)
+- Time estimate
+- Why it matters (tier rationale, briefly)
+- Learning note if at the growth edge ("you're at level 2 with X,
+  this is where the learning happens")
+
+**Also on your radar**
+
+Bulleted list of items that didn't make the plan but are worth knowing
+about: deferred work, stale items, other projects, items from lower
+tiers.
+
+**Something to try**
+
+One playful, low-stakes suggestion connected to the growth edge.
+
+### Presentation style
+
+Plain language — no developmental model jargon. Show insights, not
+data: "you're growing with X" not "score: 2, gap: procedural."
+
+### Example output
+
+```
+## Session Briefing — Monday Feb 24
+
+### The gap that matters most right now
+- Goal: "Build and deploy full-stack apps independently"
+- Current state: solid backend, growing React, growth edge
+  at state management and frontend testing
+- Active project: Assignment 4 (exercises useReducer +
+  testing — directly at the edge)
+- Due Wednesday. ~4-6h remaining.
+
+### What your project needs today (you said ~3 hours)
+1. Finish API endpoints (45 min) — continuation, unblocks frontend
+2. The frontend component needs useReducer — you're at level 2,
+   this is where the learning happens (1.5h)
+3. If time: write one test for the endpoint (30 min) — growth-edge,
+   new territory
+
+### Also on your radar
+- Weft: solo startwork design (serves a different goal —
+  "build tools that compound learning")
+- Stale todo from Friday: error handling refactor (48h old)
+
+### Something to try
+- The useReducer component could be playful — build the smallest
+  silliest thing that needs it before tackling the assignment
+```
+
+---
+
+## Phase 4: Confirm
+
+Present the session briefing. Three possible responses:
+
+- **Approve:** "Sounds good" / "Let's go" → Print a compact plan
+  summary and begin the session.
+- **Adjust:** User modifies priorities, swaps items, changes time
+  estimates → Recompose the relevant sections and re-present.
+- **Override:** "Actually I want to work on X" → Accept without
+  arguing. Acknowledge the choice. If the skill gathered relevant
+  context about that item (deadline, prerequisites, learning state),
+  mention it briefly. The system proposes; the human decides.
+
+
+---
+
+## Phase 5: Background Reviews (conditional)
+
+Only runs if a sub-agent was dispatched in Step 3b or 3c.
+
+### Session-digest results
+
+If step 3c was skipped because progress-review was dispatched (step
+3b), there are no standalone digest results to present. The progress-
+review sub-agent handles digest internally and includes coverage info
+in its findings.
+
+If a session-digest sub-agent was dispatched in Step 3c:
+- Present its proposed diff to the user
+- User approves/adjusts/rejects
+- If approved: write changes to `current-state.md`, update
+  `learning/.last-digest-timestamp`
+- If more than 10 sessions were undigested, note that older
+  sessions remain — user can run `/session-digest` standalone
+
+### Progress-review results
+
+1. After the user confirms the session plan (Phase 4), check if the
+   progress-review sub-agent has returned.
+2. **If returned:** Present findings. "I also looked across your recent
+   sessions and noticed some patterns." Show the review summary and
+   proposed changes. User approves all / selects specific changes /
+   adjusts / defers / rejects.
+   - **Approve (all or selective):** Startwork writes approved changes
+     to learning state files. Tag updates as `progress-review:pattern`.
+     Startwork appends the review to `learning/.progress-review-log.md`
+     per the progress-review skill's Phase 4 log format (date, sessions
+     reviewed, themes with applied/deferred status, changes applied,
+     deferred items).
+   - **Defer:** Startwork appends the review log with deferred findings
+     recorded. No learning state changes. Deferred findings escalate
+     next review.
+   - **Reject:** Startwork appends the review log with empty changes
+     and empty deferrals. This advances the review window so the same
+     sessions aren't re-analyzed.
+
+   In all three cases startwork is the writer — the progress-review
+   sub-agent returns findings but does not write files.
+3. **If not yet returned:** "I'm also running a learning review across
+   your recent sessions — I'll share when it's ready." Check again
+   after a brief pause. Present when available.
+4. **If failed:** Skip silently. Don't mention it. The session
+   proceeds.
+
+---
+
+## Graceful Degradation
+
+| Missing | Effect |
+|---------|--------|
+| All learning state | Tiers 3-4 unavailable. Briefing from git + schedule + project context. Suggest `/intake`. |
+| `current-state.md` only | Growth-edge limited. Goals and arcs still provide direction. |
+| Session logs empty | No "last session" context. Git provides continuation signals. |
+| Schedule not found | Tier 2 unavailable. Silent. |
+| No git repo | Tier 1 weakened. Unusual but not an error. |
+| Everything empty | "This looks like a fresh start. What are you working on?" — simple planning conversation. |
+
+---
+
+## Consent Gate
+
+External signal paths (teacher-response checks) require both
+`.claude/consent.json` and `learning/relationships.md` with a
+`signal_repo`. If either is absent, skip silently.
+
+
+ARGUMENTS: using the PRD design/2026-03-09-metaclaude-local-prd.md as the priority set. need to unstale the checklist and then start working on next relevant steps. note changes in github/weft as well in order to gauge done/undone items
+[A1 13:05] Let me gather everything in parallel.
+  -> Bash: git status --short && echo "---BRANCH---" && git branch --show-current && echo "
+  -> Bash: cd /Users/rhhart/Documents/GitHub/weft && git status --short && echo "---BRANCH-
+  -> Read: 2026-03-09-metaclaude-local-prd.md
+  -> Bash: ls /Users/rhhart/Documents/GitHub/roger/learning/session-logs/ 2>/dev/null | tai
+  -> Read: current-state.md
+[A7 13:06] Now let me check the metaclaude skill in weft and the current state of the tools directory.
+  -> Bash: ls -la /Users/rhhart/Documents/GitHub/weft/.claude/skills/metaclaude/ 2>/dev/nul
+  -> Bash: ls -la /Users/rhhart/Documents/GitHub/weft-dev/tools/ 2>/dev/null && echo "---ME
+  -> Bash: git diff --name-only HEAD 2>/dev/null
+  -> Bash: ls -la /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/
+[A12 13:06] ## Session Briefing — Monday Mar 10
+
+### Where you are
+
+The MetaClaude Local build has strong infrastructure: hooks, toggle, status line, observability, session logging, log viewer, and the LM Studio backend routing are all built and working. You've verified inference with Qwen3-4B via `--sl`.
+
+**What's left on Phase 1** (5 unchecked items):
+1. Try 3 models (--sl Qwen3-4B, --ml Qwen3-8B, --ll Gemma-3-12B)
+2. Measure per-model: inference time, response quality, memory, responsiveness
+3. Document results in experiment log
+4. Select primary model
+5. Model-specific prompt variants testing
+
+**Phase 2** (embedding index) is entirely unstarted — and it's the piece that connects MetaClaude to the developmental model (the PRD flags this as the highest-impact gap).
+
+**Weft (harness repo)** has uncommitted changes to 4 skill files + CLAUDE.md, plus the new `metaclaude/` skill and `tools/` directory. These represent the working metaclaude implementation that needs to ship.
+
+### The gap that matters most
+
+The model comparison work (remaining Phase 1) is blocking everything downstream — you can't build the embedding pipeline without knowing which model you're building around, and Phase 4's empirical framework needs baseline measurements. But it's also the most experimentation-heavy part: you set up LM Studio, run each model against the same prompts, measure, compare. Could go fast if the models cooperate.
+
+### What's the plan
+
+The natural sequence:
+1. **Model testing sprint** — run all 3 models, collect measurements, pick a primary (Phase 1 completion)
+2. **Start Phase 2** — sqlite-vec + embedding pipeline, wire into observer
+
+How much time do you have today?
+[U2 13:08] Base directory for this skill: /Users/rhhart/.claude/skills/metaclaude
+
+# MetaClaude Toggle
+
+Parse the user's arguments and run the toggle script or manage instruction state.
+
+## Toggle and mode commands
+
+```bash
+# No args — toggle on/off
+bash /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/toggle.sh
+
+# With args:
+bash /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/toggle.sh on
+bash /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/toggle.sh off
+bash /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/toggle.sh --dev
+bash /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/toggle.sh --prod
+bash /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/toggle.sh mode dev
+bash /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/toggle.sh mode prod
+```
+
+## Model switch commands
+
+```bash
+bash /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/toggle.sh --sl   # Qwen3-4B-Thinking (local)
+bash /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/toggle.sh --ml   # Qwen3-8B (local)
+bash /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/toggle.sh --ll   # Gemma-3-12B (local)
+bash /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/toggle.sh --mch  # Haiku (API)
+bash /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/toggle.sh --mco  # Opus-4.6 (API)
+```
+
+Model switch auto-enables MetaClaude if it's off.
+
+## Instruction commands
+
+Instructions persist across turns until cleared or MetaClaude disabled.
+
+- `+[text]` — append instruction: write text as a new line to `~/.claude/.metaclaude-instruction`
+- `-[text]` — replace instruction: overwrite `~/.claude/.metaclaude-instruction` with text
+- `-[]` — clear instruction: remove `~/.claude/.metaclaude-instruction`
+
+Handle these directly via Bash — no script needed:
+
+```bash
+# Append
+echo "instruction text" >> ~/.claude/.metaclaude-instruction
+
+# Replace
+echo "instruction text" > ~/.claude/.metaclaude-instruction
+
+# Clear
+rm -f ~/.claude/.metaclaude-instruction
+```
+
+## Combined commands
+
+Model switch and instruction can be combined in any order:
+- `/metaclaude --ml +[focus on error handling]` → switch model, then append instruction
+- `/metaclaude -[only track tests] --sl` → replace instruction, then switch model
+
+## Intent mapping
+
+- "metaclaude" / "metaclaude on/off" → toggle or set state
+- "metaclaude dev" / "metaclaude --dev" → enable in dev mode
+- "metaclaude prod" / "metaclaude --prod" → enable in prod mode
+- "metaclaude mode dev/prod" → switch mode without toggling
+- "metaclaude --ml" / "metaclaude --sl" etc. → switch model (auto-enables)
+- "metaclaude +[text]" → append instruction
+- "metaclaude -[text]" → replace instruction
+- "metaclaude -[]" → clear instruction
+
+Report the new state to the user.
+
+
+ARGUMENTS: --lm
+[A13 13:08] `--lm` isn't a recognized flag. The local model options are:
+
+- `--sl` — Qwen3-4B-Thinking (small local)
+- `--ml` — Qwen3-8B (medium local)
+- `--ll` — Gemma-3-12B (large local)
+
+Which one do you want?
+[U3 13:09] ml
+  -> Bash: bash /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/toggle.sh --ml
+[A15 13:09] The script ran but the state files couldn't be written — sandbox is blocking writes to `~/.claude/` for the dotfiles the toggle needs (`.metaclaude-model`, `.metaclaude-enabled`, `.metaclaude-status`).
+
+**Expected:** toggle.sh writes state files to `~/.claude/`.
+**Got:** `Operation not permitted` on all three writes.
+
+The script printed success messages because it doesn't check exit codes on those writes. MetaClaude won't actually activate since the enable flag file wasn't created.
+
+You'll need to run this outside the sandbox (in a regular terminal), or we can adjust the sandbox allow-list to include those specific dotfiles. What's your preference?
+[U4 13:10] okay that needs two fixes -- the script should print failure messages in a case like this (thanks for surfacing this anyway) and the sandbox needs this in the allowlist. can you fix 1 and present the lines to be added to the settings.json for 2?
+  -> Read: toggle.sh
+[A17 13:10] The writes that can fail silently are in `set_model`, `enable`, `disable`, and `set_mode`. I'll add write checks to each.
+  -> Edit: toggle.sh
+  -> Edit: toggle.sh
+  -> Edit: toggle.sh
+  -> Edit: toggle.sh
+  -> Edit: toggle.sh
+[A23 13:11] Fix applied. Here's the final state:
+  -> Read: toggle.sh
+[A25 13:11] **Fix 1 done.** All writes now go through `_write`/`_touch` helpers that emit `ERROR:` to stderr and return non-zero on failure.
+
+**Fix 2 — sandbox allowlist.** Add these to your `settings.json` under `permissions.allow` (or the write allowlist):
+
+```json
+"/Users/rhhart/.claude/.metaclaude-enabled",
+"/Users/rhhart/.claude/.metaclaude-status",
+"/Users/rhhart/.claude/.metaclaude-mode",
+"/Users/rhhart/.claude/.metaclaude-model",
+"/Users/rhhart/.claude/.metaclaude-injection",
+"/Users/rhhart/.claude/.metaclaude-instruction",
+"/Users/rhhart/.claude/.metaclaude-session-log",
+"/Users/rhhart/.claude/metaclaude-logs"
+```
+
+That covers all the dotfiles toggle.sh, observer.sh, and inject.sh write to. The session log pointer file (`.metaclaude-session-log`) and the legacy log directory are included too since those get written by the observer/inject pipeline.
+[U5 13:12] the metaclaude SETUP.md needs a note on these allowlist lines as well for the general user who may be sandboxed
+  -> Read: SETUP.md
+  -> Edit: SETUP.md
+[A28 13:12] Done. Added a "Sandbox allowlist" section right before "First use" with the paths and a note about expanding `~`. The toggle.sh fix means users will now see clear `ERROR:` messages if they miss this step.
+[U6 13:15] i've updated settings.json but don't want to clear the context in order to reload it. do you have a way to refresh & adopt the new allowlist?
+[A29 13:15] No — the sandbox config loads at session start and I can't reload it mid-session. You'll need to start a new session for the allowlist changes to take effect.
+
+The toggle will work fine from a regular terminal in the meantime if you want to use it now.
+[U7 13:15] create a handoff prompt for what we're working on, which surfaced in the startwork -> prd update.
+  -> Skill: 
+[U8 13:15] Base directory for this skill: /Users/rhhart/.claude/skills/handoff-prompt
+
+# Handoff Prompt
+
+Do not read files. Work from memory.
+
+## Recipient
+
+Fresh Claude Code instance. Has CLAUDE.md, memory files, full
+tooling. Has nothing from this session.
+
+## Assemble from memory
+
+- **Goal** — session intent
+- **State** — done, in progress, untouched
+- **Key files** — paths and condition
+- **Decisions** — choices and rationale
+- **Discoveries** — anything not yet in persistent files
+- **Blockers** — unresolved issues
+- **Next steps** — prioritized, specific enough to act on
+
+Write plain text addressing the next agent. Be concrete:
+"move token validation from route handler to `src/middleware/auth.ts`"
+not "finish the auth work."
+
+Output the entire handoff inside a single fenced code block.
+[A31 13:16] ```
+## Handoff: MetaClaude Local — Phase 1 completion + Phase 2 start
+
+### Goal
+
+Complete the MetaClaude Local build per the PRD at
+`design/2026-03-09-metaclaude-local-prd.md`. This session was scoped
+to unstale the PRD checklist against actual repo state, then begin
+the next work items.
+
+### State
+
+**Done (prior sessions):**
+- Full hook infrastructure: observer.sh, inject.sh, toggle.sh, statusline.sh
+  in `/Users/rhhart/Documents/GitHub/weft/tools/metaclaude/`
+- MetaClaude SKILL.md at `/Users/rhhart/Documents/GitHub/weft/.claude/skills/metaclaude/SKILL.md`
+- Phase 1 model selection interface, backend routing, thinking tag handling,
+  session instruction passing, status line dynamic model tags — all built
+- Phase 3 observability — complete + extended with structured session logging
+- Phase 3a session log viewer — built at `tools/log-viewer/` in weft-dev
+- Session logging (JSONL per conversation in `weft-dev/meta/`)
+- LM Studio verified serving inference (tested with --sl Qwen3-4B)
+
+**Done this session:**
+- toggle.sh hardened: all writes go through `_write`/`_touch` helpers
+  that emit `ERROR:` to stderr and return non-zero on permission failure
+  (was silently succeeding with failed writes)
+- SETUP.md updated with sandbox allowlist section listing all 8 paths
+  metaclaude needs write access to in `~/.claude/`
+- User has updated their settings.json with the allowlist but it won't
+  take effect until next session
+
+**Not started (Phase 1 remaining — 5 items):**
+1. Try 3 models: --sl (Qwen3-4B), --ml (Qwen3-8B), --ll (Gemma-3-12B)
+2. Measure per-model: inference time, response quality, memory, responsiveness
+3. Document results in experiment log
+4. Select primary model for remaining work
+5. Model-specific prompt variants (test current prompt.md against each model,
+   decide if per-model variants are needed)
+
+**Not started (Phase 2 — embedding index, all items):**
+- sqlite-vec extension for bun:sqlite
+- index.ts: embed files via LM Studio /v1/embeddings, store in SQLite
+ [...truncated]

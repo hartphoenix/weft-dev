@@ -1,0 +1,96 @@
+[U1 19:09] i'd like some help priority-sorting this list of companies i might intern with -- can you do research on each of the companies in companies.md and turn the file into a sorted table with name (linked to url), an info blurb about them, and the reason(s) you think I'd be interested to dig deeper / possibly work with them? feel free to visit their URLs, web search, and reflect on my goals / background / learning? keep all the companies currently listed, but reorder them as you see fit
+[A1 19:09] Let me start by reading the file to see what we're working with.
+  -> Read: companies.md
+[A3 19:09] 59 companies — that's a solid research task. Let me read your goals file for richer context, then fan out research on all of them in parallel.
+  -> Read: goals.md
+  x Read failed: File does not exist. Note: your current working directory is /Users/rhhart/Documents/GitHub/roger.
+  -> Glob: **/*.md in learning
+  -> Bash: ls /Users/rhhart/documents/github/weftclone/weft/learning/ 2>/dev/null || echo "
+[A7 19:09] No goals file to read — the CLAUDE.md has rich context already. Let me launch parallel research on all 59 companies. I'll split them into batches across multiple agents.
+  -> TodoWrite
+  -> Task
+  -> Task
+  -> Task
+  -> Task
+[A13 19:10] Four research agents are running in parallel, each covering ~15 companies. They're visiting URLs and searching the web for each one. I'll synthesize everything and build the ranked table once they report back. This will take a few minutes given the volume.
+  -> TaskOutput
+[A15 19:13] Got 3 of 4 batches back. Waiting on the last one.
+  -> TaskOutput
+[A17 19:15] All four research batches are back. Let me synthesize and rank.
+  -> TodoWrite
+  -> TodoWrite
+  -> Write: companies.md
+  -> TodoWrite
+[A22 19:18] Done. The file is rewritten as a priority-sorted table with 4 tiers across all 59 companies.
+
+**The top 6 (Tier 1 — direct mission alignment):**
+
+1. **Synthesis Tutor** — The closest existing implementation of your developmental AI tutor vision. Proprietary adaptive pedagogy, not an LLM wrapper. Series B.
+2. **ImmersionED** — The rare company sitting at the intersection of *both* goals: branching narrative + adaptive learning simulations. 4K+ schools.
+3. **Plastic Labs** — The infrastructure layer beneath what you're building with roger/weft. Theory-of-mind modeling for AI agents. Open source, small NYC team.
+4. **Alpha School** — Full-stack education reinvention at $1B scale. Mastery-based adaptive learning.
+5. **ESAI** — "Walk beside students, don't speak over them." Same design philosophy as roger, same teaching-to-tech pipeline.
+6. **Flora** — Node-based branching creative canvas. Born from NYU art. $52M Series A. Your Thirst Trap work is structural preparation for this.
+
+The "why dig deeper" column reflects your specific background — not generic fit, but where your music/theatre/narrative/psych/systems stack is a genuine differentiator rather than incidental.
+[U2 19:55] awesome work! I've done a bit more sorting of the list and added some info of my own as well as a middle tier (1.5) based on personal connections i have with these organizations. I'd like you to do a deeper dive on tiers 1, 1.5, and 2 (ignoring the rest) -- dispatch research agents to find what's out there beyond just the company websites and compose a more thorough report on each one. the report should be one new standalone file on the whole selection of companies indicated. if possible, see what kind of people they're looking for. i'd even like to know what their reputations and vibes are like if available. dispatch subagents for this task.
+[A23 19:55] 14 companies across Tiers 1, 1.5, and 2. Let me dispatch deep-dive agents — going beyond websites into hiring pages, founder interviews, Glassdoor, Twitter/X presence, press coverage, team culture signals, and what kind of roles they're looking for.
+  -> Task
+  -> Task
+  -> Task
+  -> Task
+[A28 19:56] Four deep-dive agents dispatched — one per tier/batch. They're digging into careers pages, founder interviews, Twitter/X, Glassdoor, GitHub repos, press coverage, podcasts, and community reputation for all 14 companies. This will take a few minutes given the depth. I'll compile everything into one standalone report file when they're all back.
+  -> TaskOutput
+[A30 20:05] All four agents are back. Let me pull the full detailed outputs for the two that returned summaries.
+  -> Read: a5c4534360592094b.output
+  x Read failed: File content (284.8KB) exceeds maximum allowed size (256KB). Please use offset and limit parameters to read specific portions of the file, or use the GrepTool to search for specific content.
+  -> Read: a96be50dfa75c6305.output
+  x Read failed: <tool_use_error>Sibling tool call errored</tool_use_error>
+  -> Read: a5c4534360592094b.output
+  x Read failed: File content (94687 tokens) exceeds maximum allowed tokens (25000). Please use offset and limit parameters to read specific portions of the file, or use the GrepTool to search for specific content.
+  -> Read: a96be50dfa75c6305.output
+  x Read failed: <tool_use_error>Sibling tool call errored</tool_use_error>
+  -> Bash: wc -l /private/tmp/claude-501/-Users-rhhart-Documents-GitHub-roger/tasks/a5c4534
+  -> Bash: grep -n "^##\|^---\|^#" /private/tmp/claude-501/-Users-rhhart-Documents-GitHub-r
+  -> Bash: grep -n "^##\|^---\|^#" /private/tmp/claude-501/-Users-rhhart-Documents-GitHub-r
+[A38 20:05] The output files are in a non-standard format. Let me use a targeted approach to extract the actual report content.
+  -> Read: a5c4534360592094b.output
+  x Read failed: File content (28015 tokens) exceeds maximum allowed tokens (25000). Please use offset and limit parameters to read specific portions of the file, or use the GrepTool to search for specific content.
+  -> Read: a96be50dfa75c6305.output
+  x Read failed: <tool_use_error>Sibling tool call errored</tool_use_error>
+  -> Read: a5c4534360592094b.output
+  -> Read: a96be50dfa75c6305.output
+[A43 20:05] I have full reports for Tier 1 companies. The Tier 1.5 and Tier 2 agents returned source lists in their summaries. Let me resume them to extract the full reports.
+  -> Task
+  -> Task
+[A46 20:05] Resumed both agents to get their full write-ups. Waiting for them to come back, then I'll compile everything into the report file.
+  -> TaskOutput
+  -> TaskOutput
+[A49 20:10] All research is in. Let me compile the full report.
+  -> TodoWrite
+  -> Write: company-deep-dives.md
+  -> TodoWrite
+[A53 20:18] Done. The full report is at [company-deep-dives.md](company-deep-dives.md) — covers all 14 companies with thorough write-ups on each.
+
+A few things that surfaced that seem worth flagging:
+
+**Alpha School is a hard pass.** The WIRED investigation found food withheld from a 9-year-old to motivate metrics, bedroom surveillance of students, unqualified remote coaches in the Philippines, and student self-harm linked to gamification. It's the anti-pattern of developmental AI tutoring. Worth studying as a cautionary example, not a workplace. I'd suggest moving it out of Tier 1.
+
+**Three companies have concrete paths in right now:**
+- **Plastic Labs** — explicitly hiring summer interns, NYC, mission overlap, open-source codebase you can contribute to before applying
+- **Flora** — 17 roles open at a 25-person company, Forward Deployed Creative role matches your exact profile, founders' emails are on the postings
+- **Suno** — live Summer 2026 internship posting, but the values tension around music and the CEO's "making music sucks" comments is a real decision point for you specifically
+
+**Community Archive** has the warmest path — Fractal bootcamp students have already contributed. You could start on GitHub issues today.
+[U3 20:32] very helpful, thank you. can you provide the source URLs that alerted you to the alpha school issues so I can pass along to the bootcamp instructors? i think they'd want to know
+[A54 20:32] The key sources on Alpha School:
+
+- **The WIRED investigation (Oct 2025)** by Todd Feathers — this is the primary source. A summary of the buried findings was also covered on Substack: https://terryu.substack.com/p/five-stories-buried-in-wireds-bombshell
+- **Alpha School Wikipedia page** — aggregates the controversies with citations: https://en.wikipedia.org/wiki/Alpha_School
+- **ESW Capital operating manual exposé** — documents the Crossover/ESW labor practices that Alpha's hiring runs through: https://www.vernehq.com/post/joe-liemandt-esw-capital-operating-manual-global-tech-sweatshop
+- **CNN coverage** — "Is AI schooling a risky bet?": https://www.cnn.com/2026/01/29/politics/alpha-school-trump-ai-teaching
+- **Parent review/guide** documenting backlash: https://www.aifunlab.io/learn/alpha-school-review-75k-ai-first-pros-cons-parent-guide
+- **ESW Capital Glassdoor** (2.7/5, 31% recommend): https://www.glassdoor.com/Reviews/ESW-Capital-Reviews-E2021855.htm
+- **Alpha Schools Glassdoor** (3.0/5, 44% recommend): https://www.glassdoor.com/Reviews/Alpha-Schools-Reviews-E4698308.htm
+
+The WIRED piece and the Terry Yu Substack summary are the two I'd lead with — they have the specific incidents (food withholding, bedroom surveillance, IXL terminating the account, unqualified overseas coaches, student self-harm).

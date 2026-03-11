@@ -1,0 +1,51 @@
+[U1 21:46] plans/2026-03-04-passive-digest-trigger-intake-preference-checkpoint.md this plan was just executed, but hasn't pushed yet. i'm realizing it doesn't account for existing users who have already run the intake skill, which means they haven't configured a setting for the digest interval. research the available package contents and update path, and let's discuss options for how to make this feature addition as smooth as possible for existing users too
+  -> Read: 2026-03-04-passive-digest-trigger-intake-preference-checkpoint.md
+  -> Agent: Explore digest and intake code
+[A3 21:47] Let me check the actual implemented files to see the current state.
+  -> Read: session-start.sh
+  -> Read: SKILL.md
+  -> Read: bootstrap.sh
+[A7 21:47] Let me see the config-read section at the top of the hook.
+  -> Read: session-start.sh
+  -> Read: session-start.sh
+[A10 21:48] Good catch. Here's the gap and the options.
+
+## The existing-user situation
+
+An existing user who already ran intake:
+- Has `config.json` with only `{"updates": "notify"}` — no digest keys
+- Has no `learning/.last-digest-timestamp`
+- Won't re-run intake → never sees the new step 4d preference checkpoint
+
+**What currently happens:** The hook defaults missing keys to `digestInterval: 3`, `digestMode: "suggest"`. Missing timestamp → `DAYS_SINCE=999` → immediate digest nudge on their very next session. They get the feature at defaults without any explanation or opt-in.
+
+The nudge is passive (just a suggestion, user approves everything), so it's not destructive. But it's a new behavior appearing without context.
+
+## Three options
+
+**A. One-time introduction via the hook.** If config.json exists but is missing `digestInterval`/`digestMode`, the hook injects a different context: "This user hasn't configured digest preferences yet. Explain the feature briefly and ask their preference before suggesting a digest." Once configured, subsequent sessions behave normally. Gives existing users the same experience as new ones. Adds a branch to the hook.
+
+**B. Silent defaults, self-explanatory nudge.** Trust the defaults. The first digest nudge already says what it is ("Offer to run /session-digest — a quick analysis..."). If someone doesn't want it, build `/weft-settings` so they can turn it off. Simplest implementation — the current code already works this way. The gap is: no explanation of *why* this is happening now.
+
+**C. Bootstrap migration.** Add a `--migrate` or post-update step to bootstrap that detects missing config keys and backfills them (with or without prompting). Could be part of the update flow that already exists. Requires the user to run something.
+
+My read: **A** is the most aligned with your design principles (gated propagation, agency). It's a small hook addition — one conditional branch that fires once per user, then never again. **B** is fine if you're comfort [...truncated]
+[U2 21:59] A it is
+[A11 22:00] The change is small — one conditional branch at the top of Condition 5 in the hook. Existing user with no `digestInterval` key → one-time introduction instead of a cold nudge. Once configured, subsequent sessions hit the normal staleness path.
+  -> Edit: session-start.sh
+  x Edit failed: <tool_use_error>File has not been read yet. Read it first before writing to it.</tool_use_error>
+  -> Read: session-start.sh
+  -> Edit: session-start.sh
+[A15 23:03] Done. The logic:
+
+1. `jq 'has("digestInterval")'` checks if the key exists in config.json
+2. **Missing** → one-time intro context that tells the agent to explain the feature, ask preference, write config, and seed the timestamp. Once the user responds and config is written, `digestInterval` exists → this branch never fires again.
+3. **Present** → falls through to the existing staleness check via `elif`
+
+Edge cases covered:
+- **No config.json at all** → `DIGEST_CONFIGURED` stays `"false"` → intro fires, agent creates the file
+- **Config exists with only `updates`** → `has("digestInterval")` is false → intro fires
+- **New user from updated bootstrap** → config has all 3 keys from the start → skips intro, normal path
+- **New user pre-intake** → Conditions 1 or 3 exit early before reaching Condition 5
+
+Should I also update the plan doc to note this addition?

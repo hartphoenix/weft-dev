@@ -1,0 +1,197 @@
+[U1 14:33] Base directory for this skill: /Users/rhhart/Documents/GitHub/roger/.claude/skills/lesson-scaffold
+
+# Lesson Scaffold
+
+Restructure what someone else organized by procedure into what Hart needs organized by understanding.
+
+## Inputs
+
+1. **Source material** (required). URL, file path, or pasted text — any learning content.
+2. **Current state** (optional). Energy, time, emotional context, what he needs. Shapes scope.
+
+## Workflow
+
+1. Fetch/read the source material.
+2. Read `learning/current-state.md` for current learning state. Optionally read the most recent session log from `learning/session-logs/`.
+3. Extract every concept the material teaches or assumes — explicit and implicit. Implicit concepts (things the lesson takes for granted) are often where the real learning edges are.
+4. Cross-reference with current-state.md. What's solid, what's growing, what's new.
+5. Produce a scaffold:
+   - **Concepts to understand** — each with a one-sentence bridge to something Hart already knows. Flag current-state.md gaps by name.
+   - **Execution sequence** — the instructor's steps reordered by conceptual dependency. Group steps that share a concept. Mark which concepts each step exercises.
+   - **Resurfaced gaps** — low-scoring current-state.md concepts that this material touches. Spaced repetition for free.
+6. Present and ask Hart whether the scope and classification feel right. He drives.
+
+## Anti-Patterns
+
+- **Don't execute the assignment.** Scaffold is for understanding, not walkthrough.
+- **Don't teach the concepts yet.** Name and bridge them. Teaching happens during execution.
+- **Don't skip implicit concepts.** Procedural lessons bury assumptions.
+- **Don't ignore emotional context.** "I'm tired" is load-bearing information about session scope.
+
+
+ARGUMENTS: https://github.com/fractal-nyc/bootcamp-monorepo/blob/main/curriculum/weeks/04-ambition/2-Tuesday-cloud-deployment.md we're having a lecture on this topic in half an hour and i'd like to be prepped with the bridgework between what i know and what i need to know about it in order to keep up. this doesn't mean i need to have finished the whole lesson, but i need to understand the prerequisites to a sufficient degree
+  -> WebFetch: https://github.com/fractal-nyc/bootcamp-monorepo/blob/main/c
+  -> Read: current-state.md
+[A3 14:34] Now let me check for the most recent session log for additional context.
+  -> Bash: ls -t /Users/rhhart/Documents/GitHub/roger/learning/session-logs/ | head -5
+  -> Read: 2026-02-23.md
+[A6 14:34] Good. Here's the scaffold.
+
+---
+
+## Lecture Prep Scaffold: Cloud Deployment
+
+**Context:** 30 minutes, lecture prep. Goal is conceptual hooks, not execution.
+
+### The one frame that organizes everything
+
+You've deployed to Render. Render is a black box — you push code, a URL works. This entire lesson is about opening that box. Every concept in the lesson is something Render does for you silently. The lecture will name the parts.
+
+### Concepts to understand
+
+**1. The PaaS → IaaS shift** (the big one)
+- Render = PaaS. You give it code, it handles the rest.
+- This lesson = IaaS. You provision a machine, install software on it, run your app yourself.
+- Bridge: same relationship as "Express handles HTTP parsing for you" vs. "here's what the request lifecycle actually looks like." You've done this shift before (your `request-lifecycle` work). Same move, infrastructure layer.
+
+**2. Docker's execution model** (new, highest-priority concept)
+- **Image** = a snapshot of a configured machine. Like a git commit, but for an entire filesystem + installed software.
+- **Container** = a running instance of an image. Like a process, but isolated — its own filesystem, its own network ports.
+- **Dockerfile** = the recipe that produces the image. Sequence of shell commands. Your Vite build (`npm run build` → `dist/`) happens inside this recipe.
+- **Docker Compose** = runs multiple containers together (your app + a database + monitoring). They talk to each other over an internal network.
+- Bridge: you already think in terms of "build step produces artifact, runtime serves artifact." Docker just wraps that in an isolated box.
+
+**3. Architecture primitives** (vocabulary, not deep understanding needed yet)
+- The lesson lists ~12 infrastructure components (CDN, load balancer, DNS, etc.). You don't need to know how each works. You need the taxonomy: each one exists because a specific problem appears at scale.
+- The key insight the lesson is teaching: *"the brand names change, the mental model  [...truncated]
+[U2 14:54] yes, looks well-scoped. can you list all the vocab and connect it to mnemonics/explanations that bridge my understanding and will likely stick in my memory? prefer high-connective-tissue analogies that apply across multiple scales over low-res cosmetic comparisons
+[A7 14:56] Grouped by structural cluster. Within each cluster, terms build on each other.
+
+---
+
+## Packaging (Docker)
+
+**Image** — An immutable snapshot of a filesystem + installed software, ready to run. Same structure as a git commit: content-addressable, immutable, layered on top of previous state. You don't run an image; you instantiate it. Class → instance. Commit → working directory. Image → container. Same pattern at every scale.
+
+**Container** — A running, isolated instance of an image. It has its own filesystem, its own network interface, its own process tree — but shares the host's kernel. The isolation boundary is the key concept: a container can't see other containers' files or ports unless you explicitly connect them. Same as function scope — local variables are invisible outside unless you return them.
+
+**Dockerfile** — A declarative spec that produces an image. Sequence of instructions, each producing a **layer**. Layers are the critical concept: each instruction caches its result. If instruction 5 changes, layers 1–4 are reused, 5+ rebuild. Identical cache-invalidation logic as git rebase — amend commit 3, commits 4+ must replay. This is why Dockerfiles copy `package.json` before source code: dependencies change rarely, so that layer stays cached while your code layer rebuilds.
+
+**Multi-stage build** — A Dockerfile with throwaway intermediate stages. Stage 1 installs dev dependencies and builds. Stage 2 copies only the build output into a clean image. Same as your Vite build: `node_modules` is 400MB of build tooling, `dist/` is 2MB of output. The production image only needs the 2MB.
+
+**Volume** — A directory that persists outside the container's lifecycle. Containers are ephemeral — kill it, filesystem gone. A volume mounts a host directory into the container so data survives. Same as environment variables vs. hardcoded values: the volume externalizes state that shouldn't live inside the disposable unit.
+
+**Port mapping** — Containers have internal ports invisi [...truncated]
+[U3 15:43] ok since it doesn't serve my projects or goals to do this lesson right now, i just want to extract the most important patterns and concepts for use with my maestro project. at first glance those seem to be:
+Declarative spec → build process → running instance.
+Interface decouples from implementation.
+Observability
+CI/CD
+
+these would be implemented differently on the maestro tech stack, but how would you recommend making these concepts/patterns a priority in that environment? consider resources in /Users/rhhart/Documents/GitHub/maestro/design
+  -> Task
+[A9 15:45] Here's where each pattern already lives in Maestro (sometimes unnamed) and where exercising it would compound the most.
+
+---
+
+### 1. Declarative spec → build → instance
+
+**Already present:** This is Maestro's spine. SKILL.md → Claude loads → skill available. `current-state.md` → `/startwork` reads → session plan. Hopper materials → `/intake` → personalized config. You've been working in this pattern without naming it.
+
+**Growth edge: the install package.** Right now `package/` is a template that requires manual steps + intake interview to become a working harness. The pattern says: there should be one command that takes the spec (package/ + hopper contents) and produces the instance (configured harness). That doesn't need Docker — it's a bun script. But it's the same structural operation. Making that pipeline clean is your most immediate rep with this pattern, and it's already on the Week 4 checklist (end-to-end test).
+
+### 2. Interface decouples from implementation
+
+**Already present:** SKILL.md frontmatter is an interface contract. The 0–5 scoring rubric is an interface. GitHub Issues are the interface between individual harnesses and the coordination layer.
+
+**Growth edge: inter-skill data contracts.** `current-state.md` is read by startwork, progress-review, session-review, lesson-scaffold, and spaced-repetition. But its schema is implicit — each skill infers the format from the file itself. Making the schema explicit (what fields exist, what's required, what's optional) means new skills can be built against the contract without reading the implementation of existing skills. Same for session log frontmatter. You've already done this thinking for the coordination layer (dependency protocol, issue labels). The personal harness layer hasn't caught up.
+
+This is also where **personalities** either compound or fragment. Tutor is built; creative collaborator and research partner are planned. If they share an interface (same learning state access, same skill availabilit [...truncated]
+[U4 15:54] let's make a plan to edit /Users/rhhart/Documents/GitHub/maestro/design/build-plan-week4.md /Users/rhhart/Documents/GitHub/maestro/design/build-registry.md and /Users/rhhart/Documents/GitHub/maestro/design/validation-plan.md as well as any related files to incoprorate all 4 recs
+  -> Read: build-plan-week4.md
+  -> Read: build-registry.md
+  -> Read: validation-plan.md
+[A13 15:54] Now let me check the related files that might need updates too.
+  -> Read: schedule.md
+  -> Read: harness-features.md
+[A16 15:55] Good. I have a clear picture of all the files and how the four recommendations map. Let me write the plan.
+  -> Write: delightful-booping-eich.md
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). The user provided the following reason for the r
+[A19 19:50] Got it. Let me re-read the files that changed during the persona audit so the plan reflects current state.
+  -> Read: schedule.md
+  -> Read: build-registry.md
+  -> Read: harness-features.md
+[A23 19:51] Let me also re-read the build plan since it may have been updated too.
+  -> Read: build-plan-week4.md
+[A25 19:51] Good. Now I have the full updated state. Let me revise the plan to reflect the persona audit changes and current project status.
+  -> Read: delightful-booping-eich.md
+  -> Write: delightful-booping-eich.md
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). The user provided the following reason for the r
+[A29 19:58] Good call. Let me review against those criteria.
+
+**Issues found:**
+
+1. **Dependency linearity:** The plan edits five files but doesn't specify order. Since build-plan contains the detailed rationale that other files reference, it should come first. But more importantly — the plan doesn't distinguish what's *design documentation* (editing docs) from what would be *build work* (creating scripts, editing session-review SKILL.md). The scope is doc edits only. This should be explicit.
+
+2. **Clarity / containedness:** The build-plan-week4.md edit proposes adding a "Thursday 2/26" section. But the Tuesday section is *retrospective* — written after the work was done, past tense. Adding a prospective Thursday section breaks the doc's temporal pattern. The four items should go in the **"Action items surfaced during build"** section, which already holds forward-looking items (project brainstorm, agent feedback skill). Then the stale "Wednesday–Saturday targets" section gets updated.
+
+3. **Conservation of attention:** The validation-plan §7b section is quoted nearly verbatim in the plan — that's too much inline content for a plan doc. Should be: "Add Experiment 7b with this scope and these cross-references," not the full text.
+
+4. **Original intent check:** The plan adds `data-contracts.md` to `package/.claude/references/` — but this plan is about editing *design docs* to register these items, not creating the reference file itself. The plan should be clear: we're registering planned work in the design docs, not building it.
+
+5. **Personality interface spec:** Already partially covered by `tutor-posture.md` + "Personality parameter extraction: Done." The plan should note this is a *section within* data-contracts.md, not a separate feature — avoids double-tracking.
+
+Let me revise.
+  -> Write: delightful-booping-eich.md
+  -> ExitPlanMode
+  -> TodoWrite
+  -> Edit: build-plan-week4.md
+[A34 20:05] Now update the stale Wednesday–Saturday targets section.
+  -> Edit: build-plan-week4.md
+  -> TodoWrite
+[A37 20:05] Now build-registry.md. Adding the scripts section and updating session-review.
+  -> Edit: build-registry.md
+  -> Edit: build-registry.md
+  -> TodoWrite
+[A41 20:05] Now validation-plan.md — add Experiment 7b and cross-references to Experiments 5 and 6.
+  -> Edit: validation-plan.md
+[A43 20:06] Now add cross-references to Experiments 5 and 6.
+  -> Edit: validation-plan.md
+  -> Edit: validation-plan.md
+  -> TodoWrite
+[A47 20:06] Now harness-features.md — three table row additions across P2, P5, P6.
+  -> Edit: harness-features.md
+  -> Edit: harness-features.md
+  -> Edit: harness-features.md
+  -> TodoWrite
+[A52 20:06] Now schedule.md — install package checklist and validation experiments table.
+  -> Edit: schedule.md
+  -> Edit: schedule.md
+  -> TodoWrite
+[A56 20:07] Now verify cross-references.
+  -> Grep: data-contracts in design
+  -> Grep: bootstrap\.ts in design
+  -> Grep: test-install\.ts in design
+  -> Grep: §7b|Experiment 7b|7b\. in design
+[A61 20:07] All four terms trace across the expected files. Let me check the traceability matrix:
+
+| Pattern | build-plan | build-registry | schedule | harness-features | validation-plan |
+|---------|-----------|---------------|----------|-----------------|----------------|
+| bootstrap.ts | ✓ | ✓ | ✓ | — | — |
+| test-install.ts | ✓ | ✓ | ✓ | — | — |
+| data-contracts | ✓ | — | ✓ | ✓ (P2, P5) | — |
+| observability/7b | ✓ | ✓ | ✓ | ✓ (P6) | ✓ |
+
+The scripts don't appear in harness-features or validation-plan, which is correct — they're dev tools, not harness features or experiments. Data-contracts doesn't appear in build-registry or validation-plan — let me check if it should.
+
+Build-registry tracks skills and scripts. Data-contracts is a reference doc, not a skill or script. The existing reference docs (scoring-rubric, developmental-model, context-patterns, tutor-posture) aren't listed in build-registry either — they're tracked in the install package checklist in schedule.md. So data-contracts correctly lives in schedule's checklist, harness-features, and build-plan. Consistent.
+  -> TodoWrite
+[A63 20:07] Done. All five files edited, cross-references verified. Summary of what landed:
+
+- **build-plan-week4.md** — Four action items added (install pipeline, install verification, data contracts, observability hooks). Stale Wednesday–Saturday targets updated.
+- **build-registry.md** — New "Scripts / Dev Tools" section with bootstrap.ts and test-install.ts. Session Review notes updated with observability hooks.
+- **validation-plan.md** — Experiment 7b (Continuous System Observability) added. Cross-reference notes added to Experiments 5 and 6.
+- **harness-features.md** — New rows in P2 (data contracts), P5 (data contracts + personality interface), P6 (observability hooks).
+- **schedule.md** — Three items added to install package checklist. Experiment 7b added to validation experiments table at priority 0.

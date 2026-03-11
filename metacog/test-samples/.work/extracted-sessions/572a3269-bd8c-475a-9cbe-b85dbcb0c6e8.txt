@@ -1,0 +1,121 @@
+[U1 16:43] pasted An example of a screenshot that has occurred a few times today, a condition where somewhere in the middle of a Claude code session, which is happening in the VS Code terminal, if that helps, is getting distorted and corrupted with visual artifacts. These artifacts tend to mostly disappear when I highlight the text, and they are only visible after a certain point in the Cloud Code session. This doesn't happen on newly started sessions. And it seems to also affect the kind of loading signal text that appears at the bottom of the Cloud Code session window where Cloud will often say things like combobulating or simulating. The animated text there goes through a lot of flickering distortion that resembles the static distortion that you see in the screenshot. I'd like you to research this issue and see what might be causing it. There might be something about the configuration that has been applied either to the status line or to some other piece of my system that might be causing this bug, or there might be a known issue reported on GitHub in some way that we could anticipate or find a workaround. I want you to research this thoroughly. Do not make any changes to the system. Simply report what you find, and we'll take next steps from there.
+[U2 16:43] [Image: source: Screenshot 2026-03-10 at 12.40.33 PM.png]
+[A1 16:43] I can see the corruption clearly — garbled characters replacing normal text, especially in file paths, the status line, and tool use indicators. Let me research this systematically.
+  -> Agent: Research terminal corruption issue
+[A3 16:45] ## Research findings
+
+This is a well-documented, multi-layered bug. Your symptoms — garbled characters mid-session, correct text revealed on highlight, status line flickering — point to **two stacked causes**:
+
+### 1. VS Code WebGL terminal renderer (your main visual symptom)
+
+The "correct text underneath when you highlight" is the signature tell. VS Code defaults to a WebGL renderer for its terminal (via xterm.js). After enough output accumulates, the GPU texture atlas that caches rendered glyphs gets stale — the underlying buffer has the right data, but the display is painting from a corrupt cache. This is a known xterm.js bug, confirmed by VS Code maintainers.
+
+**Your config has no `terminal.integrated.gpuAcceleration` setting**, so you're running the default (`"auto"` = WebGL).
+
+### 2. Claude Code's Ink TUI render race conditions (upstream, not configurable)
+
+Claude Code's interface is built on React Ink. The animated status line (spinner, token counter) runs on a ~50ms animation loop. When that loop fires concurrently with streaming content, tool status changes, or sub-agent output, ANSI cursor-positioning sequences collide and produce garbled output. This is tracked across multiple open GitHub issues:
+
+- **#769** — status indicator causes full buffer redraw
+- **#10794** — terminal flickering causing VS Code crashes on macOS (high engagement, hundreds of upvotes). Multiple users confirm it triggers **after 10-20 minutes** — matches your experience exactly
+- **#29182** — TUI corruption during parallel execution (current canonical open issue)
+- **#21738 / #20731** — "Matrix-like characters" replacing normal text, macOS + VS Code — your exact symptom
+
+### Most likely workarounds (not applied — just reporting)
+
+1. **Disable GPU acceleration** in VS Code terminal settings:
+   ```json
+   "terminal.integrated.gpuAcceleration": "off"
+   ```
+   Switches to DOM renderer. Slower but eliminates the texture cache corruption that causes "correct text underneath when highligh [...truncated]
+[U3 18:18] is there no way to reset the terminal buffer without clearing context?
+[A4 18:18] Right — `/clear` wipes context, which is the opposite of what you want mid-session.
+
+A few options that reset the terminal display without touching Claude Code's conversation context:
+
+1. **VS Code command: "Terminal: Clear"** — bound to `Cmd+K` by default when the terminal is focused. This clears the visible terminal buffer and scrollback without sending anything to the running process. Claude Code's context is server-side, so this should be safe. Worth testing whether it actually resets the WebGL texture cache or just clears the buffer contents.
+
+2. **Resize the terminal pane** — dragging the terminal panel edge forces xterm.js to re-render the entire viewport from the buffer. This is the quickest way to force a texture atlas rebuild without clearing anything. If it works, it's zero-cost.
+
+3. **Toggle the terminal panel closed and open** — `Cmd+J` twice. Same idea as resize but more aggressive re-initialization.
+
+4. **Switch terminal tabs and back** — if you have multiple terminal tabs, clicking away and back forces a re-render of the active terminal.
+
+The real question is whether any of these force xterm.js to rebuild its WebGL texture cache or just repaint from the (already corrupt) cache. The resize approach is the most likely to work because xterm.js reallocates its render buffers on dimension change. But disabling WebGL entirely (`gpuAcceleration: "off"`) is the only guaranteed fix for the texture corruption class of bug.
+
+Want to try the resize/toggle approach first and see if it clears the artifacts, before committing to disabling GPU acceleration?
+[U4 18:26] Is it likely that using MLX models on LMStudio for inference model work contributed to the corruption of the GPU acceleration?
+[A5 18:26] Plausible, yes. Here's the mechanism:
+
+On Apple Silicon, the GPU is unified memory — the same physical RAM serves both CPU and GPU workloads. MLX specifically runs inference on the Metal GPU, and LM Studio with MLX models can consume significant GPU memory (a 7B model at Q4 is ~4GB of GPU-resident buffers, larger models proportionally more).
+
+VS Code's WebGL terminal renderer maintains a **texture atlas** on the GPU — a bitmap of pre-rendered character glyphs. When GPU memory pressure increases:
+
+1. The OS can evict or relocate GPU allocations
+2. xterm.js's texture atlas can get corrupted or stale if the WebGL context loses sync with its backing memory
+3. The "correct text underneath on highlight" symptom is consistent with the glyph cache being wrong while the text buffer (CPU-side) is fine
+
+So the sequence would be: MLX loads fill GPU memory → WebGL texture atlas gets pressure → glyph cache corruption → visual artifacts accumulate over the session as the atlas gets progressively more out of sync.
+
+This would also explain **why it only happens mid-session** — early in a session the atlas is fresh and small. Over time it grows, and the probability of a corruption event during GPU memory pressure increases.
+
+**Way to test this hypothesis:** Run a Claude Code session of similar length *without* LM Studio running and see if the corruption onset is delayed or absent. If it is, you've isolated the contributing factor.
+
+That said — the WebGL renderer has the texture corruption bug even without memory pressure. GPU contention from MLX would be an **accelerant**, not the root cause. Disabling `gpuAcceleration` would still be the robust fix regardless.
+[U5 18:28] What are the trade-offs with disabling GPU acceleration altogether?
+[A6 18:28] The main cost is **text rendering performance in the terminal**, but how much that matters depends on your usage:
+
+**What gets slower:**
+- Scrolling through large terminal output (build logs, test suites, long `git diff`) — DOM renderer repaints are CPU-bound and noticeably choppier at high scroll speeds
+- Rapid streaming output — when Claude Code is printing long responses or tool results, you might see slight jank compared to WebGL's smooth paint
+- High scrollback buffers become more expensive to navigate
+
+**What doesn't change:**
+- Normal interactive use (typing, reading responses, running commands) — the difference is imperceptible
+- Claude Code's actual performance (inference, tool execution) — that's all server-side
+- Memory usage — DOM renderer actually uses *less* GPU memory (which helps your MLX coexistence)
+
+**What gets better:**
+- The corruption bug goes away
+- No more GPU memory contention with LM Studio/MLX
+- More predictable rendering — DOM is boring but reliable
+- Slightly lower power draw from not running a WebGL context
+
+**Honest assessment:** For Claude Code's usage pattern — mostly reading text at human speed, occasional bursts of streaming output — you're unlikely to notice the performance difference. The WebGL renderer matters most for things like `cat`-ing a 10,000-line file or tailing a rapid log stream. If you're doing that kind of work, you'd notice. For conversational Claude Code sessions, the trade-off is overwhelmingly in favor of disabling it.
+
+Want me to apply the setting?
+[U6 18:35] Is there a way to have the setting apply conditionally only when the MetaClaude feature is in use, the MetaClaude skill? You may need to review the Weft Harness, Weft slash Tools sleash metaclaude to get an overview of its parameters and toggleability.
+  -> Agent: Explore metaclaude skill setup
+[A8 18:36] Short answer: not cleanly. Here's why:
+
+`terminal.integrated.gpuAcceleration` is a **static VS Code setting** — it's read when a terminal instance is created. You can't toggle it at runtime without destroying and recreating the terminal (which kills the Claude Code session).
+
+In theory, `toggle.sh` could:
+1. Write to VS Code's `settings.json` when MetaClaude activates
+2. Trigger a terminal reload via `code` CLI or VS Code command
+
+But that would kill the running Claude Code session — exactly what you're trying to protect.
+
+**The more practical framing:** The GPU acceleration bug exists independently of MetaClaude. MLX inference is an accelerant, not the cause. You'd still hit corruption in long sessions without MetaClaude, just later. And when MetaClaude *is* active, you're guaranteed to have GPU memory contention.
+
+Given that:
+- The DOM renderer performance cost is negligible for Claude Code's usage pattern
+- MetaClaude is a core part of your workflow
+- The corruption gets worse precisely when MetaClaude is on (MLX + WebGL competing for GPU)
+
+The pragmatic move is to disable GPU acceleration unconditionally. It's not worth the engineering complexity of conditional toggling for a setting where the "degraded" mode is imperceptible in your actual use case.
+
+Want me to apply it?
+[U7 18:39] I agree, in theory I might still hit corruption but it has never happened in practice until using MetaClaude with the GPU involvement on LMStudio. So I'm not worried about the bug, also I tried just now adjusting the size of the terminal window and it cleared the bug instantly without clearing context so I'm going to rely on that for now. can you create a report to keep locally in the roger slash research directory with today's date and the clearest description you can of this issue in case I need to follow up from there for a deeper fix later.
+  -> Bash: ls /Users/rhhart/Documents/GitHub/roger/research/
+  x Bash failed: Exit code 1
+ls: /Users/rhhart/Documents/GitHub/roger/research/: No such file or directory
+  -> Bash: mkdir -p /Users/rhhart/Documents/GitHub/roger/research
+  x Bash failed: Exit code 1
+mkdir: /Users/rhhart/Documents/GitHub/roger/research: Operation not permitted
+  -> Bash: ls /Users/rhhart/Documents/GitHub/roger/
+[U8 18:39] [Request interrupted by user]
+[U9 18:39] Sorry, I meant the weft dev slash research directory.
+  -> Bash: ls /Users/rhhart/Documents/GitHub/weft-dev/research/
+  -> Write: 2026-03-10-terminal-rendering-corruption.md
+[A14 18:40] Done. Written to `research/2026-03-10-terminal-rendering-corruption.md`. Covers the full causal chain, all the relevant GitHub issues, your current workaround (resize), and the escalation path if you need it later.

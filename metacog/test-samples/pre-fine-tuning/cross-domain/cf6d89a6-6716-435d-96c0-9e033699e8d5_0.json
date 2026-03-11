@@ -1,0 +1,53 @@
+{
+  "recent_turns": [
+    {
+      "role": "user",
+      "content": "<command-message>lesson-scaffold</command-message>\n<command-name>/lesson-scaffold</command-name>\n<command-args>https://github.com/fractal-nyc/bootcamp-monorepo/blob/main/curriculum/weeks/04-ambition/2-Tuesday-cloud-deployment.md we're having a lecture on this topic in half an hour and i'd like to be prepped with the bridgework between what i know and what i need to know about it in order to keep up. this doesn't mean i need to have finished the whole lesson, but i need to understand the prerequisites to a sufficient degree</command-args>"
+    },
+    {
+      "role": "assistant",
+      "content": "[tools: WebFetch x1, Read x1]"
+    },
+    {
+      "role": "assistant",
+      "content": "Now let me check for the most recent session log for additional context."
+    },
+    {
+      "role": "assistant",
+      "content": "[tools: Bash x1, Read x1]"
+    },
+    {
+      "role": "assistant",
+      "content": "Good. Here's the scaffold.\n\n---\n\n## Lecture Prep Scaffold: Cloud Deployment\n\n**Context:** 30 minutes, lecture prep. Goal is conceptual hooks, not execution.\n\n### The one frame that organizes everything\n\nYou've deployed to Render. Render is a black box \u2014 you push code, a URL works. This entire lesson is about opening that box. Every concept in the lesson is something Render does for you silently. The lecture will name the parts.\n\n### Concepts to understand\n\n**1. The PaaS \u2192 IaaS shift** (the big one)\n- Render = PaaS. You give it code, it handles the rest.\n- This lesson = IaaS. You provision a machine, install software on it, run your app yourself.\n- Bridge: same relationship as \"Express handles HTTP parsing for you\" vs. \"here's what the request lifecycle actually looks like.\" You've done this shift before (your `request-lifecycle` work). Same move, infrastructure layer.\n\n**2. Docker's execution model** (new, highest-priority concept)\n- **Image** = a snapshot of a configured machine. Like a git commit, but for an entire filesystem + installed software.\n- **Container** = a running instance of an image. Like a process, but isolated \u2014 its own filesystem, its own network ports.\n- **Dockerfile** = the recipe that produces the image. Sequence of shell commands. Your Vite build (`npm run build` \u2192 `dist/`) happens inside this recipe.\n- **Docker Compose** = runs multiple containers together (your app + a database + monitoring). They talk to each other over an internal network.\n- Bridge: you already think in terms of \"build step produces artifact, runtime serves artifact.\" Docker just wraps that in an isolated box.\n\n**3. Architecture primitives** (vocabulary, not deep understanding needed yet)\n- The lesson lists ~12 infrastructure components (CDN, load balancer, DNS, etc.). You don't need to know how each works. You need the taxonomy: each one exists because a specific problem appears at scale.\n- The key insight the lesson is teaching: *\"the brand names change, the mental model "
+    },
+    {
+      "role": "assistant",
+      "content": "Grouped by structural cluster. Within each cluster, terms build on each other.\n\n---\n\n## Packaging (Docker)\n\n**Image** \u2014 An immutable snapshot of a filesystem + installed software, ready to run. Same structure as a git commit: content-addressable, immutable, layered on top of previous state. You don't run an image; you instantiate it. Class \u2192 instance. Commit \u2192 working directory. Image \u2192 container. Same pattern at every scale.\n\n**Container** \u2014 A running, isolated instance of an image. It has its own filesystem, its own network interface, its own process tree \u2014 but shares the host's kernel. The isolation boundary is the key concept: a container can't see other containers' files or ports unless you explicitly connect them. Same as function scope \u2014 local variables are invisible outside unless you return them.\n\n**Dockerfile** \u2014 A declarative spec that produces an image. Sequence of instructions, each producing a **layer**. Layers are the critical concept: each instruction caches its result. If instruction 5 changes, layers 1\u20134 are reused, 5+ rebuild. Identical cache-invalidation logic as git rebase \u2014 amend commit 3, commits 4+ must replay. This is why Dockerfiles copy `package.json` before source code: dependencies change rarely, so that layer stays cached while your code layer rebuilds.\n\n**Multi-stage build** \u2014 A Dockerfile with throwaway intermediate stages. Stage 1 installs dev dependencies and builds. Stage 2 copies only the build output into a clean image. Same as your Vite build: `node_modules` is 400MB of build tooling, `dist/` is 2MB of output. The production image only needs the 2MB.\n\n**Volume** \u2014 A directory that persists outside the container's lifecycle. Containers are ephemeral \u2014 kill it, filesystem gone. A volume mounts a host directory into the container so data survives. Same as environment variables vs. hardcoded values: the volume externalizes state that shouldn't live inside the disposable unit.\n\n**Port mapping** \u2014 Containers have internal ports invisi"
+    },
+    {
+      "role": "assistant",
+      "content": "[tools: Task x1]"
+    },
+    {
+      "role": "assistant",
+      "content": "Here's where each pattern already lives in Maestro (sometimes unnamed) and where exercising it would compound the most.\n\n---\n\n### 1. Declarative spec \u2192 build \u2192 instance\n\n**Already present:** This is Maestro's spine. SKILL.md \u2192 Claude loads \u2192 skill available. `current-state.md` \u2192 `/startwork` reads \u2192 session plan. Hopper materials \u2192 `/intake` \u2192 personalized config. You've been working in this pattern without naming it.\n\n**Growth edge: the install package.** Right now `package/` is a template that requires manual steps + intake interview to become a working harness. The pattern says: there should be one command that takes the spec (package/ + hopper contents) and produces the instance (configured harness). That doesn't need Docker \u2014 it's a bun script. But it's the same structural operation. Making that pipeline clean is your most immediate rep with this pattern, and it's already on the Week 4 checklist (end-to-end test).\n\n### 2. Interface decouples from implementation\n\n**Already present:** SKILL.md frontmatter is an interface contract. The 0\u20135 scoring rubric is an interface. GitHub Issues are the interface between individual harnesses and the coordination layer.\n\n**Growth edge: inter-skill data contracts.** `current-state.md` is read by startwork, progress-review, session-review, lesson-scaffold, and spaced-repetition. But its schema is implicit \u2014 each skill infers the format from the file itself. Making the schema explicit (what fields exist, what's required, what's optional) means new skills can be built against the contract without reading the implementation of existing skills. Same for session log frontmatter. You've already done this thinking for the coordination layer (dependency protocol, issue labels). The personal harness layer hasn't caught up.\n\nThis is also where **personalities** either compound or fragment. Tutor is built; creative collaborator and research partner are planned. If they share an interface (same learning state access, same skill availabilit"
+    },
+    {
+      "role": "assistant",
+      "content": "[tools: Read x3]"
+    },
+    {
+      "role": "assistant",
+      "content": "Now let me check the related files that might need updates too."
+    }
+  ],
+  "user_turn_count": 1,
+  "accumulator": "",
+  "retrieved_chunks": [],
+  "_meta": {
+    "source_session": "cf6d89a6-6716-435d-96c0-9e033699e8d5",
+    "source_path": "/Users/rhhart/.claude/projects/-Users-rhhart-Documents-GitHub-roger/cf6d89a6-6716-435d-96c0-9e033699e8d5.jsonl",
+    "window_start_turn": 0,
+    "annotation": "Dense cross-domain bridging: Docker concepts (image/container, Dockerfile layers, port mapping, compose) systematically connected to prior knowledge (git commits, function scope, class/instance, cache invalidation). Then these infrastructure patterns are mapped onto the Maestro/weft harness \u2014 'declarative spec -> build -> instance' already present as SKILL.md -> load -> skill. The skill explicitly bridges cloud deployment curriculum to Hart's own product architecture."
+  }
+}

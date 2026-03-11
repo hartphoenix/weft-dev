@@ -1,0 +1,787 @@
+[U1 20:34] # Create a plan for a new feature or bug fix
+
+## Introduction
+
+**Note: The current year is 2026.** Use this when dating plans and searching for recent documentation.
+
+Transform feature descriptions, bug reports, or improvement ideas into well-structured markdown files issues that follow project conventions and best practices. This command provides flexible detail levels to match your needs.
+
+## Feature Description
+
+<feature_description> #help revise the plan at @docs/brainstorms/2026-02-20-game-instructions-modal-brainstorm.md
+
+another team member forgot to check the board and wrote a component that completes most of this issue. we need to review the changes here and the existing code: https://github.com/hartphoenix/schelling-points/pull/110 and update the plan to start from the current state & complete any part of the feature not already present </feature_description>
+
+**If the feature description above is empty, ask the user:** "What would you like to plan? Please describe the feature, bug fix, or improvement you have in mind."
+
+Do not proceed until you have a clear feature description from the user.
+
+### 0. Idea Refinement
+
+**Check for brainstorm output first:**
+
+Before asking questions, look for recent brainstorm documents in `docs/brainstorms/` that match this feature:
+
+```bash
+ls -la docs/brainstorms/*.md 2>/dev/null | head -10
+```
+
+**Relevance criteria:** A brainstorm is relevant if:
+
+- The topic (from filename or YAML frontmatter) semantically matches the feature description
+- Created within the last 14 days
+- If multiple candidates match, use the most recent one
+
+**If a relevant brainstorm exists:**
+
+1. Read the brainstorm document
+2. Announce: "Found brainstorm from [date]: [topic]. Using as context for planning."
+3. Extract key decisions, chosen approach, and open questions
+4. **Skip the idea refinement questions below** - the brainstorm already answered WHAT to build
+5. Use brainstorm decisions as input to the research phase
+
+**If multiple brainstorms could match:**
+Use **AskUserQuestion tool** to ask which brainstorm to use, or whether to proceed without one.
+
+**If no brainstorm found (or not relevant), run idea refinement:**
+
+Refine the idea through collaborative dialogue using the **AskUserQuestion tool**:
+
+- Ask questions one at a time to understand the idea fully
+- Prefer multiple choice questions when natural options exist
+- Focus on understanding: purpose, constraints and success criteria
+- Continue until the idea is clear OR user says "proceed"
+
+**Gather signals for research decision.** During refinement, note:
+
+- **User's familiarity**: Do they know the codebase patterns? Are they pointing to examples?
+- **User's intent**: Speed vs thoroughness? Exploration vs execution?
+- **Topic risk**: Security, payments, external APIs warrant more caution
+- **Uncertainty level**: Is the approach clear or open-ended?
+
+**Skip option:** If the feature description is already detailed, offer:
+"Your description is clear. Should I proceed with research, or would you like to refine it further?"
+
+## Main Tasks
+
+### 1. Local Research (Always Runs - Parallel)
+
+<thinking>
+First, I need to understand the project's conventions, existing patterns, and any documented learnings. This is fast and local - it informs whether external research is needed.
+</thinking>
+
+Run these agents **in parallel** to gather local context:
+
+- Task repo-research-analyst(feature_description)
+- Task learnings-researcher(feature_description)
+
+**What to look for:**
+
+- **Repo research:** existing patterns, CLAUDE.md guidance, technology familiarity, pattern consistency
+- **Learnings:** documented solutions in `docs/solutions/` that might apply (gotchas, patterns, lessons learned)
+
+These findings inform the next step.
+
+### 1.5. Research Decision
+
+Based on signals from Step 0 and findings from Step 1, decide on external research.
+
+**High-risk topics → always research.** Security, payments, external APIs, data privacy. The cost of missing something is too high. This takes precedence over speed signals.
+
+**Strong local context → skip external research.** Codebase has good patterns, CLAUDE.md has guidance, user knows what they want. External research adds little value.
+
+**Uncertainty or unfamiliar territory → research.** User is exploring, codebase has no examples, new technology. External perspective is valuable.
+
+**Announce the decision and proceed.** Brief explanation, then continue. User can redirect if needed.
+
+Examples:
+
+- "Your codebase has solid patterns for this. Proceeding without external research."
+- "This involves payment processing, so I'll research current best practices first."
+
+### 1.5b. External Research (Conditional)
+
+**Only run if Step 1.5 indicates external research is valuable.**
+
+Run these agents in parallel:
+
+- Task best-practices-researcher(feature_description)
+- Task framework-docs-researcher(feature_description)
+
+### 1.6. Consolidate Research
+
+After all research steps complete, consolidate findings:
+
+- Document relevant file paths from repo research (e.g., `app/services/example_service.rb:42`)
+- **Include relevant institutional learnings** from `docs/solutions/` (key insights, gotchas to avoid)
+- Note external documentation URLs and best practices (if external research was done)
+- List related issues or PRs discovered
+- Capture CLAUDE.md conventions
+
+**Optional validation:** Briefly summarize findings and ask if anything looks off or missing before proceeding to planning.
+
+### 2. Issue Planning & Structure
+
+<thinking>
+Think like a product manager - what would make this issue clear and actionable? Consider multiple perspectives
+</thinking>
+
+**Title & Categorization:**
+
+- [ ] Draft clear, searchable issue title using conventional format (e.g., `feat: Add user authentication`, `fix: Cart total calculation`)
+- [ ] Determine issue type: enhancement, bug, refactor
+- [ ] Convert title to filename: add today's date prefix, strip prefix colon, kebab-case, add `-plan` suffix
+  - Example: `feat: Add User Authentication` → `2026-01-21-feat-add-user-authentication-plan.md`
+  - Keep it descriptive (3-5 words after prefix) so plans are findable by context
+
+**Stakeholder Analysis:**
+
+- [ ] Identify who will be affected by this issue (end users, developers, operations)
+- [ ] Consider implementation complexity and required expertise
+
+**Content Planning:**
+
+- [ ] Choose appropriate detail level based on issue complexity and audience
+- [ ] List all necessary sections for the chosen template
+- [ ] Gather supporting materials (error logs, screenshots, design mockups)
+- [ ] Prepare code examples or reproduction steps if applicable, name the mock filenames in the lists
+
+### 3. SpecFlow Analysis
+
+After planning the issue structure, run SpecFlow Analyzer to validate and refine the feature specification:
+
+- Task spec-flow-analyzer(feature_description, research_findings)
+
+**SpecFlow Analyzer Output:**
+
+- [ ] Review SpecFlow analysis results
+- [ ] Incorporate any identified gaps or edge cases into the issue
+- [ ] Update acceptance criteria based on SpecFlow findings
+
+### 4. Choose Implementation Detail Level
+
+Select how comprehensive you want the issue to be, simpler is mostly better.
+
+#### 📄 MINIMAL (Quick Issue)
+
+**Best for:** Simple bugs, small improvements, clear features
+
+**Includes:**
+
+- Problem statement or feature description
+- Basic acceptance criteria
+- Essential context only
+
+**Structure:**
+
+````markdown
+---
+title: [Issue Title]
+type: [feat|fix|refactor]
+status: active
+date: YYYY-MM-DD
+---
+
+# [Issue Title]
+
+[Brief problem/feature description]
+
+## Acceptance Criteria
+
+- [ ] Core requirement 1
+- [ ] Core requirement 2
+
+## Context
+
+[Any critical information]
+
+## MVP
+
+### test.rb
+
+```ruby
+class Test
+  def initialize
+    @name = "test"
+  end
+end
+```
+
+## References
+
+- Related issue: #[issue_number]
+- Documentation: [relevant_docs_url]
+````
+
+#### 📋 MORE (Standard Issue)
+
+**Best for:** Most features, complex bugs, team collaboration
+
+**Includes everything from MINIMAL plus:**
+
+- Detailed background and motivation
+- Technical considerations
+- Success metrics
+- Dependencies and risks
+- Basic implementation suggestions
+
+**Structure:**
+
+```markdown
+---
+title: [Issue Title]
+type: [feat|fix|refactor]
+status: active
+date: YYYY-MM-DD
+---
+
+# [Issue Title]
+
+## Overview
+
+[Comprehensive description]
+
+## Problem Statement / Motivation
+
+[Why this matters]
+
+## Proposed Solution
+
+[High-level approach]
+
+## Technical Considerations
+
+- Architecture impacts
+- Performance implications
+- Security considerations
+
+## Acceptance Criteria
+
+- [ ] Detailed requirement 1
+- [ ] Detailed requirement 2
+- [ ] Testing requirements
+
+## Success Metrics
+
+[How we measure success]
+
+## Dependencies & Risks
+
+[What could block or complicate this]
+
+## References & Research
+
+- Similar implementations: [file_path:line_number]
+- Best practices: [documentation_url]
+- Related PRs: #[pr_number]
+```
+
+#### 📚 A LOT (Comprehensive Issue)
+
+**Best for:** Major features, architectural changes, complex integrations
+
+**Includes everything from MORE plus:**
+
+- Detailed implementation plan with phases
+- Alternative approaches considered
+- Extensive technical specifications
+- Resource requirements and timeline
+- Future considerations and extensibility
+- Risk mitigation strategies
+- Documentation requirements
+
+**Structure:**
+
+```markdown
+---
+title: [Issue Title]
+type: [feat|fix|refactor]
+status: active
+date: YYYY-MM-DD
+---
+
+# [Issue Title]
+
+## Overview
+
+[Executive summary]
+
+## Problem Statement
+
+[Detailed problem analysis]
+
+## Proposed Solution
+
+[Comprehensive solution design]
+
+## Technical Approach
+
+### Architecture
+
+[Detailed technical design]
+
+### Implementation Phases
+
+#### Phase 1: [Foundation]
+
+- Tasks and deliverables
+- Success criteria
+- Estimated effort
+
+#### Phase 2: [Core Implementation]
+
+- Tasks and deliverables
+- Success criteria
+- Estimated effort
+
+#### Phase 3: [Polish & Optimization]
+
+- Tasks and deliverables
+- Success criteria
+- Estimated effort
+
+## Alternative Approaches Considered
+
+[Other solutions evaluated and why rejected]
+
+## Acceptance Criteria
+
+### Functional Requirements
+
+- [ ] Detailed functional criteria
+
+### Non-Functional Requirements
+
+- [ ] Performance targets
+- [ ] Security requirements
+- [ ] Accessibility standards
+
+### Quality Gates
+
+- [ ] Test coverage requirements
+- [ ] Documentation completeness
+- [ ] Code review approval
+
+## Success Metrics
+
+[Detailed KPIs and measurement methods]
+
+## Dependencies & Prerequisites
+
+[Detailed dependency analysis]
+
+## Risk Analysis & Mitigation
+
+[Comprehensive risk assessment]
+
+## Resource Requirements
+
+[Team, time, infrastructure needs]
+
+## Future Considerations
+
+[Extensibility and long-term vision]
+
+## Documentation Plan
+
+[What docs need updating]
+
+## References & Research
+
+### Internal References
+
+- Architecture decisions: [file_path:line_number]
+- Similar features: [file_path:line_number]
+- Configuration: [file_path:line_number]
+
+### External References
+
+- Framework documentation: [url]
+- Best practices guide: [url]
+- Industry standards: [url]
+
+### Related Work
+
+- Previous PRs: #[pr_numbers]
+- Related issues: #[issue_numbers]
+- Design documents: [links]
+```
+
+### 5. Issue Creation & Formatting
+
+<thinking>
+Apply best practices for clarity and actionability, making the issue easy to scan and understand
+</thinking>
+
+**Content Formatting:**
+
+- [ ] Use clear, descriptive headings with proper hierarchy (##, ###)
+- [ ] Include code examples in triple backticks with language syntax highlighting
+- [ ] Add screenshots/mockups if UI-related (drag & drop or use image hosting)
+- [ ] Use task lists (- [ ]) for trackable items that can be checked off
+- [ ] Add collapsible sections for lengthy logs or optional details using `<details>` tags
+- [ ] Apply appropriate emoji for visual scanning (🐛 bug, ✨ feature, 📚 docs, ♻️ refactor)
+
+**Cross-Referencing:**
+
+- [ ] Link to related issues/PRs using #number format
+- [ ] Reference specific commits with SHA hashes when relevant
+- [ ] Link to code using GitHub's permalink feature (press 'y' for permanent link)
+- [ ] Mention relevant team members with @username if needed
+- [ ] Add links to external resources with descriptive text
+
+**Code & Examples:**
+
+````markdown
+# Good example with syntax highlighting and line references
+
+```ruby
+# app/services/user_service.rb:42
+def process_user(user)
+
+# Implementation here
+
+end
+```
+
+# Collapsible error logs
+
+<details>
+<summary>Full error stacktrace</summary>
+
+`Error details here...`
+
+</details>
+````
+
+**AI-Era Considerations:**
+
+- [ ] Account for accelerated development with AI pair programming
+- [ ] Include prompts or instructions that worked well during research
+- [ ] Note which AI tools were used for initial exploration (Claude, Copilot, etc.)
+- [ ] Emphasize comprehensive testing given rapid implementation
+- [ ] Document any AI-generated code that needs human review
+
+### 6. Final Review & Submission
+
+**Pre-submission Checklist:**
+
+- [ ] Title is searchable and descriptive
+- [ ] Labels accurately categorize the issue
+- [ ] All template sections are complete
+- [ ] Links and references are working
+- [ ] Acceptance criteria are measurable
+- [ ] Add names of files in pseudo code examples and todo lists
+- [ ] Add an ERD mermaid diagram if applicable for new model changes
+
+## Output Format
+
+**Filename:** Use the date and kebab-case filename from Step 2 Title & Categorization.
+
+```
+docs/plans/YYYY-MM-DD-<type>-<descriptive-name>-plan.md
+```
+
+Examples:
+
+- ✅ `docs/plans/2026-01-15-feat-user-authentication-flow-plan.md`
+- ✅ `docs/plans/2026-02-03-fix-checkout-race-condition-plan.md`
+- ✅ `docs/plans/2026-03-10-refactor-api-client-extraction-plan.md`
+- ❌ `docs/plans/2026-01-15-feat-thing-plan.md` (not descriptive - what "thing"?)
+- ❌ `docs/plans/2026-01-15-feat-new-feature-plan.md` (too vague - what feature?)
+- ❌ `docs/plans/2026-01-15-feat: user auth-plan.md` (invalid characters - colon and space)
+- ❌ `docs/plans/feat-user-auth-plan.md` (missing date prefix)
+
+## Post-Generation Options
+
+After writing the plan file, use the **AskUserQuestion tool** to present these options:
+
+**Question:** "Plan ready at `docs/plans/YYYY-MM-DD-<type>-<name>-plan.md`. What would you like to do next?"
+
+**Options:**
+
+1. **Open plan in editor** - Open the plan file for review
+2. **Run `/deepen-plan`** - Enhance each section with parallel research agents (best practices, performance, UI)
+3. **Run `/technical_review`** - Technical feedback from code-focused reviewers (DHH, Kieran, Simplicity)
+4. **Review and refine** - Improve the document through structured self-review
+5. **Start `/workflows:work`** - Begin implementing this plan locally
+6. **Start `/workflows:work` on remote** - Begin implementing in Claude Code on the web (use `&` to run in background)
+7. **Create Issue** - Create issue in project tracker (GitHub/Linear)
+
+Based on selection:
+
+- **Open plan in editor** → Run `open docs/plans/<plan_filename>.md` to open the file in the user's default editor
+- **`/deepen-plan`** → Call the /deepen-plan command with the plan file path to enhance with research
+- **`/technical_review`** → Call the /technical_review command with the plan file path
+- **Review and refine** → Load `document-review` skill.
+- **`/workflows:work`** → Call the /workflows:work command with the plan file path
+- **`/workflows:work` on remote** → Run `/workflows:work docs/plans/<plan_filename>.md &` to start work in background for Claude Code web
+- **Create Issue** → See "Issue Creation" section below
+- **Other** (automatically provided) → Accept free text for rework or specific changes
+
+**Note:** If running `/workflows:plan` with ultrathink enabled, automatically run `/deepen-plan` after plan creation for maximum depth and grounding.
+
+Loop back to options after Simplify or Other changes until user selects `/workflows:work` or `/technical_review`.
+
+## Issue Creation
+
+When user selects "Create Issue", detect their project tracker from CLAUDE.md:
+
+1. **Check for tracker preference** in user's CLAUDE.md (global or project):
+   - Look for `project_tracker: github` or `project_tracker: linear`
+   - Or look for mentions of "GitHub Issues" or "Linear" in their workflow section
+
+2. **If GitHub:**
+
+   Use the title and type from Step 2 (already in context - no need to re-read the file):
+
+   ```bash
+   gh issue create --title "<type>: <title>" --body-file <plan_path>
+   ```
+
+3. **If Linear:**
+
+   ```bash
+   linear issue create --title "<title>" --description "$(cat <plan_path>)"
+   ```
+
+4. **If no tracker configured:**
+   Ask user: "Which project tracker do you use? (GitHub/Linear/Other)"
+   - Suggest adding `project_tracker: github` or `project_tracker: linear` to their CLAUDE.md
+
+5. **After creation:**
+   - Display the issue URL
+   - Ask if they want to proceed to `/workflows:work` or `/technical_review`
+
+NEVER CODE! Just research and write the plan.
+[A2 20:34] Found brainstorm from 2026-02-20: Game Instructions Popover Modal. Using as context for planning.
+
+The brainstorm is complete with all decisions made. Now I need to review PR #110 and the current codebase to identify what's already done vs. what remains. Let me research in parallel.
+  -> Task
+  -> Task
+  -> Task
+[A6 20:36] Good — all research complete. Here's what I found:
+
+**PR #110 is already merged** into `main`. It added [InstructionsPopover.tsx](src/client/InstructionsPopover.tsx) (61 lines) — a standalone 3-card carousel component using the native Popover API with dot indicators, prev/next navigation, and a "Got it" dismiss on the last card.
+
+**What the PR explicitly deferred** (from the PR body): *"Not yet wired into Lobby — integration + CSS coming in follow-up commits."*
+
+Let me now identify the gaps against the brainstorm spec and write the plan.
+  -> Read: InstructionsPopover.tsx
+  -> Read: Lounge.tsx
+  -> Read: Lobby.tsx
+  -> Read: lobby.css
+  -> Read: global.css
+[A12 20:36] Now I have a complete picture. Let me do the gap analysis and write the plan.
+  -> TodoWrite
+  -> Bash: ls /Users/rhhart/Documents/GitHub/schelling-points/docs/plans/ 2>/dev/null
+  -> Write: 2026-02-20-feat-game-instructions-popover-completion-plan.md
+  -> TodoWrite
+[A17 20:38] Now let me run the handoff test on the plan.
+  -> Skill: 
+[U2 20:38] Base directory for this skill: /Users/rhhart/.claude/skills/handoff-test
+
+# Handoff Test
+
+## The Naive Reader
+
+A fresh Claude instance with no session history. Technically competent — can read the codebase, run code, check git history. Has access to standard tooling, CLAUDE.md, and memory files. But has seen nothing from this conversation: no decisions made, options rejected, constraints discovered, or terminology coined. The only things that exist for the naive reader are what's written in persistent artifacts.
+
+The test: could that instance pick up the artifact and execute without asking clarifying questions?
+
+## Process
+
+1. Identify what was created or modified this session. Read each artifact in full.
+2. From the naive reader perspective, find implicit dependencies:
+   - Session-local terminology used without definition
+   - References to "the bug," "the approach," "what we discussed" without grounding
+   - Decisions recorded without rationale (a future reader needs *why* to know when the decision expires)
+   - Scope assumed but not stated
+   - Next steps that depend on conversation memory
+3. Report gaps. For each: what's missing, where it goes, concrete suggested text. Offer to apply fixes.
+
+If the artifact passes, say so in one sentence.
+
+
+ARGUMENTS: docs/plans/2026-02-20-feat-game-instructions-popover-completion-plan.md
+  -> Read: 2026-02-20-feat-game-instructions-popover-completion-plan.md
+[A21 20:38] Let me check one thing the plan references vaguely — how CSS files are loaded.
+  -> Glob: **/*.html
+  -> Grep: @import|link.*\.css
+  -> Read: index.html
+  -> Grep: styles\.css|import.*css
+[A26 20:39] ## Handoff Test Results
+
+The plan is solid and mostly self-contained. A naive reader could execute it with only two small pauses. Here are the gaps:
+
+---
+
+### Gap 1: CSS loading pattern is vague
+
+**Where:** Task 5, line 249-250
+
+**Problem:** The plan says *"Add `<link>` to `instructions.css` in the HTML entry point, or `@import` it — follow whichever pattern the other CSS files use."* A naive reader has to go discover the pattern. The actual pattern is bare `import` statements in `src/client.tsx:9-14`:
+
+```tsx
+import '../static/styles/global.css'
+import '../static/styles/lounge.css'
+// ...etc
+```
+
+**Fix:** Replace the vague instruction with:
+
+> Add `import '../static/styles/instructions.css'` to `src/client.tsx`
+> (alongside the existing CSS imports at lines 9-14).
+
+---
+
+### Gap 2: No branch name
+
+**Where:** Missing entirely
+
+**Problem:** The plan doesn't specify which branch to work on. Per CLAUDE.md convention it should be `<person>/<short-description>`. Since Marianne started the component work, does the implementer continue on a new branch? From `main`?
+
+**Fix:** Add a line under **Dependencies** or at the top:
+
+> **Branch:** `<assignee>/instructions-popover-integration` (from `main`)
+
+---
+
+### Gap 3 (minor): Task dependency description is slightly misleading
+
+**Where:** Line 47-48
+
+**Problem:** *"Tasks 1-2 can run in parallel; tasks 3-5 are sequential."* Tasks 3-5 touch different files (Lobby.tsx, Lounge.tsx, instructions.css) and don't depend on each other — they depend on tasks 1-2. Saying "sequential" implies 3→4→5 ordering, which isn't required.
+
+**Fix:** Change to:
+
+> Tasks 1-2 can run in parallel. Tasks 3-5 depend on 1-2 completing
+> (component API changes) but are independent of each other.
+
+---
+
+Everything else passes: the gap analysis is grounded, code snippets include file paths, acceptance criteria are testable, the brainstorm is linked, and content discrepancies are flagged with owners. Want me to apply these three fixes?
+[U3 20:41] yes
+  -> Edit: 2026-02-20-feat-game-instructions-popover-completion-plan.md
+  -> Edit: 2026-02-20-feat-game-instructions-popover-completion-plan.md
+  -> Edit: 2026-02-20-feat-game-instructions-popover-completion-plan.md
+  -> TodoWrite
+[A32 20:41] All three fixes applied. The plan passes handoff test.
+  -> AskUserQuestion
+  x AskUserQuestion failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to
+[U4 20:41] [Request interrupted by user for tool use]
+[U5 20:44] earlier today i had another claude instance research what react library would be best for adding the ability to swipe left/right from card to card, and it found one that's about 3kb and no transitive deps. i dont recall the name. can you review my previous convos with claude today, find the one about planning the instructions popover / modal, and find the name of the library we settled on?
+  -> Task
+[A37 20:47] It's **`react-swipeable`** — ~3 kB gzipped, zero transitive deps, React 19 compatible. It was already recorded in the brainstorm doc at [line 47](docs/brainstorms/2026-02-20-game-instructions-modal-brainstorm.md#L47), and the plan already includes it in Task 1. Ready whenever you want to proceed.
+[U6 20:47] <task-notification>
+<task-id>ba37b10</task-id>
+<tool-use-id>toolu_019SAaD36UZcgy7BNc3r7EBJ</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-rhhart-Documents-GitHub-schelling-points/tasks/ba37b10.output</output-file>
+<status>completed</status>
+<summary>Background command "Extract swipe-related context from today's conversation files" completed (exit code 0)</summary>
+</task-notification>
+Read the output file to retrieve the result: /private/tmp/claude-501/-Users-rhhart-Documents-GitHub-schelling-points/tasks/ba37b10.output
+[U7 20:50] let's include it in the plan, and also check that the plan points the work agent toward consistent css styling to match existing project elements
+[A40 20:51] Let me re-read the plan and cross-check the CSS guidance against the actual project styles.
+  -> Read: 2026-02-20-feat-game-instructions-popover-completion-plan.md
+  -> Read: global.css
+  -> Read: lobby.css
+  -> Read: lounge.css
+[A45 20:51] Good catch. I found several CSS consistency issues comparing the plan's proposed styles against actual project values. Let me fix them.
+
+**Issues found:**
+
+| Property | Plan says | Project pattern | Fix |
+|----------|-----------|----------------|-----|
+| `border-radius` | `16px` | `12px` (QR popover) | Match QR popover |
+| `.instructions-body` color | `rgba(255,255,255, 0.6)` | `p` global is `0.35` | Keep brighter for readability, but document why |
+| `.instructions-body` letter-spacing | `0.02em` | global `p` is `.15em` | Keep tight (sentences, not labels), but document why |
+| `.instructions-body` text-transform | `none` | global `p` is `uppercase` | Correct override — sentences shouldn't be uppercase |
+| Nav button opacity | `0.7` | `.icon` uses `0.8` | Match `.icon` pattern |
+
+Also, the `react-swipeable` rationale (why this library) isn't captured — just the install command. Let me update both.
+  -> Edit: 2026-02-20-feat-game-instructions-popover-completion-plan.md
+[A47 20:52] Now update the CSS section with consistency guidance and fixes.
+  -> Edit: 2026-02-20-feat-game-instructions-popover-completion-plan.md
+[A49 20:52] Updated the plan with two changes:
+
+**Task 1** — Added `react-swipeable` rationale: why it was chosen (iOS Safari conflict handling, size, zero deps, React 19 support) and what was considered against it.
+
+**Task 5** — Rewrote the CSS section with:
+- A **consistency guide table** mapping each style to its source in the existing codebase
+- **Documented intentional departures** from the global `p` style (so the work agent doesn't "correct" them back to uppercase/wide-tracked labels)
+- Fixed `border-radius` from `16px` → `12px` (match QR popover)
+- Fixed nav button `opacity` from `0.7` → `0.8` (match `.icon` pattern)
+- Fixed nav button `font-size`/`letter-spacing`/`font-weight` to match `.btn` label conventions exactly
+[U8 20:56] <ide_selection>The user selected the lines 70 to 70 from /Users/rhhart/Documents/GitHub/schelling-points/.claude/commands/startwork.md:
+Blocking
+
+This may or may not be related to the current task.</ide_selection>
+review the plan, make sure it's not prewriting code for the next agent, make sure all needs are highly specified, and then run /handoff-test
+  -> Read: 2026-02-20-feat-game-instructions-popover-completion-plan.md
+[A52 20:57] The plan has a lot of copy-paste-ready code blocks — that's prewriting, not specifying. Let me convert them to behavioral specs with structural decisions, so the work agent makes its own implementation choices.
+  -> Edit: 2026-02-20-feat-game-instructions-popover-completion-plan.md
+  -> Edit: 2026-02-20-feat-game-instructions-popover-completion-plan.md
+  -> Edit: 2026-02-20-feat-game-instructions-popover-completion-plan.md
+  -> Edit: 2026-02-20-feat-game-instructions-popover-completion-plan.md
+[A57 20:57] Now replace the full CSS code block with a selector spec that references the consistency guide.
+  -> Edit: 2026-02-20-feat-game-instructions-popover-completion-plan.md
+[A59 20:58] Good. Now let me run the handoff test on the updated plan.
+  -> Read: 2026-02-20-feat-game-instructions-popover-completion-plan.md
+[A61 20:58] Plan looks clean now — behavioral specs, not code. Let me run the handoff test.
+  -> Skill: 
+[U9 20:58] Base directory for this skill: /Users/rhhart/.claude/skills/handoff-test
+
+# Handoff Test
+
+## The Naive Reader
+
+A fresh Claude instance with no session history. Technically competent — can read the codebase, run code, check git history. Has access to standard tooling, CLAUDE.md, and memory files. But has seen nothing from this conversation: no decisions made, options rejected, constraints discovered, or terminology coined. The only things that exist for the naive reader are what's written in persistent artifacts.
+
+The test: could that instance pick up the artifact and execute without asking clarifying questions?
+
+## Process
+
+1. Identify what was created or modified this session. Read each artifact in full.
+2. From the naive reader perspective, find implicit dependencies:
+   - Session-local terminology used without definition
+   - References to "the bug," "the approach," "what we discussed" without grounding
+   - Decisions recorded without rationale (a future reader needs *why* to know when the decision expires)
+   - Scope assumed but not stated
+   - Next steps that depend on conversation memory
+3. Report gaps. For each: what's missing, where it goes, concrete suggested text. Offer to apply fixes.
+
+If the artifact passes, say so in one sentence.
+
+
+ARGUMENTS: docs/plans/2026-02-20-feat-game-instructions-popover-completion-plan.md
+[A64 20:58] The plan passes the handoff test. A naive reader has everything needed to execute: file paths with line numbers, behavioral specs without prewritten code, structural constraints with rationale, CSS consistency guide with source references, and intentional departures documented with reasons.
+
+One minor note that doesn't block execution:
+
+**Acceptance criteria say "?" but component has an info icon.** Lines 186-187 say `"?" button visible on Lounge` and `"?" button visible on Lobby`, but the actual component (PR #110) renders an ℹ️ info icon. The Content Discrepancies section (line 180-181) correctly flags this as a design call for Julianna, but the acceptance criteria assume the outcome. A naive reader would notice the mismatch and wonder which is correct.
+
+**Suggested fix** (line 186-187): Change `"?" button` to `instructions button` in both acceptance criteria, since the icon choice is deferred to Julianna:
+
+> - [ ] Instructions button visible on Lounge screen (both pre-join and post-join views)
+> - [ ] Instructions button visible on Lobby screen (in `.screen-topbar`)
+
+Want me to apply?
+[U10 20:59] yes
+  -> Edit: 2026-02-20-feat-game-instructions-popover-completion-plan.md
+  -> TodoWrite
+[A67 20:59] Applied. Plan is at [2026-02-20-feat-game-instructions-popover-completion-plan.md](docs/plans/2026-02-20-feat-game-instructions-popover-completion-plan.md) — handoff test passes clean. Ready for `/workflows:work` or issue creation whenever you want to pick it up.
+[U11 21:00] <ide_selection>The user selected the lines 70 to 70 from /Users/rhhart/Documents/GitHub/schelling-points/.claude/commands/startwork.md:
+Blocking
+
+This may or may not be related to the current task.</ide_selection>
+create a brief handoff prompt for the work agent
+[A69 21:00] Here's a handoff prompt:
+
+---
+
+Implement the remaining integration for the game instructions popover per the plan at `docs/plans/2026-02-20-feat-game-instructions-popover-completion-plan.md`. The component (`src/client/InstructionsPopover.tsx`) already exists from PR #110 — this work adds swipe support, auto-show logic, screen integration, and CSS. Read the plan fully before starting; it has CSS consistency constraints and intentional departures from global styles that must be followed. Branch from `main`.
+
+---
+
+Want me to put this somewhere specific, or are you kicking off `/workflows:work` with it?

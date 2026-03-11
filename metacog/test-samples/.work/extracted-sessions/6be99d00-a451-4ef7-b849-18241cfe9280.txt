@@ -1,0 +1,270 @@
+[U1 19:45] @.claude/skills/session-review/improvement-plan.md  @.claude/skills/session-review/SKILL.md @.claude/skills/session-discovery/SKILL.md 
+
+i'd like you to research the three documents above and their involvement in the overall system that they feed, which I've been calling the learning loop. So session discovery is meant to be a skill that's called by session review, but the improvement plan was written before the session discovery skill was created. So I would like to redo this plan a bit or rethink the plan in light of the session discovery skill. and this probably means that the context management doesn't need to be as fastidious because the session discovery can gather up all of the sessions that pertain to the review without having to do handoff tests and try to track the session all the way from start to end through multiple compactions or handoffs.
+
+So I'd like you to do a bit of research on the learning loop, use sub-agents to do this, synthesize a comprehensive picture, and make recommendations for how to update the improvement plan to make session review really use the session discovery skill effectively. And consider a possibility where session discovery could end up dispatching multiple research agents or a single sub-agent if what's there to be analyzed is bigger than the orchestrating agent has context for. So do research and then propose an updated improvement plan to the session review skill.
+  -> Task
+  -> Task
+[A3 19:51] Good research from both agents. Let me synthesize and write the updated improvement plan.
+  -> Read: improvement-plan.md
+[A5 19:51] Now I have the full picture. Let me synthesize this and write the updated plan.
+  -> Read: session-discovery.ts
+[A7 19:54] Now I have everything. Let me write the updated improvement plan.
+
+Here's what I found from the research:
+
+**Key insight:** The original improvement plan was written when session-review's only view into prior sessions was git history + the session log summaries session-review itself wrote. Session-discovery changes this completely — it finds the actual raw Claude Code conversation JSONL files from prior sessions, which contain the real learning evidence that hasn't been logged yet.
+
+The two evidence types are complementary and currently mixed up:
+- **Session log files** (`learning/session-logs/`) = summaries session-review writes → useful only for deduplication (already-quizzed concepts)  
+- **Claude Code session JSONL files** (`~/.claude/projects/*/uuid.jsonl`) = raw conversations → the actual evidence source
+
+The original plan also has a vague, subjective context gate ("feels manageable"). Session-discovery's manifest provides concrete numbers (`messageCount`, `sessionsMatched`) that make the gate objective.
+
+Here's the proposed updated plan:
+
+---
+
+## Proposed: improvement-plan-v2.md
+
+```markdown
+# Session-Review Improvement Plan v2: Session-Discovery Integration
+
+## Context
+
+This plan supersedes the original improvement plan. All 7 changes from that
+plan are implemented in the current SKILL.md (phase count, scoring rubric
+reference, missing current-state fallback, evidence-based gathering, scaffold
+validation, skills_activated best-effort, gh issue title prefix).
+
+The new work: integrating the `session-discovery` skill, which was built
+after the original plan was written. Session-discovery changes the evidence-
+gathering architecture.
+
+## Why this matters
+
+The original plan's evidence sources were:
+1. Current conversation (always available)
+2. Git log and diffs (artifacts built)
+3. Session log files written by session-review itself (summaries only)
+
+**The gap:** Session log files are summaries session-review wrote — they're
+good for deduplication (which concepts  [...truncated]
+[U2 20:01] good, I have a few questions about this plan. One, how does it verify the window of time that it's supposed to be finding conversations for so that it doesn't reanalyze conversations that have already been incorporated into a session review? and how does the session list get built? Is it all sessions that this user has had on this machine or is it only sessions that have been initiated from the current working directory?
+
+Another thing to note is that I noticed you referenced the weft dev root in the script, and I wanted to point out that the production package that ships to users doesn't use dev at all. the weft root is going to be a bit different. So let me point you to the production package that ships so you can analyze and apply that information as necessary: @~/documents/github/weft & here's a test installation: @~/documents/github/weftclone/weft
+  -> Task
+[A9 20:07] Good questions. Three things I need to clarify based on what the research found:
+
+**On window scoping and de-duplication:**
+
+The window start date comes from the most recent file in `learning/session-logs/` — that's the date of the last session-review run. Session-discovery is called with `--since <that date>`, which returns all conversations in the window.
+
+But there's a gap in the plan: de-duplication happens at the **concept level** (don't re-quiz concepts already in the most recent session log's frontmatter), not at the **session level**. If session-review ran on day N, session-discovery with `--since N` would return the review session itself along with new ones. The plan would re-analyze it. That's wasteful but not wrong — the concept-level dedup prevents re-quizzing. The plan should be explicit that this is the current behavior and acknowledge it as a known cost.
+
+One cleaner option: use `--since <day after last review>` to exclude the review day entirely. Simpler and usually right, with the edge case that a cross-midnight session from review day would be missed.
+
+**On session list scope:**
+
+Session-discovery without `--project` finds **all sessions across all projects on the machine**. With `--project`, it filters to a substring of the project path. For session-review, the right default is probably **no filter** — learning from project A is relevant when reviewing in project B, and the learning state (`current-state.md`) is already cross-project. The `firstPrompt` field in each manifest entry lets the agent quickly triage which sessions are relevant.
+
+**On the script location — this is the bigger issue:**
+
+The research revealed that `session-discovery.ts` and the `session-discovery` skill exist **only in weft-dev**, not in the production weft package. The production package (`~/documents/github/weft`) has only `bootstrap.sh` and `uninstall.sh` in its scripts folder. The global symlinks in `~/.claude/skills/` all point to the production weft, and there's no sy [...truncated]
+[U3 20:13] window scoping overlap is preferable -- better to re-analyze a session than skip a post-review one that happened same-day.
+
+i agree, no filter by default on session list scope
+
+let's make sure the script ships in the production package and the path resolution steps you recommend are outlined clearly in the improvement plan. include phase A.
+[A10 20:13] Let me read bootstrap.sh quickly to understand the symlink pattern before writing the plan.
+  -> Read: bootstrap.sh
+[A12 20:13] Bootstrap.sh auto-discovers all skill directories with `for skill_dir in "$SKILLS_DIR"/*/` — no changes needed there. Just adding the files to the right place in production weft is enough. Now I have everything to write the complete plan.
+  -> Write: improvement-plan.md
+[A14 20:15] Done. The updated plan is at [improvement-plan.md](.claude/skills/session-review/improvement-plan.md).
+
+Key changes from what I proposed earlier, now that I could read bootstrap.sh:
+
+**Bootstrap.sh needs no edits.** The glob `for skill_dir in "$SKILLS_DIR"/*/` auto-discovers every skill directory. Dropping `session-discovery/` into production weft's `.claude/skills/` is sufficient — it'll be picked up on next install or re-run of bootstrap.
+
+**Path resolution is concrete.** Bootstrap writes the harness root to `~/.config/weft/root` (line 48: `echo "$HARNESS_ROOT" > "$CONFIG_DIR/root"`), so the script invocation becomes `bun run "$(cat ~/.config/weft/root)/scripts/session-discovery.ts"` — no heuristics, no fallback guessing.
+
+**Three substantive changes to the plan from your questions:**
+
+1. **Window:** `--since <last-review-date>` with no +1 offset — same-day overlap is preferable to missing post-review sessions
+2. **Scope:** No `--project` filter — learning is cross-project, consistent with how current-state.md already tracks concepts globally
+3. **Session logs:** Their role is now explicitly "deduplication only" — they're what session-review wrote, not evidence from unreviewed sessions; that's the JSONL files' job
+[U4 20:16] when existing users update using git pull (or their harness auto-updates using git pull), will they need to run bootstrap again to register the symlinks for new skills added to the harness?
+  -> Glob: *.sh in scripts
+  -> Read: session-start.sh
+[A17 20:17] Yes, they will — and the current update flow doesn't cover it. Here's why:
+
+The session-start hook (lines 120–124) handles auto-update by running `git pull --ff-only`. That gets the new files into the harness but doesn't re-run `bootstrap.sh`, so new skill symlinks in `~/.claude/skills/` are never created. The "notify" path has the same gap — it tells the agent to say `cd $WEFT_ROOT && git pull`, with no mention of bootstrap.
+
+Bootstrap itself is idempotent — re-running it skips already-linked skills and only adds new ones — so re-running it after a pull is safe. The problem is nothing tells users (or the agent) to do that.
+
+Two places this could be fixed:
+
+**Option 1: Session-start hook detects unlinked skills.** After the update check, scan `$SKILLS_DIR/*/` and compare against `~/.claude/skills/`. If any skill directories exist in the harness but aren't symlinked, emit context telling the user to re-run bootstrap. This is low-friction — it piggybacks on the existing update-check logic and only fires when there's actually a gap.
+
+**Option 2: Auto-update path re-runs bootstrap.** On lines 121–123, after a successful `git pull`, also call `bash "$WEFT_ROOT/scripts/bootstrap.sh"`. Since bootstrap is idempotent this is safe, but it's heavier and could surface prompts (the skill conflict rename dialog) mid-session-start.
+
+Option 1 is cleaner — detection is cheap, it's non-destructive, and it puts the user in control of when to run bootstrap. The message would be something like: `"1 new skill available (session-discovery) but not linked. Run: bash $WEFT_ROOT/scripts/bootstrap.sh"`.
+
+Do you want me to:
+1. Add Option 1 (unlinked-skill detection) to the session-start hook now
+2. Note it in the improvement plan as a dependency for Phase A
+3. Both
+[U5 20:23] if the session start hook can do the detection without using up the agent's context (ie it's just script logic) then option 1 seems best. and if so, then 3 both is best
+[A18 20:23] Right — it's pure bash, the agent never sees it unless there's actually an unlinked skill. The context emission only fires when needed. Let me do both changes now.
+  -> TodoWrite
+  -> Edit: session-start.sh
+  -> TodoWrite
+[A22 20:23] Now update the improvement plan to include this as a Phase A step:
+  -> Edit: improvement-plan.md
+[A24 20:24] Now fix the renumbered step references in the improvement plan's implementation sequence and verification:
+  -> Read: improvement-plan.md
+[A26 20:24] The implementation sequence still references A3 as the test step — fix that now that it's A4:
+  -> Edit: improvement-plan.md
+  -> TodoWrite
+[A29 20:24] Done. Two files changed:
+
+**[session-start.sh](~/documents/github/weft/.claude/hooks/session-start.sh)** — Added the unlinked-skill detection block (20 lines of bash, pure comparison logic). It fires only when a skill directory exists in the harness but has no corresponding symlink in `~/.claude/skills/`. Emits the skill names and the exact command to fix it. Zero cost on normal sessions where everything is already linked.
+
+**[improvement-plan.md](.claude/skills/session-review/improvement-plan.md)** — Added A3 documenting the hook change, with the bash snippet inline for reference. Renumbered the test step to A4 and added a verification step (step 4 in the sequence) to confirm the hook change is present before testing the weftclone install.
+
+One note: the hook change is in the production weft repo (`~/documents/github/weft`), not in weft-dev. That's the right place for it — it ships with the harness. When you're ready to test, `git pull` from weftclone will bring the updated hook and you can verify it fires correctly by temporarily removing a skill symlink.
+[U6 20:26] excellent. do a /handoff-test on the improvement plan and see if it's fully ready for another agent to execute
+  -> Skill: 
+[U7 20:26] Base directory for this skill: /Users/rhhart/.claude/skills/handoff-test
+
+# Handoff Test
+
+## The Naive Reader
+
+A fresh Claude instance with no session history. Technically competent — can read the codebase, run code, check git history. Has access to standard tooling, CLAUDE.md, and memory files. But has seen nothing from this conversation: no decisions made, options rejected, constraints discovered, or terminology coined. The only things that exist for the naive reader are what's written in persistent artifacts.
+
+The test: could that instance pick up the artifact and execute without asking clarifying questions?
+
+## Process
+
+1. Identify what was created or modified this session. Read each artifact in full.
+2. From the naive reader perspective, find implicit dependencies:
+   - Session-local terminology used without definition
+   - References to "the bug," "the approach," "what we discussed" without grounding
+   - Decisions recorded without rationale (a future reader needs *why* to know when the decision expires)
+   - Scope assumed but not stated
+   - Next steps that depend on conversation memory
+3. Report gaps. For each: what's missing, where it goes, concrete suggested text. Offer to apply fixes.
+
+If the artifact passes, say so in one sentence.
+
+
+ARGUMENTS: /Users/rhhart/Documents/GitHub/weft-dev/.claude/skills/session-review/improvement-plan.md
+  -> Read: improvement-plan.md
+[A32 20:27] Four gaps found. Presenting them as a naive reader:
+
+---
+
+**Gap 1 — Duplicate `A4` heading (structural bug)**
+
+Lines 106 and 119 are both labeled `### A4`. The implementation sequence (line 277) references "A4 above" but it resolves to two different sections. One of them must be `A5`.
+
+*Suggested fix:* Rename the second to `### A5. Verification`.
+
+---
+
+**Gap 2 — "weft-dev" never defined**
+
+The plan uses "weft-dev" as a source location throughout (lines 36–38, 48, 54, 65) but never states where it lives. A naive agent knows about the harness install path but has no anchor for "weft-dev."
+
+*Suggested addition to Critical files section:*
+```
+- Source repo (weft-dev): `/Users/rhhart/Documents/GitHub/weft-dev`
+- Production weft repo: `/Users/rhhart/documents/github/weft`
+- Test harness install: `/Users/rhhart/documents/github/weftclone/weft`
+  (registered at `~/.config/weft/root`)
+```
+
+---
+
+**Gap 3 — Scope of edit inconsistency**
+
+Phase B intro (line 131) says "The main edit is Phase 1 steps 3–5." But B1's title (line 135) says "Replace Phase 1 step 3." A naive reader doesn't know if steps 4 and 5 are being deleted, merged into step 3, or left untouched.
+
+Looking at the current SKILL.md, step 4 is the context management gate and step 5 is the analysis output. The plan absorbs step 4 into new step 3b but leaves step 5 in place. That's not stated anywhere.
+
+*Suggested fix to Phase B intro:*
+> The main edit is Phase 1 step 3 (gather evidence) and step 4 (context management gate). Step 3 is replaced with the new 3a–3e pipeline, which absorbs the gate logic into 3b. Step 5 (analysis output) and steps 6–7 are unchanged.
+
+---
+
+**Gap 4 — A3 status is ambiguous for an executor**
+
+A3 says "Add a check… This change is already applied." But the implementation sequence (step 4) says "Confirm… already applied — verify it's present before testing." The two phrasings together are fine for someone who was in the conversation, but a naive agent may not trust "already applied" without know [...truncated]
+[U8 20:31] yes
+  -> Edit: improvement-plan.md
+  -> Edit: improvement-plan.md
+  -> Edit: improvement-plan.md
+[A36 20:31] Now fix the Phase B intro — the scope of edit description:
+  -> Edit: improvement-plan.md
+[A38 20:31] Also fix the now-stale reference in the implementation sequence:
+  -> Edit: improvement-plan.md
+[A40 20:31] All four fixes applied:
+
+1. **Duplicate A4** — second A4 renamed to A5; implementation sequence reference updated to disambiguate `(A4 above — the test steps, not A5 verification)`
+2. **Repo paths** — new `## Repo paths` section at the top of Critical files defines weft-dev, production weft, and weftclone with absolute paths
+3. **Scope of edit** — Phase B intro now explicitly states step 3 is replaced, step 4 (gate) is absorbed into 3b, and steps 5–7 are unchanged
+4. **A3 verification** — added date and a one-line `grep` command to confirm the hook change is present before proceeding
+
+The plan should now be executable by a naive reader without needing to ask clarifying questions.
+[U9 20:35] one more pass, check the plan for linearity of dependencies and thoroughness of production package updating
+  -> Read: improvement-plan.md
+[A42 20:36] Three issues found — two are blocking for a naive executor, one is a production package gap that was missed.
+
+---
+
+**Issue 1 — A1/A2 never commit the changes (blocking)**
+
+Steps 2–3 in the implementation sequence say "Copy X from weft-dev to production weft" and move on. But the production weft is a git repo. Without a commit, the files aren't in version control, can't be pulled by weftclone, and won't reach users. The test in A4 then says "Copy script and skill into weftclone/weft" — which is a direct copy that bypasses git entirely. This tests script execution but not the actual update path users will experience.
+
+The sequence needs a commit step between the copies and the weftclone test. The weftclone test should pull from the remote, not copy directly, because that's the real user path.
+
+---
+
+**Issue 2 — A4 doesn't test the A3 detection flow**
+
+A4 verifies that `session-discovery.ts` runs and returns JSON. It doesn't verify the thing A3 added: that the session-start hook detects the unlinked skill and surfaces the right message. A4 should include: temporarily remove the session-discovery symlink from `~/.claude/skills/`, verify the hook fires with the expected message, then run bootstrap and confirm the symlink is created.
+
+Without this, the hook change (the main protection for existing users) goes untested.
+
+---
+
+**Issue 3 — session-discovery SKILL.md contains the wrong script path for production (missed production package gap)**
+
+The session-discovery SKILL.md currently says:
+```
+Run the discovery script from the weft-dev repo:
+bun run <weft-dev-root>/scripts/session-discovery.ts [flags]
+```
+
+When this ships to production weft, that instruction is wrong — there is no "weft-dev repo" for a production user. The consuming skill (session-review) resolves the path via `$(cat ~/.config/weft/root)`, but the SKILL.md's own "How to invoke" section would be actively misleading. This needs to be updated in the SKILL.md **before** it's copied to production.
+
+---
+
+**Minor  [...truncated]
+[U10 20:37] yes
+  -> Edit: improvement-plan.md
+[A44 20:38] Now the old A3 (hook) is now A4 — fix that heading, then rewrite what was A4/A5 test/verify:
+  -> Edit: improvement-plan.md
+  -> Edit: improvement-plan.md
+[A47 20:39] Now fix the implementation sequence — update step references and the stale "steps 3–5":
+  -> Edit: improvement-plan.md
+[A49 20:39] All four fixes applied. Summary of what changed:
+
+1. **A2 split into two steps** — A2 now opens by updating the SKILL.md path (`weft-dev repo` → `$(cat ~/.config/weft/root)`) before copying. New **A3** commits and pushes the production weft changes with the exact `git add` paths.
+
+2. **A4/A5 renumbered** — The hook step is now A4 (was A3, unchanged in content). The test step is now **A5** with four concrete sub-steps (5a–d): pull from remote, verify script execution, test hook detection by removing the symlink and running the hook directly, then restore via bootstrap.
+
+3. **SKILL.md path fix** — Noted as a required pre-copy edit in A2 before anything ships.
+
+4. **Implementation sequence updated** — All 11 steps now have accurate section cross-references, and step 8 correctly says "Phase 1 steps 3 and 4" instead of "steps 3–5".

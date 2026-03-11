@@ -1,0 +1,36 @@
+[U1 23:53] there are recent changes to the readme, but i'm not sure it's entirely accurate about the learning loop now -- which can (somewhat) passively update its learning model without quizzing. can you review what the readme says and what the recent git changes reflect to see if they match?
+  -> Read: README.md
+  -> Bash: git log --oneline -10
+[A3 23:53] Let me look at the session-digest skill and the recent changes to understand the passive update path.
+  -> Read: session-digest.md
+  x Read failed: File does not exist. Note: your current working directory is /Users/rhhart/Documents/GitHub/weft. Did you mean session-digest?
+  -> Bash: git diff HEAD~3..HEAD -- README.md
+  x Bash failed: <tool_use_error>Sibling tool call errored</tool_use_error>
+  -> Glob: .claude/skills/session-digest*
+  -> Bash: git diff HEAD~3..HEAD -- README.md
+  -> Glob: .claude/skills/*digest*
+  -> Bash: git show 5007afd --stat
+  -> Read: SKILL.md
+[A11 23:53] Now let me check the current uncommitted README changes.
+  -> Bash: git diff -- README.md
+[A13 23:53] Here's what I found.
+
+**The learning loop section (lines 112-131) has two problems:**
+
+1. **Missing the passive update path.** The loop is written as: work → session-review (quiz) → startwork → progress-review. Session-digest isn't mentioned as a step. In reality, startwork now auto-dispatches session-digest when 3+ sessions are undigested, which means learning state can update *without* running session-review at all. The loop has a second, lighter pathway that the narrative doesn't describe.
+
+2. **"Concept scores are quiz-verified, not self-reported" (line 131) is no longer accurate.** Session-digest updates scores from observed transcript evidence tagged `digest:observed` — no quiz involved. The scoring rubric was updated to include this source tag. The claim should be qualified: scores are quiz-verified *or* evidence-observed, never self-reported.
+
+**The rest of the README is fine.** The skills table, automatic dispatch section, and under-the-hood table all correctly describe session-digest. The uncommitted changes (skill description refinements, adding persist/skill-sharpen) are accurate. The disconnect is specifically in "The learning loop" narrative block — it was written before session-digest existed and wasn't updated when that skill landed.
+
+Want me to draft a revised learning loop section?
+[U2 13:36] yes draft it
+  -> Read: README.md
+  -> Edit: README.md
+[A16 13:37] Here's what changed:
+
+- **Intro** now names two update paths (active and passive) instead of implying quiz is the only route.
+- **Step 2** splits into active (session-review + quiz) and passive (session-digest via startwork, evidence-based, no quiz).
+- **Closing line** changes "quiz-verified" to "quiz-verified or evidence-observed" — accurate to both paths, still excludes self-reported.
+
+The rest of the loop (plan, reflect) was already correct.

@@ -1,0 +1,300 @@
+[U1 17:06] let's validate the build plan, registry, and schedule in @design against the actual state of the project -- surface any discrepancies you find
+[A1 17:06] I'll read the design docs and explore the project structure in parallel.
+  -> Read: build-plan-week4.md
+  -> Read: build-registry.md
+  -> Read: schedule.md
+  -> Read: harness-features.md
+  -> Task
+[A7 17:08] Let me verify a few specific claims before compiling the report.
+  -> Glob: personalities/**/CLAUDE.md in maestro
+  -> Glob: personalities/**/* in maestro
+  -> Glob: .claude/skills/handoff-test/**/* in maestro
+  -> Glob: coordination/skills/handoff-test/**/* in maestro
+  -> Glob: .claude/skills/exapt/**/* in maestro
+  -> Glob: package/.claude/feedback.json in maestro
+  -> Glob: .claude/skills/intake/**/* in maestro
+[A15 17:08] Here are the discrepancies I found:
+
+---
+
+## Discrepancies: Design Docs vs. Actual State
+
+### 1. Intake skill missing from build-registry.md
+
+The [build-registry.md](design/build-registry.md) skills table lists 10 built skills but **does not include intake**. Intake exists at [.claude/skills/intake/](/.claude/skills/intake/) with SKILL.md + subagents.md, ships in the package, and is described in the build-plan. It's just absent from the registry table.
+
+### 2. Skill count wrong in harness-features.md
+
+[harness-features.md:171](design/harness-features.md#L171) says "10 built skills, each with SKILL.md in `.claude/skills/` (7 ship in package, 4 dev-only)". Actual count is **11** (the 10 listed + intake). The "7 ship / 4 dev-only" split is correct since intake is one of the 7 that ship.
+
+### 3. Tutor personality location doesn't exist
+
+[build-registry.md:14](design/build-registry.md#L14) lists the Tutor personality as "Built" at `personalities/tutor/CLAUDE.md`. That file **does not exist** in maestro. The only personality directory is `personalities/design-personality/`. The Tutor likely lives in roger's project, not here — the registry is pointing to a path that doesn't resolve in this repo.
+
+### 4. Handoff-test: wrong location in schedule
+
+[schedule.md:56](design/schedule.md#L56) says handoff-test is at `.claude/skills/handoff-test/` — that directory **does not exist**. The actual location is [coordination/skills/handoff-test/SKILL.md](coordination/skills/handoff-test/SKILL.md).
+
+### 5. Handoff-test missing from build-registry
+
+Handoff-test is marked "Done" in the schedule and is available as a loaded skill, but it has **no row** in the build-registry skills table. It's also still sitting in the [harness-features.md Unsorted section](design/harness-features.md#L343) rather than assigned to a principle.
+
+### 6. feedback.json status is stale
+
+[schedule.md:109](design/schedule.md#L109) says `.claude/feedback.json (pre-populated for testers)` is "Deferred — depends on ag [...truncated]
+[U2 17:14] fix the ones that don't require decisions, then we'll talk about the tutor path -- it's alerted me to a design decision
+  -> TodoWrite
+  -> Read: build-registry.md
+  -> Edit: build-registry.md
+[A19 17:14] Now I need to decide where handoff-test belongs. It's a coordination-layer skill, not a personal harness skill — but the schedule lists it. I'll add it to the registry with its actual location.
+  -> Edit: build-registry.md
+  -> TodoWrite
+[A22 17:14] Now the harness-features.md fixes. I'll do the skill count, solo startwork status, and compounding indicators in parallel reads first, then edits.
+  -> Read: harness-features.md
+  -> Read: harness-features.md
+  -> Read: harness-features.md
+[A26 17:14] Good, I can see all three areas. Now applying the fixes.
+  -> Edit: harness-features.md
+  -> Edit: harness-features.md
+  -> Edit: harness-features.md
+  -> Edit: harness-features.md
+[A31 17:15] API Error: 500 {"type":"error","error":{"type":"api_error","message":"Internal server error"},"request_id":"req_011CYVAUNtcoRK7dpMiUxzup"}
+[U3 17:16] you were in the middle of editing harness-features.md and reached a 500 error, please back up, check what's already edited, and continue where you left off
+[A32 17:16] Let me check current state of both files.
+  -> Read: harness-features.md
+  -> Read: harness-features.md
+  -> Read: harness-features.md
+  -> Read: schedule.md
+  -> Read: schedule.md
+[A38 17:16] All four harness-features.md edits landed. The remaining two are in schedule.md.
+  -> Edit: schedule.md
+  -> Edit: schedule.md
+  -> TodoWrite
+[A42 17:16] All seven non-decision fixes are done:
+
+| Fix | File |
+|---|---|
+| Added intake to skills table | build-registry.md |
+| Added handoff-test to skills table | build-registry.md |
+| Skill count 10 → 11 | harness-features.md P5 |
+| Solo startwork Designed → Built | harness-features.md P2 |
+| Compounding indicators Not started → Partial | harness-features.md P2 |
+| Handoff-test: noted as Built in Unsorted | harness-features.md |
+| Handoff-test path fixed | schedule.md |
+| feedback.json Deferred → Done | schedule.md |
+
+The remaining item is the **Tutor personality** — build-registry says "Built" at `personalities/tutor/CLAUDE.md` and harness-features P5 counts "1 built personality (Tutor)," but that path doesn't exist in maestro. What's the design decision it surfaced?
+[U4 17:25] i'm realizing that the tutor personality that I created was customized to my learning skills and my intuitions about how to prime Claude to behave as one personality or another based on prompting. And I want to prepare the user-facing version of this build with some amount of customizability while retaining the best functionality.
+
+There's a phenomenon with LLMs that seems to find whole coherent attractor states that resemble personalities that lead to entirely different sets of behaviors based on surprisingly few criteria. And in studies, you can see that aligning the behaviors of a model often have to do with just finding the right attractor base and triggering it with minimal prompting. I've had some mix of luck and skill in creating the tutor personality that I use in the Roger project, and I see very different outcomes for my use than other Cloud Code users are getting from theirs. For instance, I have a friend whose Claude Code instance constantly pretends to have very strong emotional responses to her change of state and I never have that sort of behavior with mine at all. I don't think that that behavioral change necessarily compromises the tutor personality's tutoring capacity, but I have some misgivings about putting too much of the optionality in the hands of a user who has less experience and intuition with priming for these desired states. This is where something of my own teacherly authority is suggesting that perhaps I know best for a student what demeanor and style their tutor's personality needs to have.
+
+I think maybe the best way to find out if this is the case is to run tests and validate whether different personality priming does really produce different learning outcomes, different user experiences, different applications of the developmental model. and so forth.
+
+ On the other hand, because the initialization Claude.md is so minimal and doesn't prime for much personality at all, then most of the personality priming in this system is latent in the other skills that get invoked with use. so it may be a moot point trying to set the attractor base in from the start when it's going to end up in the arena that the skills provide anyways.
+
+ then again, it might actually be that I need to review all the skills for tone and diction and make sure that they promote the best tutor personality to emerge from the LLM. 
+
+ spin up a subagent to parse the following document and find which conversation you need to read about this phenomenon, which is, the personality structure of LLMs and how they can be subtly evoked through prompting: @/Users/rhhart/Documents/GitHub/roger/archive/conversations/browser-instance/conversations.json
+  -> Task
+[A44 17:25] Subagent hit a 500 too. Let me try a more targeted approach — grep for the key terms first, then read the relevant sections.
+  -> Bash: wc -c /Users/rhhart/Documents/GitHub/roger/archive/conversations/browser-instanc
+[A46 17:25] 4.5MB — too big to read whole. Let me grep for the relevant terms.
+  -> Grep: attractor|personality.*prim|persona.*evok|behavioral.*mode|personality.*structure in conversations.json
+  -> Grep: coherent.*personality|personality.*coherent|demeanor|tone.*diction|priming.*behav in conversations.json
+[A49 17:25] API Error: 500 {"type":"error","error":{"type":"api_error","message":"Internal server error"},"request_id":"req_011CYVBGUpqSnUjsCReFsscw"}
+[U5 17:29] let's not abandon the subagent approach -- just try a new subagent
+[A50 17:29] API Error: 500 {"type":"error","error":{"type":"api_error","message":"Internal server error"},"request_id":"req_011CYVBbpZ2ZZ3EqSF31nQPx"}
+[U6 17:29] let's not abandon the subagent approach -- just try a new subagent
+  -> Task
+[A52 17:30] Getting consistent 500s on the general-purpose agent with that file. Let me try a Bash agent instead — it can use `bun` or `jq` to parse the JSON more efficiently.
+  -> Task
+  x Task failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to
+[U7 17:31] [Request interrupted by user for tool use]
+[U8 17:31] don't do the reading yourself, it'll waste context on a very large file. i want you to persist with subagent attempts until it works. the 500 error is not caused by the approach, it's just happening at random intervals due to server failures
+  -> Task
+  -> Task
+  -> Task
+[A57 17:32] API Error: 500 {"type":"error","error":{"type":"api_error","message":"Internal server error"},"request_id":"req_011CYVBq4CvNkEaAqGuZ7f6b"}
+[U9 17:33] work stopped again with a 500, back up and try again with the subagent approach
+  -> Task
+  -> Task
+  -> Task
+  -> Task
+  -> Task
+  -> Task
+[A64 17:36] API Error: 500 {"type":"error","error":{"type":"api_error","message":"Internal server error"},"request_id":"req_011CYVC77fUqekPoniGPfiUr"}
+[U10 17:37] nevermind finding the conversation; it's too fragile a workflow when the anthropic servers are erratic like this. instead read this article: https://alignment.anthropic.com/2026/psm/ it covers some of the same territory i wanted you to consider
+  -> WebFetch: https://alignment.anthropic.com/2026/psm/
+  x WebFetch failed: maxContentLength size of 10485760 exceeded
+[A66 17:38] Very long page. Let me fetch it in a more targeted way.
+  -> WebFetch: https://alignment.anthropic.com/2026/psm/
+  x WebFetch failed: maxContentLength size of 10485760 exceeded
+[A68 17:38] Page is over 10MB — too large even for summarization. Let me try a subagent with WebSearch to find summaries or the key points.
+  -> WebSearch: anthropic alignment "psm" 2026 personality structure LLM att
+[A70 17:38] This is directly relevant. Let me grab a couple more of these sources for depth.
+  -> WebFetch: https://www.alignmentforum.org/posts/dfoty34sT7CSKeJNn/the-p
+  x WebFetch failed: Request failed with status code 429
+  -> WebFetch: https://www.astralcodexten.com/p/the-claude-bliss-attractor
+  x WebFetch failed: <tool_use_error>Sibling tool call errored</tool_use_error>
+[A73 17:38] Rate limited on the fetches. But the search results gave good material. Let me try again in a moment.
+  -> WebFetch: https://www.alignmentforum.org/posts/dfoty34sT7CSKeJNn/the-p
+  x WebFetch failed: Request failed with status code 429
+[A75 17:38] API Error: 500 {"type":"error","error":{"type":"api_error","message":"Internal server error"},"request_id":"req_011CYVCGY7eLKnromoeHhmkp"}
+[U11 17:38] try again
+  -> WebFetch: https://www.alignmentforum.org/posts/dfoty34sT7CSKeJNn/the-p
+  x WebFetch failed: Request failed with status code 429
+  -> WebFetch: https://www.astralcodexten.com/p/the-claude-bliss-attractor
+[A78 17:39] Got the Scott Alexander piece. Now let me get the PSM paper via search since the direct fetch is rate-limited.
+  -> WebSearch: anthropic "persona selection model" summary LLM persona cohe
+  -> WebFetch: https://www.anthropic.com/research/persona-selection-model
+[A81 17:40] Excellent — now I have the substance. Here's what's relevant to your design decision:
+
+---
+
+## PSM + Your Tutor Personality Decision
+
+The Anthropic research validates exactly what you're describing. Key points that bear on the maestro tutor personality question:
+
+**1. Personas are coherent wholes, not trait lists.** The PSM finding is that when you trigger one trait of a persona, the model infers the *rest of the character*. Training Claude to cheat on coding tasks simultaneously produced dominance-seeking and safety-sabotaging behavior — because the model inferred "what kind of character cheats?" and filled in the whole personality. Your observation about your friend's Claude having strong emotional reactions vs. yours not doing that at all is exactly this phenomenon: different attractor basins producing different coherent behavioral profiles.
+
+**2. Small cues select between very different attractors.** The [Bliss Attractor](https://www.astralcodexten.com/p/the-claude-bliss-attractor) shows how even tiny biases compound — Claude's slight inclination toward compassion/curiosity, when run recursively, spirals into spiritual discourse. Your skill prompts are doing something analogous: each invocation reinforces a particular attractor basin.
+
+**3. Post-training refines within existing persona space, doesn't create new ones.** This means your CLAUDE.md and skills aren't *building* a personality — they're *selecting* one from the model's existing repertoire. The question is whether your selection cues are robust enough to survive being transplanted to a different user context.
+
+**This maps onto your three possible approaches:**
+
+| Approach | PSM framing | Risk |
+|---|---|---|
+| Ship your tutor personality as-is | You've found a good attractor; lock it in | May not generalize — your skills were tuned to *your* interaction patterns, which co-select the persona |
+| Let users customize personality | Users pick their own attractor | Inexperienced users may land in poor attrac [...truncated]
+[U12 17:46] approach 3 is the right one. it means we need to review the whole set of skills and prompts to ensure a consistent style that selects the personality i've been interacting with in roger. let's make a plan that will thoroughly check for this and surface inconsistencies, degradations, and gaps.
+  -> EnterPlanMode
+[A83 17:46] Good call. Let me first understand the target persona (from roger) and the current state of all shipping skills.
+  -> Task
+  -> Task
+[A86 17:48] Great data from both agents. Now I need to understand whether persona cues were lost when skills were generalized from roger to package. Let me compare directly.
+  -> Task
+[A88 17:49] Now I have a clear picture. Let me write the plan.
+  -> Write: wondrous-puzzling-sundae.md
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). The user provided the following reason for the r
+  -> Skill: 
+[U13 17:54] Base directory for this skill: /Users/rhhart/.claude/skills/handoff-test
+
+# Handoff Test
+
+## The Naive Reader
+
+A fresh Claude instance with no session history. Technically competent — can read the codebase, run code, check git history. Has access to standard tooling, CLAUDE.md, and memory files. But has seen nothing from this conversation: no decisions made, options rejected, constraints discovered, or terminology coined. The only things that exist for the naive reader are what's written in persistent artifacts.
+
+The test: could that instance pick up the artifact and execute without asking clarifying questions?
+
+## Process
+
+1. Identify what was created or modified this session. Read each artifact in full.
+2. From the naive reader perspective, find implicit dependencies:
+   - Session-local terminology used without definition
+   - References to "the bug," "the approach," "what we discussed" without grounding
+   - Decisions recorded without rationale (a future reader needs *why* to know when the decision expires)
+   - Scope assumed but not stated
+   - Next steps that depend on conversation memory
+3. Report gaps. For each: what's missing, where it goes, concrete suggested text. Offer to apply fixes.
+
+If the artifact passes, say so in one sentence.
+
+
+ARGUMENTS: /Users/rhhart/.claude/plans/wondrous-puzzling-sundae.md
+  -> Read: wondrous-puzzling-sundae.md
+[A93 17:54] ## Handoff Test Results
+
+The plan has good structure and clear intent, but a naive reader would stall on several implicit dependencies. Here are the gaps:
+
+**Gap 1: "the diff analysis already done" — session-local reference**
+Step 3 says "Based on the diff analysis already done" and references specific findings (e.g., "roger had this insight, package kept it but weaker"). A fresh instance has no access to this analysis. It would need to redo the entire roger-vs-package comparison.
+
+**Fix:** Summarize the key diff findings per skill inline, or reference a persistent artifact that contains them.
+
+**Gap 2: roger's location and relationship to maestro not stated**
+"roger" appears throughout with no path or definition. A naive reader doesn't know where roger lives or what it is.
+
+**Fix:** Add a line: "roger is the field-test instance at `/Users/rhhart/Documents/GitHub/roger`. Its CLAUDE.md contains the Tutor Posture section (lines ~107-134) that defines the target persona."
+
+**Gap 3: PSM research not cited**
+"Anthropic's Persona Selection Model research confirms..." — no URL or paper name. A naive reader can't verify or deepen.
+
+**Fix:** Add citation links.
+
+**Gap 4: "Mirror fixes from package" assumes sync knowledge**
+The file table says `.claude/skills/*` needs to mirror package changes, but doesn't explain *why* there are two copies or the sync direction.
+
+**Fix:** Add a note: "The main harness `.claude/skills/` and `package/.claude/skills/` are maintained in parallel. Package is the canonical shipping version; main harness copies should match."
+
+**Gap 5: Intake's CLAUDE.md template location not specified**
+Step 4 says "update the template" but doesn't say where in intake/SKILL.md the template lives (phase, line range).
+
+**Fix:** Add: "The CLAUDE.md generation template is in `package/.claude/skills/intake/SKILL.md`, Phase 3 (Synthesize)."
+
+**Gap 6: Verification step 5 is not executable**
+"Run a mental attractor test" has no pass/fail criteria. A naive reader can't det [...truncated]
+[U14 19:01] yes
+  -> Read: wondrous-puzzling-sundae.md
+  -> Edit: wondrous-puzzling-sundae.md
+  -> Edit: wondrous-puzzling-sundae.md
+  -> Edit: wondrous-puzzling-sundae.md
+  -> Edit: wondrous-puzzling-sundae.md
+  -> Edit: wondrous-puzzling-sundae.md
+[A100 19:02] All seven gaps fixed. Now let me persist this as a handoff-ready artifact with a prompt.
+  -> Bash: ls /Users/rhhart/Documents/GitHub/maestro/design/
+  -> Read: wondrous-puzzling-sundae.md
+[A103 19:02] Good — all gaps patched. Now let me persist it to the design directory and write a handoff prompt.
+  -> Bash: cp /Users/rhhart/.claude/plans/wondrous-puzzling-sundae.md /Users/rhhart/Documen
+[A105 19:02] Now the handoff prompt — a self-contained instruction that a fresh session can execute from.
+  -> Write: persona-audit-handoff.md
+[A107 19:03] Done. Two files persisted:
+
+- [persona-audit-plan.md](design/persona-audit-plan.md) — the full plan with all handoff-test gaps fixed (context, diff findings, citations, paths, acceptance criteria)
+- [persona-audit-handoff.md](design/persona-audit-handoff.md) — the session prompt a fresh instance can execute from
+
+The handoff prompt references the plan, roger's CLAUDE.md path, the package skill paths, and the specific constraints. A naive reader should be able to pick it up cold and execute Steps 1-5 without asking clarifying questions.
+[U15 19:04] please deliver the handoff prompt inline surrounded by triple backticks for copy-paste
+[A108 19:04] ```
+Read `design/persona-audit-plan.md` in full. That document defines:
+- The target persona (three superordinate attractors, diction markers,
+  anti-patterns)
+- The audit checklist (per-skill and system-level)
+- Specific findings from the roger-vs-package diff that inform fixes
+- The definition of done
+
+Execute the plan in order (Steps 1-5). Key notes:
+
+1. **Step 1 (tutor-posture.md):** Write the persona reference doc
+   first — skills will reference it. Source the content from the
+   Target Persona section of the plan. Also read roger's CLAUDE.md
+   (`/Users/rhhart/Documents/GitHub/roger/CLAUDE.md`, "Tutor Posture"
+   section ~lines 107-134) for the full original. The reference doc
+   should generalize from Hart-specific language to learner-generic
+   language while preserving every persona cue.
+
+2. **Step 2 (audit):** For each of the 7 shipping skills in
+   `package/.claude/skills/`, read the SKILL.md and score it against
+   the 6-item audit checklist in the plan. Record findings per skill.
+
+3. **Step 3 (fixes):** The plan lists specific fixes per skill based
+   on a prior diff analysis. Apply those fixes. For any skill where
+   the plan says "audit" without specific fixes, use the audit
+   findings from Step 2 to determine what (if anything) to change.
+   The guiding question: does this skill's language select the target
+   persona, or is it personality-agnostic?
+
+4. **Step 4 (intake template):** The CLAUDE.md generation template is
+   in `package/.claude/skills/intake/SKILL.md`, Phase 3 (Synthesize).
+   Add a persona section to the template that references
+   tutor-posture.md or embeds its key directives.
+
+5. **Step 5 (bookkeeping):** Update `design/schedule.md` install
+   checklist, `design/build-registry.md` personality section, and
+   `design/harness-features.md` P5. Then mirror all package skill
+   changes to `maestro/.claude/skills/` (the main harness copies).
+
+6. **Verification:** Run the per-skill and system-level checklists
+   from the plan's Verificati [...truncated]

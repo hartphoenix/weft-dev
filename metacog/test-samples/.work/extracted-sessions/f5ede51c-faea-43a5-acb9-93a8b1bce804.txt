@@ -1,0 +1,510 @@
+[U1 16:45] Implement the following plan:
+
+# Plan: Tool-turn collapsing + prompt framing for MetaClaude observer
+
+## Context
+
+The meta-agent's 10-turn sliding window is dominated by low-information
+tool-only entries (`[Bash]`, `[Read]`, etc.) — each ~6 chars. 66% of
+assistant turns in a real session are tool-only. This means:
+
+1. **Information starvation:** A 10-slot window during tool-heavy work
+   may contain 1 text turn and 9 `[Bash]` entries (~91 chars total).
+2. **False drift detection:** The meta-agent sees walls of `[Bash]` and
+   concludes Builder Claude is off-task, when it's actually researching.
+
+Simulation against transcript bc131056 (a 195-turn MetaClaude development
+session) confirmed both problems. During turns 100-132, the meta-agent
+fired 7 consecutive false-positive drift injections while Builder Claude
+was exploring the codebase via Bash/Agent calls. Simulation logs:
+`weft-dev/meta/simulation-log.jsonl` and `simulation-log-range.jsonl`.
+
+With collapsing, a 10-slot window typically holds 6-8 substantive turns
+(vs. 1-3 before). No window size increase needed — the density fix is
+sufficient.
+
+Two complementary fixes:
+- **Structural:** Collapse consecutive tool-only turns into a single
+  summary entry, so the 10-slot window holds 10 meaningful items.
+- **Prompt framing:** Tell the meta-agent that tool sequences are
+  expected research behavior, not drift signals.
+
+## Files to modify
+
+1. `/Users/rhhart/Documents/GitHub/weft/tools/metaclaude/observer.sh`
+   — jq extraction pipeline (lines 88-107)
+2. `/Users/rhhart/Documents/GitHub/weft/tools/metaclaude/prompt.md`
+   — "When to speak" / alignment guidance
+3. `/Users/rhhart/Documents/GitHub/weft/tools/metaclaude/test-parser.sh`
+   — add tool-collapsing validation tests
+
+## Changes
+
+### 1. observer.sh — tool-turn collapsing in jq pipeline
+
+Insert a `reduce`-based transform between the initial array construction
+and the `.[-10:]` slice. The transform:
+
+- Detects tool-only entries via `test("^\\[.+\\]$")` (content is exactly
+  `[SomeName]`)
+- Collapses consecutive runs into a single `{role: "assistant", content:
+  "[tools: Bash x4, Read x1, Agent x1]"}` entry
+- Uses a transient `_tools` array as accumulator during the reduce pass,
+  then formats and replaces in a second pass
+- Non-tool entries and user entries pass through unchanged
+
+**Replace lines 88-107** (the full RECENT assignment) with:
+
+```bash
+RECENT=$(tail -50 "$TRANSCRIPT_PATH" | jq -s '
+    [.[] | select(.type == "user" or .type == "assistant") |
+     {role: .type, content: (
+         if .type == "user" then
+             if (.message.content | type) == "string" then
+                 .message.content | .[0:2000]
+             else "" end
+         else
+             [(.message.content // [])[] |
+              if .type == "text" then .text
+              elif .type == "tool_use" then ("[" + .name + "]")
+              else empty end
+             ] | join("\n") | .[0:2000]
+         end
+     )} | select(.content | length > 0)
+    ]
+    | [ reduce .[] as $item (
+        [];
+        if ($item.content | test("^\\[.+\\]$"))
+        then
+          if (length > 0 and (.[-1] | has("_tools")))
+          then .[-1]._tools += [$item.content[1:-1]]
+          else . + [{"_tools": [$item.content[1:-1]]}]
+          end
+        else . + [$item]
+        end
+      ) | .[] |
+      if has("_tools")
+      then {"role":"assistant","content":(._tools | group_by(.) | map("\(.[0]) x\(length)") | join(", ") | "[tools: \(.)]")}
+      else .
+      end
+    ]
+    | .[-10:]
+' 2>/dev/null || echo "[]")
+```
+
+**Note:** `group_by(.)` sorts tool names alphabetically. Output order
+is deterministic (e.g., `Agent, Bash, Read`) regardless of call order.
+
+**Why this is safe:**
+- Output schema is identical: array of `{role, content}` objects
+- `role` is always "user" or "assistant" — collapsed entries get
+  "assistant", so `TURN_COUNT` (which counts `role == "user"`) is
+  unaffected
+- `content` is always a string
+- Empty array input → empty array output (tested)
+- No tool turns → passthrough (tested)
+- The regex `^\\[.+\\]$` only matches entries that were already
+  `[ToolName]` markers from the upstream extraction — it won't
+  accidentally match text content containing brackets because the
+  upstream extraction never produces text wrapped in `[...]`
+  (The upstream jq only wraps content in `[...]` for `tool_use` blocks
+  via `("[" + .name + "]")`. Text blocks are passed as raw `.text`.
+  User content is passed as raw `.message.content`. No other code path
+  produces bracket-wrapped strings.)
+
+### 2. prompt.md — tool-sequence framing
+
+**Add after the last bullet in "When to stay silent" (after line 20,
+before the "[no comment]" explanation on line 22):**
+
+```markdown
+Builder Claude frequently uses sequences of tool calls ([Bash], [Read],
+[Grep], [Agent]) to explore the codebase before answering. A window
+showing consecutive `[tools: ...]` summaries after a user question
+usually means research-in-progress, not drift. Only flag drift when the
+user's question remains unaddressed across multiple text responses — not
+when Builder Claude is working silently through tools.
+```
+
+**Update the "What you receive" section** to document the collapsed
+format. Add after the `recent_turns` bullet:
+
+```markdown
+  Consecutive tool-only turns are collapsed into summaries like
+  `[tools: Bash x4, Read x1]`. This means each entry in the array
+  is either a substantive message or a summary of a tool sequence.
+```
+
+### 4. Simulation scripts — update extraction logic
+
+Update the jq extraction in `meta/simulate-accumulator.sh` and
+`meta/simulate-accumulator-range.sh` to include the same tool-collapsing
+transform, so re-running simulations uses the new pipeline.
+
+### 3. test-parser.sh — tool-collapsing tests
+
+Add a new test section that validates the jq transform in isolation.
+The tests pipe canned JSON through the collapse expression and check
+output structure and content.
+
+Test cases:
+- **Mixed run:** text, 4x[Bash], [Read], [Agent], text, user → collapses
+  tool run into single `[tools: Agent x1, Bash x4, Read x1]`
+- **All tools:** 10x[Bash] → single `[tools: Bash x10]`
+- **No tools:** user + text → passthrough unchanged
+- **Single tool between text:** text, [Bash], text → `[tools: Bash x1]`
+- **Empty array:** `[]` → `[]`
+- **Structure check:** every output entry has exactly `role` and
+  `content` fields, no `_tools` leak
+
+Each test validates:
+1. Correct number of output entries
+2. Correct content of collapsed entries
+3. No `_tools` key in any output entry
+4. `role` field preserved on all entries
+
+## Implementation sequence
+
+1. Add tests to `test-parser.sh` first — they validate the jq expression
+   before it touches the live pipeline
+2. Update `observer.sh` jq extraction
+3. Update `prompt.md`
+4. Update simulation scripts with same collapsing transform
+5. Run test-parser.sh
+6. Syntax-check observer.sh (`bash -n`)
+7. Run the simulation script against the same transcript to compare
+   before/after behavior
+
+## Verification
+
+- [ ] `bash test-parser.sh` — all existing + new tests pass
+- [ ] `bash -n observer.sh` — syntax OK
+- [ ] Run simulation against bc131056 transcript, turns 100-132:
+  - Collapsed windows should show text turns that were previously scrolled out
+  - False drift injections at obs 23-29 should decrease
+  - Accumulator should track session goal through tool-heavy phases
+- [ ] Spot-check: collapsed entry format is `[tools: Name xN, ...]`
+  with no stray `_tools` keys in the JSON payload sent to the model
+- [ ] TURN_COUNT still correct (only counts `role == "user"`)
+
+
+If you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/rhhart/.claude/projects/-Users-rhhart-Documents-GitHub-weft-dev/eb3bd0ca-1ab4-4788-97f6-b2aba2b4dde1.jsonl
+[A1 16:45] Let me read the files I need to modify first.
+  -> Read: observer.sh
+  -> Read: prompt.md
+  -> Read: test-parser.sh
+  -> Glob: meta/simulate-accumulator*.sh
+[A6 16:45] Now let me read the simulation scripts.
+  -> Read: simulate-accumulator.sh
+  -> Read: simulate-accumulator-range.sh
+[A9 16:45] I have all four files. Let me implement all changes. Starting with tests first (per the plan), then the live pipeline, prompt, and simulation scripts.
+
+**Step 1: Add tool-collapsing tests to test-parser.sh**
+  -> Edit: test-parser.sh
+[A11 16:46] **Step 2: Update observer.sh jq pipeline**
+  -> Edit: observer.sh
+[A13 16:46] **Step 3: Update prompt.md**
+  -> Edit: prompt.md
+  -> Edit: prompt.md
+[A16 16:46] **Step 4: Update simulation scripts with the same collapsing transform**
+
+The collapsing needs to be applied after extraction but before windowing. In both simulation scripts, the `ALL_TURNS` extraction produces the raw array, and the `RECENT` window is sliced from it. I need to add collapsing to the `RECENT` window after slicing.
+
+For `simulate-accumulator.sh`, the window is built at line 80. I'll add a collapse step:
+  -> Edit: simulate-accumulator.sh
+  -> Edit: simulate-accumulator-range.sh
+[A19 16:46] **Step 5: Run tests and syntax check**
+  -> Bash: cd /Users/rhhart/Documents/GitHub/weft && bash tools/metaclaude/test-parser.sh
+  x Bash failed: Exit code 1
+=== Parser tests ===
+  PASS: canonical
+  PASS: silence with context
+  PASS: reversed tag order
+  PASS: multiline content
+  PASS: inject only, no context tag
+  PASS: fallback: no tags at al
+  -> Bash: bash -n /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/observer.sh && echo
+  x Bash failed: <tool_use_error>Cancelled: parallel tool call Bash(cd /Users/rhhart/Documents/GitHub/weft &…) errored</tool_use_error>
+[A22 16:46] The content check logic in the test function has a jq expression issue. The `select | true` produces `[true]` not `"true"`. Let me fix the check function and the test expressions.
+  -> Edit: test-parser.sh
+[A24 16:47] Now fix the test call sites to pass a quoted string instead of a jq expression:
+  -> Edit: test-parser.sh
+  -> Edit: test-parser.sh
+  -> Edit: test-parser.sh
+  -> Bash: cd /Users/rhhart/Documents/GitHub/weft && bash tools/metaclaude/test-parser.sh
+  -> Bash: bash -n /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/observer.sh && echo
+[A30 16:47] All 23 tests pass, observer.sh syntax is clean. Let me also syntax-check the simulation scripts.
+  -> Bash: bash -n /Users/rhhart/Documents/GitHub/weft-dev/meta/simulate-accumulator.sh && 
+[A32 16:47] All green. Here's what was done:
+
+**observer.sh** — Added a `reduce`-based jq transform between the initial extraction and the `[-10:]` slice. Consecutive tool-only entries (`[Bash]`, `[Read]`, etc.) get collapsed into a single `[tools: Agent x1, Bash x4, Read x1]` summary. Non-tool and user entries pass through unchanged. Output schema is identical.
+
+**prompt.md** — Added tool-sequence framing in "When to stay silent" (tool runs = research, not drift) and documented the collapsed format in "What you receive."
+
+**test-parser.sh** — 6 new tool-collapsing tests: mixed run, all-tools, no-tools passthrough, single tool between text, empty array, and separate runs staying separate. All validate entry count, content, no `_tools` leak, and `role`+`content` field presence.
+
+**simulate-accumulator.sh / simulate-accumulator-range.sh** — Same collapsing transform applied to the `RECENT` window so re-running simulations uses the new pipeline.
+
+Verification remaining from the plan that requires LM Studio running: the simulation replay against bc131056 turns 100-132 to confirm reduced false-positive drift injections.
+[U2 16:49] good. lm studio server running on port 1234, ready to verify with the simulation
+  -> Agent: Find bc131056 transcript
+  -> Bash: cd /Users/rhhart/Documents/GitHub/weft-dev && bash meta/simulate-accumulator-ran
+[A35 16:59] **0 injections across 33 observations, turns 100-132.** The original simulation fired 7 false-positive drift injections in this same range (obs 23-29). Now: all silent.
+
+Key behaviors:
+- **Obs 1-14** (tool-heavy exploration, no user text): the model correctly reads collapsed `[tools: ...]` summaries as research-in-progress and stays silent
+- **Obs 15-25** (user asks about context window, planning begins): tracks the goal through the accumulator, no false drift flags
+- **Obs 26-33** (back to tool-heavy research for plan implementation): stays silent, accumulator correctly summarizes "researching implementation details"
+
+The prompt framing + collapsing eliminated all 7 false positives. The accumulator also tracks session state through tool-heavy phases — it knows the goal is "context window system with accumulator" throughout.
+[U3 17:50] how often does the meta-agent change the accumulator vs leave it the same? review the existing logs and calculate this rather than running a new sim if possible
+  -> Bash: jq -s '
+  [range(1; length) |
+    {obs: .[$].obs, changed: (.[$ - 1].accumulator
+  x Bash failed: Exit code 3
+jq: error: syntax error, unexpected ']', expecting '$' (Unix shell quoting issues?) at <top-level>, line 3:
+    {obs: .[$].obs, changed: (.[$ - 1].accumulator_out \!= .[$].accumulator_out)
+  -> Bash: jq -s '
+  . as $all |
+  [range(1; length) |
+    {obs: $all[.].obs, changed: ($al
+  x Bash failed: Exit code 3
+jq: error: syntax error, unexpected INVALID_CHARACTER (Unix shell quoting issues?) at <top-level>, line 4:
+    {obs: $all[.].obs, changed: ($all[. - 1].accumulator_out \!= $all[.].accumula
+  -> Bash: jq -s '
+  . as $all |
+  [range(1; length) |
+    {obs: $all[.].obs, same: ($all[.
+[A39 17:50] Let me also check the full simulation log if it exists.
+  -> Bash: wc -l /Users/rhhart/Documents/GitHub/weft-dev/meta/simulation-log.jsonl 2>/dev/n
+  -> Bash: # Show where the transitions happen in the range log
+jq -s '
+  . as $all |
+  [ra
+  x Bash failed: Exit code 3
+jq: error: syntax error, unexpected INVALID_CHARACTER (Unix shell quoting issues?) at <top-level>, line 6:
+     changed: (if . == 0 then true else ($all[. - 1].accumulator_out \!= $all[.].
+  -> Bash: # jq != doesn't work in this shell; use == with not
+jq -s '
+  . as $all |
+  [ran
+[A43 17:51] **Range log (33 obs, turns 100-132):** 12 changes / 20 unchanged = **37.5% change rate**
+
+**Full log (30 obs):** 12 changes / 17 unchanged = **41% change rate**
+
+The pattern: the accumulator updates when something actually shifts — new user input (obs 15-17), phase transitions in the work (obs 8: exploration → edge-case simulation; obs 31: planning → format refinement). It plateaus during steady-state tool runs where nothing meaningfully changes (obs 1-4, obs 18-23).
+
+That's roughly the right behavior — updating when new information arrives, coasting when the model is just churning through tools. The 60% unchanged rate isn't wasted work though; it's the model re-confirming "still on track" each time. The question is whether that re-confirmation cost (inference latency per observation) is worth it, or whether you'd want to skip inference entirely during obvious tool-run stretches.
+[U4 17:54] first off, it seems pretty trivial to have the script check for whether there is new user or agent text other than tool use in the window. And whether the accumulator needs an inference step in order to update it. If all that's new in the turn log is tool use without text, then the inference step should be skipped for that turn. But we want to write this in a way that is extremely reliable and functional so as to catch all actual needed inference steps and not ignore or have false negatives in the script trigger.
+[A44 17:55] Good call. Let me think through the design before writing.
+
+The reliable signal is: **has the substantive content in the window changed since last observation?** After collapsing, we can fingerprint only the non-tool entries. If the fingerprint matches the previous one and the accumulator already exists, skip inference entirely.
+
+Let me verify my understanding of the edge cases before implementing.
+  -> Read: observer.sh
+  -> Read: stateful-floating-glade.md
+[A47 17:55] Now let me work through the design. The core question is: what's the minimal, reliable check that avoids false negatives?
+  -> Read: observer.sh
+[A49 17:55] Now I have the full picture. Let me write the plan.
+  -> Edit: stateful-floating-glade.md
+  -> ToolSearch: select:ExitPlanMode
+[A52 17:56] The plan is straightforward — fingerprint the non-tool content in the collapsed window, compare to stored fingerprint, skip inference when nothing substantive changed. The edge case table covers the failure modes; the only "false" triggers are safe false positives (infer when we could skip), never false negatives.
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). To tell you how to proceed, the user said:
+I hav
+[A54 18:02] Good concern. Let me look at the full picture of what's there and what each file does before proposing alternatives.
+  -> Bash: ls -la /Users/rhhart/.claude/.metaclaude-* 2>/dev/null
+  -> ToolSearch: select:AskUserQuestion
+[A57 18:02] Let me categorize these files by their actual function before proposing options:
+
+**Hot IPC files** (read/written every hook invocation, ~0.5s cycle):
+- `-injection` — the actual payload Builder Claude reads
+- `-status` — JSON flags for the status line hook
+- `-accumulator` — running session summary
+- `-session-log` — pointer to current session's log path
+- (proposed) `-window-fingerprint`
+
+**Config/toggle files** (written by user via `/metaclaude`, read each invocation):
+- `-enabled` — on/off toggle
+- `-mode` — display mode (dev/quiet)
+- `-model` — JSON with backend + model name
+- `-instruction` — session-level prompt addition
+
+The IPC files *need* to be somewhere both the observer (runs outside Claude Code's sandbox) and the hooks (run inside the sandbox) can read/write. That's the actual constraint — not preference, but the sandbox's allow-write list.
+  -> AskUserQuestion
+[A59 18:04] Good — simplest fix. One subdirectory, one allow-write entry (`/Users/rhhart/.claude/metaclaude/`), no sprawl. Every file currently named `.metaclaude-*` in `~/.claude/` moves to `~/.claude/metaclaude/` with the prefix dropped.
+
+Let me update the plan to include this consolidation as part of the same changeset — it's a prerequisite for adding the fingerprint file cleanly.
+  -> Agent: Find all metaclaude path refs
+[A61 18:05] Good — 5 source files to update, all in `weft/tools/metaclaude/`. Let me read the ones I haven't seen yet to map the exact changes.
+  -> Read: inject.sh
+  -> Read: toggle.sh
+  -> Read: statusline.sh
+  -> Read: SETUP.md
+[A66 18:05] Now I have the complete picture. All five files use the same pattern: individual `$HOME/.claude/.metaclaude-*` paths declared at the top. The migration is mechanical — introduce a `METACLAUDE_DIR` variable, `mkdir -p` it once, and drop the `.metaclaude-` prefix from filenames.
+
+One thing to note: `toggle.sh` line 79 and 80 have hardcoded `rm -f "$HOME/.claude/.metaclaude-injection"` and `"$HOME/.claude/.metaclaude-instruction"` inside the `disable()` function, rather than using the variables. Those need fixing too.
+
+Also, `metaclaude-logs/` (the legacy daily JSONL dir) currently lives at `$HOME/.claude/metaclaude-logs/`. That moves to `$HOME/.claude/metaclaude/logs/`.
+
+Let me finalize the plan.
+  -> Edit: stateful-floating-glade.md
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). To tell you how to proceed, the user said:
+In or
+  -> Glob: **/log-viewer* in weft
+  -> Grep: metaclaude-logs|session.log|session-log in skills
+  -> Grep: log.viewer|session.log|view.*log in weft-dev
+[A72 18:07] The log viewer from the PRD — let me find it. It was mentioned in the session log viewer PR.
+  -> Grep: metaclaude-logs|\.metaclaude-session-log|session_log|SESSION_LOG in metaclaude
+  -> Glob: **/*metaclaude*SKILL* in weft
+  -> Glob: **/*metaclaude* in skills
+  -> Grep: metaclaude in skills
+  -> Read: SKILL.md
+  -> Grep: session.log.viewer|log.viewer|view.*session.*log in weft-dev
+  -> Grep: session.log.viewer|log.viewer" in 2026-03-09-metaclaude-local-prd.md
+  -> Read: 2026-03-09-metaclaude-local-prd.md
+[A81 18:07] Let me find the actual session log viewer that was built.
+  -> Grep: Phase 3a|session.log.viewer" in 2026-03-09-metaclaude-local-prd.md
+  -> Glob: **/* in log-viewer
+  x Glob failed: <tool_use_error>Directory does not exist: /Users/rhhart/Documents/GitHub/weft/tools/log-viewer. Note: your current working directory is /Users/rhhart/Documents/GitHub/weft-dev.</tool_use_error>
+  -> Glob: **/log-viewer/**/* in weft
+  -> Glob: **/log-viewer/**/* in weft-dev
+[A86 18:08] It's in weft-dev. Let me find the source files.
+  -> Glob: tools/log-viewer/*.{ts,tsx,html,json} in weft-dev
+  -> Read: server.ts
+  -> Glob: tools/log-viewer/lib/* in weft-dev
+  -> Read: parse-meta.ts
+  -> Read: session-index.ts
+[A92 18:08] Good catch. The log viewer reads meta logs from `META_DIR` which is hardcoded to `weft-dev/meta/`. That path is for the *session observation logs* (the per-session JSONL files), not the state files we're moving. Let me verify the full picture.
+  -> Read: discover-projects.ts
+[A94 18:08] The log viewer's path references:
+
+1. **`discover-projects.ts`** — reads `~/.claude/projects/` for transcript files. **No metaclaude state files involved.** Unaffected.
+
+2. **`parse-meta.ts`** — reads `weft-dev/meta/*.jsonl` (session observation logs). **These are the structured per-session logs, NOT the state files being moved.** The `meta/` directory stays in weft-dev. Unaffected.
+
+3. **`session-index.ts`** — combines the above two. Unaffected.
+
+The log viewer doesn't touch any of the `~/.claude/.metaclaude-*` state files. It reads from two places that aren't changing:
+- `~/.claude/projects/` (Claude Code's own transcript storage)
+- `weft-dev/meta/` (our observation logs, written by `observer.sh` via `SESSION_LOG` / `META_LOG_DIR`)
+
+The only log-related path that IS moving is `~/.claude/metaclaude-logs/` (the legacy daily JSONL). The log viewer doesn't read from that — it reads from `weft-dev/meta/`. The legacy logs are dual-written by `observer.sh` and `inject.sh` and are scheduled for removal after migration verification.
+
+Let me also check if there are references to `metaclaude-logs` in the viewer source to be thorough.
+  -> Grep: metaclaude in log-viewer
+[A96 18:08] Just a comment, no path references. The log viewer is clean — it doesn't reference any of the state files being moved.
+
+Now let me also check the `session-start.sh` hook since it appeared in the earlier grep.
+  -> Grep: metaclaude in session-start.sh
+[A98 18:08] No metaclaude references there either. Let me update the plan to document that the log viewer was checked and is unaffected.
+  -> Edit: stateful-floating-glade.md
+[A100 18:08] Also need to update the file count in the implementation section.
+  -> Edit: stateful-floating-glade.md
+[A102 18:08] Now the plan is complete. Summary of what was verified:
+
+- **Log viewer** (`weft-dev/tools/log-viewer/`): reads from `~/.claude/projects/` and `weft-dev/meta/` — neither path is changing. No state file references. Unaffected.
+- **6 files need updates**: observer.sh, inject.sh, toggle.sh, statusline.sh, SETUP.md, SKILL.md
+- **0 files in the log viewer need changes**
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). To tell you how to proceed, the user said:
+Check
+  -> Read: stateful-floating-glade.md
+[A105 18:10] Let me audit every reference against the actual source code. Several issues to fix.
+  -> Read: observer.sh
+  -> Grep: INSTRUCTION_FILE|metaclaude-instruction in observer.sh
+[A108 18:10] Found it. `observer.sh` has `INSTRUCTION_FILE` at line 147 (not in the header block) and `MODEL_FILE` at line 21 (below the header block). Both need to move into the header. Now let me verify the SKILL.md line numbers.
+  -> Grep: metaclaude-instruction|\.metaclaude in SKILL.md
+[A110 18:10] Lines 41-43, 49, 52, 55 — six references, not four. Let me also double-check the SETUP.md path references throughout (not just the allowlist section).
+  -> Grep: \.metaclaude|metaclaude-logs in SETUP.md
+[A112 18:10] Good — lines 52, 132, 141, 146, 151, 167-175. All need updating. Now let me fix the plan with accurate line numbers and complete references.
+  -> Edit: stateful-floating-glade.md
+  -> Edit: stateful-floating-glade.md
+[A115 18:11] Now update the implementation sequence and verification to be accurate.
+  -> Edit: stateful-floating-glade.md
+[A117 18:11] Audit complete. Issues found and fixed:
+
+- **observer.sh**: `MODEL_FILE` (line 21) and `INSTRUCTION_FILE` (line 147) were outside the header block — plan now calls out both explicitly and instructs to consolidate them into the header
+- **toggle.sh**: `INJECTION_FILE` and `INSTRUCTION_FILE` are used but never declared as variables — plan now says to add them
+- **SKILL.md**: 6 references (lines 41-43, 49, 52, 55), not 4 — corrected
+- **SETUP.md**: 5 additional path references outside the allowlist section (lines 52, 132, 141, 146, 151) — now listed
+- **Non-metaclaude paths** in observer.sh (PROMPT_FILE, NOTEPAD_DIR, META_LOG_DIR) explicitly called out as unchanged
+- **Verification section**: updated to match actual file count and includes SKILL.md + SETUP.md checks
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). To tell you how to proceed, the user said:
+/hand
+  -> Skill: 
+[U5 18:11] Base directory for this skill: /Users/rhhart/.claude/skills/handoff-test
+
+# Handoff Test
+
+## The Naive Reader
+
+A fresh Claude instance with CLAUDE.md and tooling but nothing from this conversation. The only things that exist for it are what's written in persistent artifacts.
+
+## Process
+
+1. Identify what was created or modified this session. Read each artifact in full.
+2. From the naive reader perspective, find implicit dependencies:
+   - Session-local terminology used without definition
+   - References to "the bug," "the approach," "what we discussed" without grounding
+   - Decisions recorded without rationale (a future reader needs *why* to know when the decision expires)
+   - Scope assumed but not stated
+   - Next steps that depend on conversation memory
+3. Report gaps. For each: what's missing, where it goes, concrete suggested text. Offer to apply fixes.
+
+If the artifact passes, say so in one sentence.
+[A120 18:11] Let me identify and read the artifacts created/modified this session.
+  -> Read: stateful-floating-glade.md
+[A122 18:11] Now let me also check the files that were already modified earlier in this session (the tool-collapsing work that's already implemented).
+  -> Read: observer.sh
+  -> Read: prompt.md
+  -> Read: test-parser.sh
+[A126 18:11] Now let me check the simulation scripts that were already modified.
+  -> Read: simulate-accumulator.sh
+  -> Read: simulate-accumulator-range.sh
+[A129 18:12] I've read all artifacts. Here's the handoff test:
+
+---
+
+## Handoff Test Results
+
+### Artifact 1: Plan file (`stateful-floating-glade.md`)
+
+**3 gaps found:**
+
+**Gap 1: "Tool-turn collapsing" referenced but not explained as prior work.**
+The plan says "After tool-turn collapsing, the meta-agent correctly stays silent" — a naive reader doesn't know this already happened in the current session. The plan is Part 1 (dir consolidation) + Part 2 (inference skip), but the collapsing work is a prerequisite that's already implemented.
+
+- **Where it goes:** Top of the Context section
+- **Suggested text:**
+  > **Prerequisite (already implemented):** Tool-turn collapsing in observer.sh's
+  > jq pipeline, prompt.md framing update, and test-parser.sh validation tests
+  > were implemented earlier in this session. The collapsing transform is live in
+  > observer.sh (lines 104-119), prompt.md (lines 22-27, 72-74), and
+  > test-parser.sh (lines 94-176). Simulation verified 0/33 false positives.
+  > This plan builds on that work.
+
+**Gap 2: `RECENT` is undefined session-local terminology.**
+Part 2 says "After computing `RECENT` (collapsed window)" — a naive reader needs to know `RECENT` is the bash variable in observer.sh holding the extracted/collapsed window array, computed at line 88.
+
+- **Where it goes:** Part 2 fingerprint section, first sentence
+- **Suggested text:** Change "After computing `RECENT` (collapsed window)" to "After computing `RECENT` (the collapsed window array, observer.sh line 88)"
+
+**Gap 3: Simulation scripts not mentioned in Part 1 consolidation.**
+The simulation scripts (`meta/simulate-accumulator.sh` and `meta/simulate-accumulator-range.sh`) were already modified this session to include the collapsing transform. They also read `PROMPT_FILE` from a hardcoded weft path. They don't use any `~/.claude/.metaclaude-*` state files, so they're technically unaffected by Part 1 — but the plan doesn't say this. A naive reader implementing the plan might wonder.
+
+- **Where  [...truncated]
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). To tell you how to proceed, the user said:
+provi
+[A131 18:14] The plan file is at: `/Users/rhhart/.claude/plans/stateful-floating-glade.md`
+
+Want me to apply the three handoff fixes to it before you review?
+  -> AskUserQuestion
+  -> Edit: stateful-floating-glade.md
+  -> Edit: stateful-floating-glade.md
+  -> Edit: stateful-floating-glade.md
+[A136 18:14] All three fixes applied. Plan file: `/Users/rhhart/.claude/plans/stateful-floating-glade.md`
+  -> ExitPlanMode

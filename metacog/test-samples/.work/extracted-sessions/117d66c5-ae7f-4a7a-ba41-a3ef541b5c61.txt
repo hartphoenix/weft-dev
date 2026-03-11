@@ -1,0 +1,325 @@
+[U1 13:44] currently the sessionstart hook that ships with the production package calls a script that checks a number of conditions and selectively injects prompts into claude's context to deal with those. can you summarize that set of conditions and actions thoroughly?
+  -> Agent: Find session-start hook files
+  -> Read: session-start.sh
+[A3 13:45] Here's the full breakdown:
+
+**Always injected:**
+- **Harness root path** — Reinforces the `CLAUDE.md` directive by telling the agent the resolved `LEARNING_ROOT` path, so harness file references resolve correctly regardless of CWD.
+
+**Condition checks (evaluated in order, some early-exit):**
+
+1. **No `learning/` directory** → User hasn't onboarded. Suggests `/intake`. **Early exit** — skips remaining checks since nothing else can apply.
+
+2. **Interrupted intake** (`.intake-notes.md` exists with `phase` != `complete`) → User started the interview but didn't finish. Tells the agent they can resume with `/intake` rather than starting over.
+
+3. **No `current-state.md`** → Intake may have run but never generated a learning profile. Suggests `/intake` to complete setup. **Early exit** — no point checking activity without a profile.
+
+4. **No recent session logs** (zero `.md` files in `session-logs/` modified in the last 7 days) → User is likely returning after a break. Suggests `/startwork` or `/lesson-scaffold` to re-engage.
+
+5. **Schedule deadlines** — Stub. Not yet implemented.
+
+**Maintenance checks (always run if not early-exited):**
+
+6. **Update check** — Reads `~/.config/weft/config.json` for the user's update preference (`notify`, `auto`, or `off`). If not `off` and the package root is a git repo:
+   - Fetches `origin` at most once per 24 hours (non-blocking background fetch).
+   - Compares local HEAD to `origin/main`. If behind:
+     - `auto` → runs `git pull --ff-only`, injects confirmation if it succeeds, stays silent on failure.
+     - `notify` (default) → tells the agent an update is available with the pull command.
+
+7. **Unlinked skills check** — Iterates skill directories in the package's `.claude/skills/` and compares against symlinks in `~/.claude/skills/`. If any exist on disk but aren't symlinked (e.g., a `git pull` brought new skills), it names them and tells the agent to run `bootstrap.sh`.
+
+**Key architectural detail:** `LEARNING_ROOT` (where the user' [...truncated]
+[U2 13:48] assuming the 'happiest path' of session start where no files are missing and harness is up to date, what's the approximate token cost of the startup hook running?
+[A4 13:48] On the happiest path (learning dir exists, intake complete, current-state exists, recent session logs present, no update available, no unlinked skills), only one context part gets injected — the harness root path reinforcement at line 50:
+
+> `Weft harness root: /Users/rhhart/Documents/GitHub/weft. All harness file paths (learning/, background/, .claude/references/) resolve from this root, not from the current working directory.`
+
+That's roughly **45-50 tokens** for the context string itself, plus the JSON wrapper (`{"additionalContext": "..."}`) and the system-reminder tag it gets injected into — call it **~60-70 tokens total** landing in context.
+
+Cheap. The early-exit design means the happy path only pays for the one reinforcement line. The heavier prompts (intake suggestions, update notices, skill lists) only fire when something actually needs attention.
+[U3 13:57] i added a skill yesterday called session-digest that passively updates the learning state without the user taking a quiz, and i'm considering an option where the user can set an "update learning state every X" instruction (needs a more legible user-facing message than that though) that will conditionally call the skill on startup if it's been longer than X since the last time it completed a session digest. analyze that skill and the items that currently call it so that you have a full picture before we start modifying the learning loop. i'd like to be clear about all the places along the learning loop path where 1) the learning state gets updated, and 2) session-digest gets invoked already.
+
+side question: the session start hook fires every time a new claude instance initializes, right? or is it some other event that fires it?
+[A5 13:57] Let me read the full picture.
+  -> Agent: Map learning loop and session-digest
+[A7 13:58] Here's the consolidated picture.
+
+## Where learning state gets written
+
+Five skills touch learning state files. All writes are human-gated.
+
+| Skill | What it writes | Source tags |
+|---|---|---|
+| **intake** | Seeds `current-state.md`, `goals.md`, `arcs.md`, `~/.claude/CLAUDE.md` (weft section) | `intake:artifact`, `intake:self-report`, `intake:inferred` |
+| **session-review** | Updates `current-state.md`, creates `session-logs/YYYY-MM-DD.md`, updates `.last-digest-timestamp`, optionally updates `goals.md`, `arcs.md`, `CLAUDE.md` | `session-review:quiz` (highest priority), `session-review:observed` |
+| **session-digest** | Writes nothing itself — returns a structured diff to its caller | `digest:observed` (applied by caller) |
+| **progress-review** | Updates `current-state.md`, `arcs.md`, `goals.md`, `CLAUDE.md`, appends to `.progress-review-log.md` | `progress-review:pattern` |
+| **startwork** | Writes nothing of its own — but if it dispatched session-digest or progress-review as sub-agents, it applies their approved results to `current-state.md` and timestamps | Inherits from sub-agent |
+
+## Where session-digest gets invoked
+
+Three paths:
+
+1. **session-review Phase 1** — dispatched as a **foreground** sub-agent. Digest results merge with current-session evidence to select quiz targets. Session-review then writes the approved changes.
+
+2. **startwork Phase 1, step 3c** — dispatched as a **background** sub-agent if 3+ undigested sessions are detected (by comparing `.last-digest-timestamp` against session-discovery results). Startwork writes approved results in Phase 5.
+
+3. **Direct user invocation** (`/session-digest`) — presents the diff in main context, user approves, and the main context applies the writes.
+
+## The side question
+
+SessionStart fires when a new Claude Code **conversation** initializes — meaning each time you start a new session (run `claude` in terminal, open a new chat in the IDE extension, etc.). It does **not** fire on API reconnects, context c [...truncated]
+[U4 15:26] i'm generally aiming to get the harness to learn passively about the user, so relying on them to consistently use the startwork command isn't great ux design. i do still want them to have say-so whenever the system wants to record new findings, but not obligate them to a workflow they don't necessarily want to adhere to.
+
+as one possible solution, i'm thinking the intake interview could have a very brief checkpoint, after creating the learning state, that tells the user "weft adapts to your progress by periodically analyzing your claude session logs and recommending updates to this learning profile. by default, it'll check for new session logs every 3 days. if you ever want to adjust the settings on your harness, ask claude or run /weft-settings."
+
+this weft-settings could be a very simple skill that presents the current configuration in a table in clear language, or could even open a browser-view settings panel with a comfortable ui that lets the user make adjustments to their config
+
+this is just brainstorming -- think divergently and consider other approaches, and let's clarify the decision landscape around this.
+[A8 15:27] Good problem framing. The core tension is: **the harness needs session data to learn, but the user shouldn't have to remember to feed it.** Let me lay out the decision space.
+
+## What actually needs to happen
+
+Session-digest needs to run periodically, and the user needs to approve what it finds. Everything else is implementation detail.
+
+## The trigger question
+
+Where does the "should we digest now?" check live?
+
+**Option A: Session-start hook (your current direction)**
+- Check `.last-digest-timestamp` against configured interval
+- Inject context telling the agent to dispatch session-digest
+- Pros: fires reliably, no new infrastructure, user sees it happen in conversation
+- Cons: the agent has to act on the injected context — it's a suggestion, not a guarantee. If the user immediately starts talking about something else, the digest prompt competes with their intent
+
+**Option B: Hook dispatches digest directly (no agent involvement)**
+- The shell hook itself runs session-discovery and prepares the digest
+- Problem: session-digest requires an LLM to analyze transcripts. A shell hook can't do that. Dead end unless you build a standalone script that calls the API outside Claude Code.
+
+**Option C: A pre-conversation background agent**
+- Hook injects a "run digest first" directive that the agent executes before engaging with the user
+- Effectively what Option A does, but with stronger framing ("do this before anything else" vs "suggest this")
+- Risk: delays the user's actual intent. If they open Claude to ask a quick question, a 30-second digest preamble is friction.
+
+**Option D: Post-conversation hook instead of pre-**
+- Claude Code doesn't have a SessionEnd hook currently, but if it did (or if you approximated one), digest could run after the user's done rather than before they start
+- More natural timing — you're reviewing what just happened
+- But: this is the session-review flow, which already dispatches digest
+
+So **A is the realistic path**, with the design question [...truncated]
+[U5 19:25] the sessionend hook is an interesting option, but i think for this purpose it's not a viable one -- check my thinking here and let me know if i'm mistaken. i'm pretty sure that on session end, the claude process is terminated & can't e.g. launch subagents to complete any model-dependent tasks; at most a sessionend hook could run a script that adjusts a counter or logs the existence of a new file. perhaps this could pair with a solution but it wouldn't be sufficient as a digest trigger
+[A9 19:25] Your understanding is correct. SessionEnd hooks run after the conversation is over — the LLM is no longer in the loop. They can execute shell commands (write a file, increment a counter, send a webhook), but they can't dispatch anything that requires Claude to think.
+
+So a SessionEnd hook could do bookkeeping — touch `.last-session-end`, append to a log, even run session-discovery to count undigested sessions and write that number somewhere — but the actual digest requires an LLM pass over transcripts, which means it has to happen at the start of the *next* session or not at all.
+
+The pairing you're alluding to could be useful though: SessionEnd writes cheap metadata (timestamp, session count since last digest), SessionStart reads it and skips the shell-level discovery work since the answer is already cached. Saves a few hundred milliseconds on startup. Minor optimization, not worth building yet, but the architecture accommodates it if startup latency ever matters.
+[U6 20:49] ok skip the optimization then, and the ui design idea.
+
+1. the preference should be set during intake -- it's a one-off that should take up very little context to capture their preference and apply it in the config. after that, it's not asked for again.
+
+2. the config.json is the place to store it. 
+
+3. conversations with claude can change it, but no need to build a skill for it yet.
+
+your suggested config schema is good. the hook check that offers but doesn't automatically run the digest is the best option. the end of the plan should prompt me to create weft-settings, not as part of this plan execution though. graceful degradation plan looks right.
+
+create a thorough execution plan for the next working agent to build this in one go. it should have all the file paths, design rationale, and resources necessary so it doesn't have to do any searching or asking to fulfill the build requirements. once you've written the plan, review it for clarity and thoroughness.
+  -> Agent: Read all files needed for plan
+[A11 20:50] Let me read the files the agent summarized instead of returning verbatim.
+  -> Read: SKILL.md
+  -> Read: SKILL.md
+  -> Read: SKILL.md
+[A15 20:50] Now I have the full picture. Let me write the plan.
+  -> Write: compiled-prancing-lecun.md
+[A17 20:51] Let me re-read the plan to check for gaps.
+  -> Read: compiled-prancing-lecun.md
+[A19 20:52] One gap: right after intake, `.last-digest-timestamp` doesn't exist, so the very next session would trigger a digest nudge — but there's nothing to digest yet. The intake checkpoint should seed the timestamp. Let me also verify there are no internal cross-references to check when renumbering.
+  -> Grep: 4[cde]|Phase 4 in SKILL.md
+  -> Grep: intake.*phase|intake.*4[a-e]|intake.*step in skills
+[A22 20:52] Good — no internal cross-references between numbered steps. Only the headers themselves need renumbering. Now let me update the plan with the timestamp seeding fix and this confirmation.
+  -> Edit: compiled-prancing-lecun.md
+  -> Edit: compiled-prancing-lecun.md
+[A25 20:52] Now update the verification section to cover the timestamp seeding.
+  -> Edit: compiled-prancing-lecun.md
+[A27 20:52] Plan covers three files, all edge cases, and the timestamp-seeding fix. The follow-up reminder about `/weft-settings` is noted but out of scope.
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). The user provided the following reason for the r
+  -> Edit: compiled-prancing-lecun.md
+  -> ExitPlanMode
+  x ExitPlanMode failed: The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). The user provided the following reason for the r
+  -> Skill: 
+[U7 21:03] Base directory for this skill: /Users/rhhart/.claude/skills/skill-sharpen
+
+# Skill Sharpen
+
+The reader is a language model. It knows how to interview, classify
+errors, write summaries, structure output, and avoid leading questions.
+Every line costs context window and competes with the session's work.
+
+## The test
+
+For each line: **would the agent behave differently without it?**
+
+If no, cut it.
+
+## What earns its tokens
+
+- **File paths and invocation commands** — not derivable from training
+- **Schemas and output templates** — exact formats other code depends on
+- **Behavioral overrides** — things the agent would NOT do unprompted
+  ("Do not read files. Work from memory." / "Commit immediately — do
+  not wait for approval.")
+- **Decision trees with specific thresholds** — score cutoffs,
+  conditional branches, dispatch criteria
+- **One concrete example** of good vs. bad output — one calibrates;
+  two is redundant
+- **Graceful degradation tables** — exact behavior per failure mode
+- **Interoperation tables** — how this skill connects to others, compact
+
+## What to cut
+
+- **Negative restatements of positive instructions.** If the workflow
+  says "answer first, be terse, stop," then "don't scaffold, don't
+  elaborate, don't continue" pays double. Write the positive
+  instruction clearly and trust it.
+- **Concepts the model already has.** Don't define syntax errors,
+  describe what a fresh Claude instance can access, or list interview
+  questions a competent interviewer would ask. Direct the capability;
+  don't explain it.
+- **Commentary and philosophy that don't change behavior.** "This is
+  the key design move" / "Debugging fails not from lack of intelligence
+  but lack of visibility" — the behavioral instruction does the work.
+  Cut the rationale.
+- **Downstream documentation.** What other skills do with this skill's
+  output doesn't change this skill's execution. Use an interoperation
+  table if connections matter; don't narrate them.
+- **Boilerplate repeated across skills.** Consent gates, path
+  resolution, "don't teach during X" — reference from one shared
+  location instead of copying into each skill.
+
+## Density reference
+
+persist (8 lines, 95% load-bearing) and handoff-prompt (29 lines, 75%)
+set the standard. When reviewing a draft, estimate what percentage of
+lines pass the behavioral-difference test. Below 65% means a trim pass
+is needed.
+
+## Diction carries persona
+
+Tutor-facing skills don't just direct actions — their word choices
+anchor the agent's posture (direct, Socratic, honest-signal). Trimming
+for density must not flatten this. When editing a skill whose reader
+operates in tutor mode: check that the surviving prose still sounds like
+the tutor, not like a spec sheet. The lever is selective diction, not
+added length.
+
+## Editing existing material
+
+Read the full skill first. Identify lines that fail the test. Propose
+cuts as a batch. Preserve every file path, schema, threshold, and
+behavioral override — these always earn their keep. Check that the
+remaining prose preserves the skill's tonal register.
+
+
+ARGUMENTS: Review the agent-facing directives in the plan at /Users/rhhart/.claude/plans/compiled-prancing-lecun.md — specifically the hook context injection text (the "Inject context:" block in section 1) and the intake step 4d content block (section 2). These will be written into session-start.sh and intake/SKILL.md respectively.
+[A32 21:03] Let me read the plan and the target files to see what's going where.
+  -> Read: compiled-prancing-lecun.md
+  -> Read: session-start.sh
+  -> Read: SKILL.md
+[A36 21:03] Two pieces to sharpen. Let me assess each against the behavioral-difference test.
+
+---
+
+## Piece 1: Hook context injection (plan lines 42-44)
+
+Current draft:
+
+```
+"This user's learning profile hasn't been updated in N days.
+ Offer to do a quick analysis and surface any updates for them
+ to approve."
+```
+
+**Assessment: ~80% load-bearing.** Three sentences, all change behavior. But there's a specificity gap — the agent doesn't know *how* to do the analysis. Compare the existing hook injections: Condition 1 names `/intake`, Condition 4 names `/startwork` and `/lesson-scaffold`. This one doesn't name `/session-digest`. The agent would have to guess which skill to invoke.
+
+Proposed revision:
+
+```
+"This user's learning profile hasn't been updated in N days. Offer to run /session-digest — a quick analysis of recent sessions that surfaces proposed updates for them to approve."
+```
+
+Changes: names the skill (file path equivalent — not derivable), compresses "surface any updates for them to approve" into the skill description clause. One sentence does the work of three.
+
+---
+
+## Piece 2: Intake step 4d (plan lines 81-128)
+
+Current draft has these layers:
+1. User-facing explanation (blockquote, lines 86-93) — **not agent-facing**; this is presented to the learner. Skill-sharpen doesn't apply to user-facing copy. Leave it.
+2. User-facing question (line 97-98) — same, leave it.
+3. Response mapping table (lines 103-108) — **load-bearing.** Exact thresholds and config values. Earns its tokens.
+4. Config write instruction (lines 110-117) — **load-bearing.** File path, merge-not-overwrite, example schema. Earns its tokens.
+5. "If the user declines..." (line 119-120) — **behavioral override.** The agent might skip writing on decline without this. Earns its keep.
+6. Timestamp seeding (lines 122-125) — **load-bearing.** File path, format, rationale. The rationale ("prevents the very next session from nudging") is the kind of thing that *does* change behavior — without it, an agent migh [...truncated]
+[U8 21:06] looks right. make the changes and /persist the plan
+  -> Edit: compiled-prancing-lecun.md
+  -> Edit: compiled-prancing-lecun.md
+  -> Edit: compiled-prancing-lecun.md
+  -> Skill: 
+[U9 21:06] Base directory for this skill: /Users/rhhart/.claude/skills/persist
+
+# Persist
+
+Copy the most recent file from `~/.claude/plans/` to `<cwd>/plans/YYYY-MM-DD-<slug>.md`. Derive the slug from the first heading (kebab-case, max 50 chars). Create the directory if needed. Report the path. Stop.
+
+
+ARGUMENTS: passive-digest-trigger
+  -> Read: compiled-prancing-lecun.md
+  -> Bash: ls /Users/rhhart/Documents/GitHub/weft-dev/plans/ 2>/dev/null
+  x Bash failed: Exit code 1
+  -> Bash: mkdir -p /Users/rhhart/Documents/GitHub/weft-dev/plans
+  -> Bash: cp /Users/rhhart/.claude/plans/compiled-prancing-lecun.md /Users/rhhart/Document
+[A45 21:10] Persisted to [plans/2026-03-04-passive-digest-trigger-intake-preference-checkpoint.md](plans/2026-03-04-passive-digest-trigger-intake-preference-checkpoint.md).
+[U10 21:10] Base directory for this skill: /Users/rhhart/.claude/skills/handoff-test
+
+# Handoff Test
+
+## The Naive Reader
+
+A fresh Claude instance with CLAUDE.md and tooling but nothing from this conversation. The only things that exist for it are what's written in persistent artifacts.
+
+## Process
+
+1. Identify what was created or modified this session. Read each artifact in full.
+2. From the naive reader perspective, find implicit dependencies:
+   - Session-local terminology used without definition
+   - References to "the bug," "the approach," "what we discussed" without grounding
+   - Decisions recorded without rationale (a future reader needs *why* to know when the decision expires)
+   - Scope assumed but not stated
+   - Next steps that depend on conversation memory
+3. Report gaps. For each: what's missing, where it goes, concrete suggested text. Offer to apply fixes.
+
+If the artifact passes, say so in one sentence.
+
+
+ARGUMENTS: plans/2026-03-04-passive-digest-trigger-intake-preference-checkpoint.md
+  -> Read: 2026-03-04-passive-digest-trigger-intake-preference-checkpoint.md
+[A47 21:10] **Gaps found: 2**
+
+**1. "N days" in the injection string is unresolved.** The pseudocode computes elapsed time but the context string says "N days" literally. A naive reader implementing this would need to know: substitute the actual computed number of days. The pseudocode implies it but doesn't state the substitution explicitly.
+
+- **Where:** Plan line 42
+- **Suggested fix:** Add a line after line 40: `Compute DAYS_SINCE = elapsed / 86400 (integer).` Then change the injection to use `$DAYS_SINCE` explicitly: `"This user's learning profile hasn't been updated in $DAYS_SINCE days."`
+
+**2. The `NOW` variable is used but not declared in the digest check pseudocode.** The update check section (existing hook lines 109) declares `NOW=$(date +%s)`, but the refactor note says to consolidate config reading — a naive reader might not realize `NOW` needs to be available to the digest check too. Since the plan moves the config read above both checks, `NOW` should also be hoisted.
+
+- **Where:** Plan lines 39-40 (pseudocode uses `NOW` without establishing it)
+- **Suggested fix:** Add `NOW=$(date +%s)` to the pseudocode block, before the comparison on line 39. Or note in the refactor section that `NOW` should be hoisted alongside the config read.
+
+Everything else passes. File paths are absolute, rationale accompanies every decision, the config schema is fully specified, startwork non-interference is grounded in the `.last-digest-timestamp` mechanism, and the verification matrix covers all branches. Want me to apply the two fixes?
+[U11 21:12] yes
+  -> Edit: compiled-prancing-lecun.md
+  -> Edit: compiled-prancing-lecun.md
+[A50 21:12] Now let me sync the persisted copy.
+  -> Bash: cp /Users/rhhart/.claude/plans/compiled-prancing-lecun.md /Users/rhhart/Document
+[A52 21:12] Both fixes applied and persisted copy synced. Plan passes the handoff test — ready to execute.

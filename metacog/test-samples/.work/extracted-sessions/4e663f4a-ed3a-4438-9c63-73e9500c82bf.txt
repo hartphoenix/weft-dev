@@ -1,0 +1,251 @@
+[U1 02:02] time to do a cleanup/audit with the entire maistro directory. What we have living in this directory is a collection of files that contain a lot of crosstalk and duplication, I suspect, inherited from former directories that were merged to create this one. And I'd like you to comb over all of the contents in an effort to inventory what can be slimmed down in order that each document serves one clear purpose. I don't want to have conceptual loss from this phase, but I'd be fine to migrate certain assets into their appropriate folders in order for those folders or files to simply serve a clearer, cleaner purpose. I'd also like to make sure that that purpose is reflected in the title of each document and that those titles are correctly referenced in the file paths that are trying to reference them.
+[A1 02:02] I'll start by thoroughly exploring the entire maistro directory to understand what we're working with.
+  -> Task
+[A3 02:04] Good call — let me checkpoint everything first.
+  -> Bash: git status
+  -> Bash: git diff --stat
+  -> Bash: git log --oneline -5
+[A7 02:04] 7 modified files + 1 untracked. I'll stage and commit them all as a checkpoint.
+  -> Bash: git add .claude/skills/lesson-scaffold/SKILL.md .claude/skills/session-review/SK
+  -> Bash: git status
+[A10 02:05] Clean tree. Now here's what the full audit found:
+
+---
+
+## Audit Summary
+
+The repo has **~30 files** across 6 directories. The deep read surfaced these issues:
+
+### Overlaps & Duplication
+
+1. **Startwork lives in two places** — [startwork-redesign.md](design/startwork-redesign.md) (solo + team spec) and [coordination/commands/startwork.md](coordination/commands/startwork.md) (team-only extracted version). Priority ranking logic differs slightly between them.
+
+2. **Compound engineering appears in 4 files** — a YAML config ([coordination/compound-engineering.md](coordination/compound-engineering.md)), an executable command ([coordination/commands/workflows/compound.md](coordination/commands/workflows/compound.md)), a learning guide ([guides/compound-engineering-orchestration.md](guides/compound-engineering-orchestration.md)), and architecture discussion in [coordination-brainstorm.md](design/coordination-brainstorm.md).
+
+3. **Coordination-brainstorm.md is a grab bag** — It's a retrospective, a design brainstorm, a system naming discussion, a signal-flow architecture doc, and a publication strategy doc all in one. ~9 sections doing different jobs.
+
+4. **Build-checklist.md mixes concerns** — personality build registry, skill inventory, interview protocols, and observation summaries from prior sessions.
+
+5. **Multi-user scope discussed redundantly** in [prd.md](design/prd.md), [coordination-brainstorm.md](design/coordination-brainstorm.md), and [harness-features.md](design/harness-features.md).
+
+### Files Serving Clear Single Purposes (no action needed)
+
+- [design-principles.md](design/design-principles.md) — 9 principles + boundary conditions. Clean.
+- [harness-features.md](design/harness-features.md) — Feature registry by principle. Clean catch basin.
+- [validation-plan.md](design/validation-plan.md) — 9 experiments. Clean.
+- [prd.md](design/prd.md) — Product requirements. Clean.
+- All `.claude/skills/` — Each skill is self-contained.
+- All `coordination/commands/workf [...truncated]
+[U2 02:15] first, let's fix the stale references to hard-coded file paths or URLs. You can simply turn the... ...shelling-points references into placeholder text. then let's do a specific reorganization plan some of the documents that you find with duplication are just surviving brainstorms or long lists of nice to haves or something if those documents and their full contents have already propagated to other documents that have full single source clarity, then we can deprecate those brainstormed source documents to like an archive somewhere. If we haven't extracted them fully I want to do the extraction at some point in this plan. 
+
+I'd like for there to be some single source of truth in this project folder for tracking the milestones and schedule of to-dos. I think that right now that there is a piece of that or a version of that living at the bottom of the PRD, but I think it would be best to have a look at that PRD from the perspective of the recently updated design principles, refine that PRD and extract a updated schedule into a separate document that would help me track simple task execution.
+
+I agree that start work just needs to be reconciled into one canonical spec. Of course, acknowledging that there are still two types of start work skill. One is a solo start work and one is the team work. So I want to sustain the plan to build both of those but have that plan live in one clear place, not duplicated across files.
+
+ I think probably guides can fold into something else. This is an artifact of an old design and doesn't seem to suit the present one.
+  -> TodoWrite
+  -> TodoWrite
+[A13 02:15] Let me find and fix the hardcoded references first.
+  -> Grep: thrialectics|schelling.points|Schelling.Points|schelling-points
+[A15 02:15] Now let me read the files that need editing — the ones with hardcoded refs that aren't in `research/` (those are supposed to reference Schelling Points).
+  -> Read: startwork-gather.ts
+  -> Read: compound-engineering.md
+  -> Read: README.md
+[A19 02:15] Now let me read the game-specific subagents too.
+  -> Read: decision-balance-audit.md
+  -> Read: feature-ui-completeness.md
+[A22 02:16] Good. Now I'll make all the placeholder fixes.
+  -> Edit: startwork-gather.ts
+[A24 02:16] I need to add the config constants at the top of the script. The Bun type errors are pre-existing (no bun types installed), not from my change.
+  -> Edit: startwork-gather.ts
+[A26 02:16] Now the compound-engineering config and the two game-specific subagents.
+  -> Write: compound-engineering.md
+  -> Write: decision-balance-audit.md
+  -> Write: feature-ui-completeness.md
+[A30 02:17] Now update the coordination README to reflect the changes.
+  -> Edit: README.md
+  -> Edit: README.md
+  -> TodoWrite
+[A34 02:18] Hardcoded references are all fixed. Now let me do the deep read of the files that need reorganization decisions — the ones with potential duplication and extraction questions.
+  -> Read: coordination-brainstorm.md
+  -> Read: startwork-redesign.md
+  -> Read: prd.md
+  -> Read: build-checklist.md
+  -> Read: harness-features.md
+  -> Read: validation-plan.md
+  -> Read: design-principles.md
+[A42 02:18] Now let me also read the guides and the root README.
+  -> Read: compound-engineering-orchestration.md
+  -> Read: README.md
+  -> EnterPlanMode
+[A46 02:19] Good. I've now read every file in the repo. Let me synthesize this into a concrete reorganization plan.
+  -> TodoWrite
+[A48 02:19] Before I write the plan, I have one question to nail down:
+  -> AskUserQuestion
+[A50 02:21] Good call. There isn't a dedicated coordination architecture doc — the coordination README is just an inventory list, not architectural reasoning. Let me finalize the plan.
+  -> Write: nifty-snacking-tide.md
+  -> TodoWrite
+[A53 02:22] The plan is written. Here's the summary:
+
+**3 new documents:**
+- `coordination/architecture.md` — extracts the architectural reasoning from coordination-brainstorm (signal flow, compound engineer role, Lattice eval, ClaudeConnect assessment, generalization layers)
+- `design/schedule.md` — milestones & task tracker extracted from PRD, updated to current state
+- `design/startwork.md` — reconciles the two startwork specs into one canonical doc (solo + team sections)
+
+**3 documents archived** (content fully extracted first):
+- `coordination-brainstorm.md` → `archive/` (naming candidates, publication strategy, source inventory stay as historical reference)
+- `startwork-redesign.md` → `archive/` (after reconciliation into startwork.md)
+- `guides/compound-engineering-orchestration.md` → `archive/` (Week 2 learning exercise)
+
+**3 documents refined:**
+- `prd.md` — tightened, milestones replaced with pointer to schedule.md
+- `build-checklist.md` → renamed `build-registry.md`, slimmed to just the registry
+- `coordination/commands/startwork.md` — trimmed to reference design doc instead of duplicating
+
+**Full cross-reference sweep** at the end to catch stale paths.
+  -> ExitPlanMode
+[A55 02:25] Let me set up the todo list and start executing.
+  -> TodoWrite
+[A57 02:25] Starting with Phase 2a — extracting the architectural content from coordination-brainstorm.md into a new architecture doc. I already have the brainstorm content read, so I can write this directly.
+  -> Write: architecture.md
+  -> TodoWrite
+[A60 02:26] Now the schedule. I need to derive this from the PRD milestones and the current state of what's built.
+  -> Write: schedule.md
+  -> TodoWrite
+[A63 02:27] Now the canonical startwork spec. I need to read the team startwork command to reconcile it.
+  -> Read: startwork.md
+[A65 02:27] Good. Now I can write the canonical spec that brings both solo and team together.
+  -> Write: startwork.md
+  -> TodoWrite
+[A68 02:28] Now Phase 3 — refining existing documents. I'll work through several in parallel where I can.
+
+First, let me check whether the foundational commitments from startwork-redesign are already reflected in design-principles.md. I already have both read. Checking:
+
+- "Gap as org unit" → Yes, in P3 (§3, design-principles.md lines 107-138)
+- "Relational ceiling" → Yes, in boundary conditions (lines 26-44)
+- "No tagging" → Not explicitly in design-principles.md. It's a design convention, not a principle.
+- "Playfulness" → Yes, in P8 (lines 173-192)
+- "Project-facilitated learning" → Yes, partially in P3 (lines 127-132)
+
+The "no tagging" commitment is a design convention, not a principle — it belongs in CLAUDE.md or a conventions section, not design-principles. It's already covered implicitly by P7 (human authority, agent does taxonomy) and the harness-features registry. No need to add it to principles.
+
+Now let me also check the `roger/drafts/goals.md` reference in design-principles.md.
+  -> Edit: design-principles.md
+  x Edit failed: <tool_use_error>File has not been read yet. Read it first before writing to it.</tool_use_error>
+  -> Read: design-principles.md
+  -> Edit: design-principles.md
+[A72 02:29] Now slim down the build-checklist. The observations and prompting compensation patterns need to be verified as already propagated before removing. Let me check — the observations section covers "strengths to protect," "recurring prompting patterns," and "recurring friction points." These are already reflected in:
+- Individual SKILL.md files (each has its own prompting compensation)
+- CLAUDE.md user model (calibration section)
+- design-principles.md (experiment-first loop → P1, P7)
+
+The prompting compensation patterns in the personality/skill entries — let me check if they're in the SKILL.md files.
+  -> Grep: prompting compensation|Prompting compensation
+[A74 02:29] The prompting compensation patterns are *only* in build-checklist.md — they haven't been extracted into the individual SKILL.md files. So I should keep them in the registry. The observations section is similar — those are a unique analysis. I'll keep the registry clean but preserve unique content.
+  -> Read: build-checklist.md
+[A76 02:29] The observations and prompting compensation patterns are unique source material that hasn't propagated. I'll keep them but restructure the file. Let me rename it to `build-registry.md` and clean it up.
+  -> Write: build-registry.md
+[A78 02:29] Now refine the PRD — tighten it and replace the milestones with a pointer to schedule.md.
+  -> Read: prd.md
+  -> Edit: prd.md
+  -> Edit: prd.md
+[A82 02:29] Now update harness-features.md cross-references.
+  -> Read: harness-features.md
+  -> Edit: harness-features.md
+  -> Edit: harness-features.md
+[A86 02:30] Now trim the team startwork command to reference the design doc instead of duplicating.
+  -> Read: startwork.md
+[A88 02:30] The team startwork command is concise and functional as an executable command file — it should stay mostly as-is since it's a slash command. I'll just add a pointer to the canonical spec.
+  -> Edit: startwork.md
+[A90 02:30] Now update validation-plan.md references.
+  -> Read: validation-plan.md
+  -> Edit: validation-plan.md
+  -> Edit: validation-plan.md
+  -> Edit: validation-plan.md
+  -> Edit: validation-plan.md
+  -> TodoWrite
+[A97 02:30] Now Phase 4 — archive and clean up.
+  -> Bash: mkdir -p /Users/rhhart/Documents/GitHub/maistro/archive
+  -> Bash: git mv design/coordination-brainstorm.md archive/coordination-brainstorm.md && g
+  -> Bash: rmdir /Users/rhhart/Documents/GitHub/maistro/guides
+[A101 02:30] Now remove the old build-checklist.md (replaced by build-registry.md).
+  -> Bash: git mv design/build-checklist.md archive/build-checklist.md
+  -> TodoWrite
+[A104 02:31] Phase 5 — update all cross-references and verify. Let me grep for stale paths.
+  -> Grep: coordination-brainstorm|startwork-redesign|build-checklist|guides/
+[A106 02:31] Clean — no stale references to the old paths. Now let me check for any `roger/` paths that don't exist in this repo.
+  -> Grep: roger/
+[A108 02:31] All `roger/` references are now only in archived files. Let me also check the CLAUDE.md and README.md for any needed updates.
+  -> Read: CLAUDE.md
+[A110 02:31] CLAUDE.md is concise and doesn't reference any stale paths. Good. Let me update README.md to reflect the new structure.
+  -> Read: README.md
+  -> Write: README.md
+[A113 02:31] Now let me do a final verification — check for any other stale references I might have missed.
+  -> Grep: BUILD_CHECKLIST|build-checklist in maistro
+[A115 02:31] Need to update these references to the new name.
+  -> Read: harness-features.md
+  -> Edit: harness-features.md
+[A118 02:31] Now the design-skill SKILL.md references.
+  -> Read: SKILL.md
+  -> Read: SKILL.md
+  -> Edit: SKILL.md
+[A122 02:32] Let me do one more sweep for any remaining stale references.
+  -> Grep: design-personality/SKILL\.md
+[A124 02:32] The archive reference is fine (it's in an archived file). The build-registry reference looks correct — that personality directory does exist. Let me verify.
+  -> Glob: personalities/**/*
+[A126 02:32] Good, path is valid. Let me do one final check — verify the directory structure matches the plan.
+  -> Bash: find . -not -path './.git/*' -not -path './node_modules/*' -not -name '.DS_Store
+[A128 02:32] Structure matches the plan exactly. Let me mark Phase 5 complete.
+  -> TodoWrite
+[A130 02:33] All phases complete. Here's the summary of what changed:
+
+---
+
+## What was done
+
+**3 new documents created:**
+- [coordination/architecture.md](coordination/architecture.md) — Signal flow, compound engineer role, catch basin, Lattice/ClaudeConnect evaluations, generalization strategy
+- [design/schedule.md](design/schedule.md) — Milestones and task tracker (extracted from PRD, updated to current state)
+- [design/startwork.md](design/startwork.md) — Canonical solo + team startwork spec (reconciled from two sources)
+
+**1 document renamed:**
+- `build-checklist.md` → [design/build-registry.md](design/build-registry.md) (slimmed to clean registry format)
+
+**4 documents archived** (all unique content extracted first):
+- `coordination-brainstorm.md` → [archive/](archive/)
+- `startwork-redesign.md` → [archive/](archive/)
+- `compound-engineering-orchestration.md` → [archive/](archive/)
+- `build-checklist.md` → [archive/](archive/)
+
+**5 documents refined:**
+- [design/prd.md](design/prd.md) — milestones replaced with pointer to schedule.md, ClaudeConnect ref updated
+- [design/harness-features.md](design/harness-features.md) — all cross-references updated
+- [design/design-principles.md](design/design-principles.md) — stale `roger/` path fixed
+- [design/validation-plan.md](design/validation-plan.md) — Schelling Points references generalized
+- [coordination/commands/startwork.md](coordination/commands/startwork.md) — pointer to canonical spec added
+
+**Cross-references verified** — zero stale paths remain in active documents. All `roger/` references are confined to archive.
+
+Want me to commit this?
+[U3 02:40] in a moment, first we need to make a correction to the scheduling doc. For Monday 2-24, we have submitted the PRD, the group pitch is sent, both repos are scaffolded. However, we're not yet to the point of personal harness installable with intake interview and data hopper. the coordination layer extraction is started however so I think I want to move personal harness installable with intake interview and data hopper to Tuesday's list and then mark the remaining portion of Monday as complete
+  -> Read: schedule.md
+  -> Edit: schedule.md
+[A133 02:40] Done. Monday is accurate and complete; intake interview + data hopper moved to Tuesday's targets. Ready to commit when you are.
+[U4 02:41] now let's commit this to a feature branch and open a PR with a summary of changes.
+  -> Bash: git status
+  -> Bash: git diff --stat
+  -> Bash: git log --oneline -5
+  -> Bash: git checkout -b hart/repo-cleanup-audit
+  -> Bash: git add .claude/skills/design-skill/SKILL.md README.md coordination/README.md co
+  -> Bash: git commit -m "$(cat <<'EOF'
+Repo cleanup: deduplicate, archive, and reorganize 
+  -> Bash: git push -u origin hart/repo-cleanup-audit
+  -> Bash: gh pr create --title "Repo cleanup: deduplicate and reorganize design docs" --bo
+[A142 02:41] PR is up: https://github.com/hartphoenix/maistro/pull/1
+[U5 02:43] one quick check, just look at the dates on the schedule. Monday is February 23rd not 24th so change all the dates to match that fact.
+  -> Read: schedule.md
+  -> Edit: schedule.md
+  -> Edit: schedule.md
+  -> Bash: git add design/schedule.md && git commit -m "$(cat <<'EOF'
+Fix schedule dates — 
+[A147 02:43] Fixed and pushed. PR is updated.

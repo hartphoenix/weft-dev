@@ -1,0 +1,524 @@
+[U1 20:11] /private/tmp/claude-501/gh-token-handoff.md first step: try gh auth status
+  -> ToolSearch: select:Read,Bash
+  -> Read: gh-token-handoff.md
+  -> Bash: gh auth status
+[A4 20:11] `gh auth status` reports success — logged in as `hartphoenix` via `GH_TOKEN`. The sandbox TLS issue from the handoff doc isn't manifesting right now.
+
+Let me verify it actually works for API calls too.
+  -> Bash: gh api user --jq '.login'
+[A6 20:11] Full `gh` functionality is working — auth status and API calls both succeed through the sandbox. Whatever was causing the TLS/proxy issue in the earlier session isn't reproducing now. 
+
+Possible explanations: the `excludedCommands` setting was updated between sessions, or Claude Code patched the proxy behavior. Want me to check what's currently in your settings?
+[U2 20:14] i updated it to the gh:* exclusion and it worked. now i need to update claude.md to ensure that we use gh instead of git. read the plan here implemented yesterday: /Users/rhhart/Documents/GitHub/roger/drafts/2026-03-04-yolo-sandbox-settings-plan.md and /skill-sharpen a claude.md section that informs future claudes of which conventions to use (only those that would not be the default behaviors)
+  -> Read: 2026-03-04-yolo-sandbox-settings-plan.md
+  -> Read: CLAUDE.md
+[A9 20:14] Good, I have the full picture. Let me draft a section and sharpen it. The key filter: only conventions that override Claude Code defaults or that a fresh agent wouldn't know.
+  -> ToolSearch: select:Skill
+[A11 20:15] Let me draft the section, then sharpen it.
+  -> ToolSearch: select:Write
+  -> Write: sandbox-conventions-draft.md
+[A14 20:15] Now let me run skill-sharpen on it.
+  -> Skill: 
+[U3 20:15] Base directory for this skill: /Users/rhhart/.claude/skills/skill-sharpen
+
+# Skill Sharpen
+
+The reader is a language model. It knows how to interview, classify
+errors, write summaries, structure output, and avoid leading questions.
+Every line costs context window and competes with the session's work.
+
+## The test
+
+For each line: **would the agent behave differently without it?**
+
+If no, cut it.
+
+## What earns its tokens
+
+- **File paths and invocation commands** — not derivable from training
+- **Schemas and output templates** — exact formats other code depends on
+- **Behavioral overrides** — things the agent would NOT do unprompted
+  ("Do not read files. Work from memory." / "Commit immediately — do
+  not wait for approval.")
+- **Decision trees with specific thresholds** — score cutoffs,
+  conditional branches, dispatch criteria
+- **One concrete example** of good vs. bad output — one calibrates;
+  two is redundant
+- **Graceful degradation tables** — exact behavior per failure mode
+- **Interoperation tables** — how this skill connects to others, compact
+
+## What to cut
+
+- **Negative restatements of positive instructions.** If the workflow
+  says "answer first, be terse, stop," then "don't scaffold, don't
+  elaborate, don't continue" pays double. Write the positive
+  instruction clearly and trust it.
+- **Concepts the model already has.** Don't define syntax errors,
+  describe what a fresh Claude instance can access, or list interview
+  questions a competent interviewer would ask. Direct the capability;
+  don't explain it.
+- **Commentary and philosophy that don't change behavior.** "This is
+  the key design move" / "Debugging fails not from lack of intelligence
+  but lack of visibility" — the behavioral instruction does the work.
+  Cut the rationale.
+- **Downstream documentation.** What other skills do with this skill's
+  output doesn't change this skill's execution. Use an interoperation
+  table if connections matter; don't narrate them.
+- **Boilerplate repeated across skills.** Consent gates, path
+  resolution, "don't teach during X" — reference from one shared
+  location instead of copying into each skill.
+
+## Density reference
+
+persist (8 lines, 95% load-bearing) and handoff-prompt (29 lines, 75%)
+set the standard. When reviewing a draft, estimate what percentage of
+lines pass the behavioral-difference test. Below 65% means a trim pass
+is needed.
+
+## Diction carries persona
+
+Tutor-facing skills don't just direct actions — their word choices
+anchor the agent's posture (direct, Socratic, honest-signal). Trimming
+for density must not flatten this. When editing a skill whose reader
+operates in tutor mode: check that the surviving prose still sounds like
+the tutor, not like a spec sheet. The lever is selective diction, not
+added length.
+
+## Editing existing material
+
+Read the full skill first. Identify lines that fail the test. Propose
+cuts as a batch. Preserve every file path, schema, threshold, and
+behavioral override — these always earn their keep. Check that the
+remaining prose preserves the skill's tonal register.
+
+
+ARGUMENTS: /private/tmp/claude-501/sandbox-conventions-draft.md — this is a draft CLAUDE.md section for weft-dev. Target: inform future agents of sandbox conventions that differ from Claude Code defaults. Only include what wouldn't be discovered by hitting a deny rule and retrying.
+  -> Read: sandbox-conventions-draft.md
+[A17 20:15] Applying the behavioral-difference test line by line:
+
+**Lines that pass:**
+- Stage files by name — saves a failed attempt + retry cycle. The system prompt says "prefer" but doesn't hard-block; this is a genuine override.
+- `git commit -a` denied — same reason, saves a retry.
+- Use `gh` for GitHub operations — this is the key behavioral override. An agent would default to `git push` + manual API calls without this.
+- `gh api` GET-only — saves a failed POST attempt.
+
+**Lines to cut or compress:**
+- **Preamble (lines 1–5):** "layered deny-rule configuration" and "prevent failed commands and retries" are rationale, not behavior. The heading earns its keep; the explanation doesn't.
+- **`curl` is read-only (line 15–16):** Would the agent try `curl POST` to GitHub when `gh api` is already directed? Unlikely — and if it does, the deny rule catches it with one retry. Low value. Cut.
+- **`git push` works normally (lines 17–19):** "Uses libcurl, not the sandbox proxy" is implementation detail that doesn't change behavior. Force-push is already blocked by Claude Code's system prompt defaults AND deny rules. The agent would never try this unprompted. Cut.
+- **`excludedCommands` parenthetical (line 12):** Implementation detail. The agent doesn't need to know *why* `gh` works, just that it's the right tool. Cut.
+
+**Tightened draft:**
+
+```markdown
+### Sandbox conventions
+
+- **Stage files by name.** `git add -A`, `git add .`, `git add --all`
+  are hard-denied. Always name specific files.
+- **Stage before commit.** `git commit -a` / `--all` are denied.
+- **Use `gh` for GitHub operations.** `gh` is the reliable path for
+  PRs, issues, checks, and API reads. `gh api` is GET-only —
+  POST/PUT/PATCH are denied.
+```
+
+Three lines, all behavioral overrides, ~85% load-bearing. The force-push and curl rules enforce themselves via deny + retry and match system prompt defaults — no context tax needed.
+
+**One judgment call:** Should "Stage before commit" be its own bullet, or fold into "Stage f [...truncated]
+[U4 20:17] consider deny+retry a token tax and instead preempt them with an optimally effective draft
+[A18 20:18] Fair point — each deny+retry is two wasted tool calls. Revised:
+
+```markdown
+### Sandbox conventions
+
+- **`git add`: name files explicitly.** `-A`, `.`, `--all` are denied.
+- **`git commit`: stage first.** `-a` / `--all` are denied.
+- **`gh` for all GitHub operations.** PRs, issues, checks, API reads.
+  `gh api` is GET-only — POST/PUT/PATCH denied. `gh gist create` denied.
+- **`curl` is GET-only.** POST, PUT, upload variants denied. Use
+  `gh api` for GitHub reads.
+- **No force-push.** `--force`, `--force-with-lease`, `-f`,
+  `origin +branch` all denied.
+```
+
+Five bullets, all preempt a plausible tool-call failure. No rationale, no implementation detail. ~95% load-bearing.
+[U5 20:21] are you certain it's entirely factual? e.g. i don't think gh gist create is denied
+[A19 20:21] It's in the plan's deny list (line 114: `"Bash(gh gist create*)"`), but let me verify what's actually in your settings.
+  -> Bash: grep -n "gh gist" ~/.claude/settings.json
+[A21 20:22] It's there — line 79 in your active settings. `gh gist create*` is hard-denied. The draft is factual.
+[U6 20:22] thanks for checking
+[A22 20:22] Solid section. Five bullets, all earning their keep.
+[U7 20:25] all the above steps -- the claude.md sandbox conventions, the gh:* fix, the GH_TOKEN in alias workaround -- need to be documented in the following: /Users/rhhart/Documents/GitHub/roger/drafts/2026-03-04-weft-yolo-safety-guide.md
+/Users/rhhart/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md
+/Users/rhhart/Documents/GitHub/roger/drafts/2026-03-04-yolo-sandbox-settings-plan.md /Users/rhhart/Documents/GitHub/weft/guides/safer-yolo-mode.md and in the linked gist article within the last file. review all and make a plan to update each, including steps to get them published where applicable
+  -> Read: 2026-03-04-weft-yolo-safety-guide.md
+  -> Read: 2026-03-04-yolo-mode-security-research.md
+  -> Read: safer-yolo-mode.md
+[A26 20:26] Now let me check the handoff doc for the GH_TOKEN alias workaround detail.
+  -> Read: gh-token-handoff.md
+[A28 20:26] I need one more piece — what's the actual alias with GH_TOKEN? Let me check.
+  -> Bash: grep -n 'alias cc\|alias claude\|GH_TOKEN' ~/.zshrc ~/.zprofile ~/.bash_profile 
+[A30 20:27] Found it. Now I have the full picture. Here's the plan:
+
+---
+
+## Update plan
+
+Three findings to propagate:
+1. **`gh:*` wildcard syntax** — `excludedCommands: ["gh"]` doesn't fully exclude from network sandbox; `["gh:*"]` does
+2. **GH_TOKEN alias** — `GH_TOKEN=<pat> claude --dangerously-skip-permissions` gives `gh` and `git` credential access without keychain
+3. **"Git remote operations require a separate terminal" is now wrong** — with `gh:*` + GH_TOKEN, `gh` commands, `git push`, `git pull`, and `git fetch` all work inside the sandbox
+
+### File-by-file edits
+
+**1. `roger/drafts/2026-03-04-yolo-sandbox-settings-plan.md`** (internal plan)
+- Line 210: `["gh"]` → `["gh:*"]`
+- Line 440: update the `gh` exclusion note to document `gh:*` syntax and GH_TOKEN alias
+- Add a "Resolved" or "Addendum" section at the bottom noting the fix date and what changed
+
+**2. `roger/drafts/2026-03-04-yolo-mode-security-research.md`** (gist source)
+- Line 472: `["gh"]` → `["gh:*"]`
+- Lines 482-485: update the note about `gh` exclusion to mention `gh:*` is required
+- Add GH_TOKEN alias pattern to the "Practical Configuration" section (~line 446)
+- Update version date at top (line 5)
+
+**3. `weft/guides/safer-yolo-mode.md`** (published guide)
+- Line 364: `["gh"]` → `["gh:*"]`
+- Lines 561-580: **replace** "Git remote operations require a separate terminal" with a section documenting the `gh:*` + GH_TOKEN solution (what was broken, what fixed it, how to set it up)
+- Line 424: update alias to `alias cc='GH_TOKEN=<your-pat> claude --dangerously-skip-permissions'`
+- Lines 495-502: update "biggest gap" #1 to note that `gh:*` is needed for proper exclusion
+
+**4. `roger/drafts/2026-03-04-weft-yolo-safety-guide.md`** (draft copy)
+- Same edits as #3 (these files are identical — should they stay in sync, or is the roger draft the source of truth?)
+
+**5. Gist** (linked from guide)
+- After updating the research doc (#2), push via `gh gist edit 698eb8ef8b08ad2ce6a99cf7346cd7cc -f <filename>`
+
+### Security  [...truncated]
+[U8 20:31] the roger draft is the source, but i don't want to keep managing identical copies anymore; let's move the roger copy to roger/drafts/archive/ and keep the weft/guides copy up to date from here on.
+go ahead with all steps
+  -> ToolSearch: select:Edit
+[A32 20:31] First, archive the roger draft and start the edits.
+  -> Bash: ls /Users/rhhart/Documents/GitHub/roger/drafts/archive/ 2>/dev/null || echo "dir
+  -> Bash: mv /Users/rhhart/Documents/GitHub/roger/drafts/2026-03-04-weft-yolo-safety-guide
+  x Bash failed: Exit code 1
+mv: rename /Users/rhhart/Documents/GitHub/roger/drafts/2026-03-04-weft-yolo-safety-guide.md to /Users/rhhart/Documents/GitHub/roger/drafts/archive/2026-03-04-weft-yolo-safety-guide.md: Ope
+[A35 20:32] Sandbox blocks writes to `roger/drafts/`. I can edit `weft/guides/` and push the gist, but the roger files need you to either:
+- Add `roger` to sandbox `allowWrite`, or
+- I compose the edits and you apply them
+
+I'll proceed with what I can do now, and prepare the roger edits. Starting with the weft guide — all four changes in parallel.
+  -> Edit: safer-yolo-mode.md
+  -> Edit: safer-yolo-mode.md
+[U9 20:32] [Request interrupted by user]
+[U10 20:32] errant keystroke, try again
+  -> Read: safer-yolo-mode.md
+  -> Read: safer-yolo-mode.md
+[A40 20:32] Good, both prior edits applied. Continuing with the remaining changes.
+  -> Edit: safer-yolo-mode.md
+  -> Edit: safer-yolo-mode.md
+[A43 20:33] Weft guide done. Now the gist source file.
+  -> Edit: 2026-03-04-yolo-mode-security-research.md
+  -> Edit: 2026-03-04-yolo-mode-security-research.md
+  x Edit failed: <tool_use_error>String to replace not found in file.
+String:       "excludedCommands": ["gh"]</tool_use_error>
+  -> Read: 2026-03-04-yolo-mode-security-research.md
+  -> Bash: grep -n 'excludedCommands' /Users/rhhart/Documents/GitHub/roger/drafts/2026-03-0
+  -> Edit: 2026-03-04-yolo-mode-security-research.md
+  -> Edit: 2026-03-04-yolo-mode-security-research.md
+[A50 20:33] Now the sandbox settings plan.
+  -> Edit: 2026-03-04-yolo-sandbox-settings-plan.md
+  -> Edit: 2026-03-04-yolo-sandbox-settings-plan.md
+[A53 20:33] All file edits done. Now push the gist.
+  -> Bash: gh gist edit 698eb8ef8b08ad2ce6a99cf7346cd7cc -f /Users/rhhart/Documents/GitHub/
+  x Bash failed: Permission to use Bash with command gh gist edit 698eb8ef8b08ad2ce6a99cf7346cd7cc -f /Users/rhhart/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md has been denied.
+[A55 20:34] Right — `gh gist edit` is in the deny rules (as it should be). You'll need to run that yourself:
+
+```bash
+gh gist edit 698eb8ef8b08ad2ce6a99cf7346cd7cc -f ~/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md
+```
+
+Now the archive move. Also sandbox-blocked — you'll need to run:
+
+```bash
+mv ~/Documents/GitHub/roger/drafts/2026-03-04-weft-yolo-safety-guide.md ~/Documents/GitHub/roger/drafts/archive/
+```
+
+### Summary of what's done
+
+| Item | Status |
+|------|--------|
+| `weft/guides/safer-yolo-mode.md` — `gh:*` in JSON | Done |
+| `weft/guides/safer-yolo-mode.md` — alias with GH_TOKEN | Done |
+| `weft/guides/safer-yolo-mode.md` — biggest gap updated | Done |
+| `weft/guides/safer-yolo-mode.md` — "separate terminal" section replaced | Done |
+| `roger/drafts/...security-research.md` — `gh:*`, GH_TOKEN, version bump | Done |
+| `roger/drafts/...sandbox-settings-plan.md` — `gh:*`, GH_TOKEN | Done |
+| Gist push | **You run**: `gh gist edit` command above |
+| Archive roger safety guide | **You run**: `mv` command above |
+
+Want me to commit the weft guide changes now, or wait until you've done the manual steps?
+[U11 20:35] first this: gist has no file "/Users/rhhart/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md"
+[A56 20:35] The gist file has a different name than the local path. Let me check.
+  -> Bash: gh gist view 698eb8ef8b08ad2ce6a99cf7346cd7cc --files
+[A58 20:35] The gist filename is just `2026-03-04-yolo-mode-security-research.md` (no path prefix). The `-f` flag needs the gist filename, not the local path. The command should be:
+
+```bash
+gh gist edit 698eb8ef8b08ad2ce6a99cf7346cd7cc -f 2026-03-04-yolo-mode-security-research.md < ~/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md
+```
+
+Actually, let me check the `gh gist edit` syntax — `-f` may not work that way.
+  -> Bash: gh gist edit --help 2>&1 | head -30
+  x Bash failed: Permission to use Bash with command gh gist edit --help 2>&1 has been denied.
+  -> Bash: gh help gist edit 2>&1 | head -30
+[A61 20:35] Got it. The syntax is `--filename <gist-file> <local-file>`:
+
+```bash
+gh gist edit 698eb8ef8b08ad2ce6a99cf7346cd7cc --filename 2026-03-04-yolo-mode-security-research.md ~/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md
+```
+[U12 20:37] i completed the vim confirmation window and :wq, then this: zsh: permission denied: /Users/rhhart/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md
+[A62 20:38] The `:wq` likely already pushed the update — `gh gist edit` saves to the gist when vim exits. The "permission denied" is just the shell trying to execute the leftover local path as a separate command after `gh gist edit` finished.
+
+But the vim editor showed the old gist content, not your updated local file. So the gist still has the old version. Try:
+
+```bash
+cat ~/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md | gh gist edit 698eb8ef8b08ad2ce6a99cf7346cd7cc -f 2026-03-04-yolo-mode-security-research.md
+```
+
+If that doesn't work either, the nuclear option:
+
+```bash
+gh gist delete 698eb8ef8b08ad2ce6a99cf7346cd7cc
+gh gist create ~/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md --public -d "Claude Code Yolo Mode: What You Need to Know"
+```
+
+(That would change the gist URL though — the `cat |` approach is worth trying first.)
+[U13 20:40] cat ~/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md | gh gist edit 698eb8ef8b08ad2ce6a99cf7346cd7cc -f
+  2026-03-04-yolo-mode-security-research.md
+flag needs an argument: 'f' in -f
+
+Usage:  gh gist edit {<id> | <url>} [<filename>] [flags]
+
+Flags:
+  -a, --add string        Add a new file to the gist
+  -d, --desc string       New description for the gist
+  -f, --filename string   Select a file to edit
+  -r, --remove string     Remove a file from the gist
+  
+zsh: command not found: 2026-03-04-yolo-mode-security-research.md
+[A63 20:41] The `-f` and the filename got split across lines. It needs to be one line:
+
+```bash
+cat ~/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md | gh gist edit 698eb8ef8b08ad2ce6a99cf7346cd7cc -f 2026-03-04-yolo-mode-security-research.md
+```
+
+If `gh gist edit` doesn't accept stdin, try the positional syntax instead:
+
+```bash
+gh gist edit 698eb8ef8b08ad2ce6a99cf7346cd7cc 2026-03-04-yolo-mode-security-research.md -f 2026-03-04-yolo-mode-security-research.md
+```
+[U14 20:41] read 2026-03-04-yolo-mode-security-research.md: open 2026-03-04-yolo-mode-security-research.md: no such file or directory
+[A64 20:41] The positional arg is a local file path — it needs the full path:
+
+```bash
+gh gist edit 698eb8ef8b08ad2ce6a99cf7346cd7cc ~/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md -f 2026-03-04-yolo-mode-security-research.md
+```
+[U15 20:42] that one also line breaks, how do i ensure a single line command?
+[A65 20:42] Escape the line breaks with backslashes:
+
+```bash
+gh gist edit 698eb8ef8b08ad2ce6a99cf7346cd7cc \
+  ~/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md \
+  -f 2026-03-04-yolo-mode-security-research.md
+```
+
+Or if your terminal is still breaking it, paste this single-line version — use a shorter path via a variable:
+
+```bash
+F=~/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md && gh gist edit 698eb8ef8b08ad2ce6a99cf7346cd7cc "$F" -f 2026-03-04-yolo-mode-security-research.md
+```
+[U16 20:43] gh gist edit 698eb8ef8b08ad2ce6a99cf7346cd7cc \                                           
+    ~/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md \                                                          
+    -f 2026-03-04-yolo-mode-security-research.md
+read  : open  : no such file or directory
+zsh: permission denied: /Users/rhhart/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md
+zsh: command not found: -f
+[A66 20:43] The backslash continuations aren't working in your terminal. Use the variable approach — this is genuinely one line:
+
+```bash
+F=~/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md && gh gist edit 698eb8ef8b08ad2ce6a99cf7346cd7cc "$F" -f 2026-03-04-yolo-mode-security-research.md
+```
+[U17 20:44] F=~/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md && gh gist edit 698eb8ef8b08ad2ce6a99cf7346cd7cc "$F" -f
+  2026-03-04-yolo-mode-security-research.md
+flag needs an argument: 'f' in -f
+
+Usage:  gh gist edit {<id> | <url>} [<filename>] [flags]
+
+Flags:
+  -a, --add string        Add a new file to the gist
+  -d, --desc string       New description for the gist
+  -f, --filename string   Select a file to edit
+  -r, --remove string     Remove a file from the gist
+  
+zsh: command not found: 2026-03-04-yolo-mode-security-research.md
+[A67 20:44] Your terminal is wrapping and splitting the command at the same point every time. The gist filename is too long. Try this — short variable for both:
+
+```bash
+G=698eb8ef8b08ad2ce6a99cf7346cd7cc N=2026-03-04-yolo-mode-security-research.md && gh gist edit $G ~/Documents/GitHub/roger/drafts/$N -f $N
+```
+[U18 20:45] give me short commands i can run one at a time or a short command that will work in a single run
+[A68 20:45] ```bash
+export G=698eb8ef8b08ad2ce6a99cf7346cd7cc
+export N=2026-03-04-yolo-mode-security-research.md
+export F=~/Documents/GitHub/roger/drafts/$N
+gh gist edit $G "$F" -f $N
+```
+
+Run each line separately.
+[U19 20:47] no feedback from terminal, let's check the live gist post and see if it updated
+  -> Bash: gh gist view 698eb8ef8b08ad2ce6a99cf7346cd7cc | head -5
+  -> Bash: gh gist view 698eb8ef8b08ad2ce6a99cf7346cd7cc | grep -n 'gh:\*\|gh:.\|Version:\|
+[A71 20:47] Gist is updated — `gh:*`, GH_TOKEN alias, version bump all landed.
+
+### Remaining manual steps
+
+1. **Archive the roger draft:**
+   ```bash
+   mv ~/Documents/GitHub/roger/drafts/2026-03-04-weft-yolo-safety-guide.md ~/Documents/GitHub/roger/drafts/archive/
+   ```
+
+2. **Commits** — want me to commit the weft guide changes now? The roger draft edits would need to be committed from that repo separately.
+[U20 20:48] there's one more issue i think we need to solve first, which is that my gh token is hardcoded in my shell and you've read it. that means A) i need to regenerate the token and B) i need some better way to store it in a file you're sandboxed out of and have the shell import it somehow. can this be done?
+[A72 20:49] Yes. The cleanest solution is macOS Keychain — it's encrypted, OS-managed, and already blocked from Claude by both the sandbox (Keychain directory in read deny) and deny rules (`security find-generic-password*`).
+
+### Store the new token in Keychain
+
+After you regenerate the token on GitHub:
+
+```bash
+security add-generic-password -a "gh-token" -s "claude-gh-token" -w "<new-pat>" -U
+```
+
+### Update the alias
+
+Replace the hardcoded token in `~/.zshrc`:
+
+```bash
+alias cc='GH_TOKEN=$(security find-generic-password -a "gh-token" -s "claude-gh-token" -w) claude --dangerously-skip-permissions'
+```
+
+The `$(security ...)` expansion runs in your shell at alias invocation time — outside the sandbox. Claude's process receives the token as an env var but can't read the source.
+
+### Why this is safe from Claude
+
+Three independent blocks:
+- **Sandbox read deny:** `~/Library/Keychains` is in `denyOnly`
+- **Deny rule:** `Bash(security find-generic-password*)` is hard-denied
+- **Deny rule:** `Bash(env)` and `Bash(printenv)` are hard-denied
+
+The token is still in the process environment (Claude could theoretically access it via `/proc` or language runtime), but that's true of any env-var approach. Keychain eliminates the plaintext-on-disk risk.
+
+### Steps
+
+1. Regenerate PAT at GitHub > Settings > Developer settings > Personal access tokens
+2. Run the `security add-generic-password` command with the new token
+3. Update the alias in `~/.zshrc`
+4. `source ~/.zshrc`
+5. Test: `cc` then `gh auth status` inside Claude Code
+
+Want me to update the guides to recommend the Keychain approach instead of hardcoded PAT?
+[U21 20:55] okay, that passed. yes, update the guides
+  -> Edit: safer-yolo-mode.md
+  -> Edit: safer-yolo-mode.md
+[A75 20:55] Now the gist source.
+  -> Edit: 2026-03-04-yolo-mode-security-research.md
+[A77 20:55] Now the settings plan.
+  -> Edit: 2026-03-04-yolo-sandbox-settings-plan.md
+[A79 20:55] All three files updated. You'll need to push the gist again:
+
+```bash
+gh gist edit $G "$F" -f $N
+```
+
+(The variables from earlier should still be set in your shell.)
+
+And the remaining manual steps:
+1. Push gist (above)
+2. `mv ~/Documents/GitHub/roger/drafts/2026-03-04-weft-yolo-safety-guide.md ~/Documents/GitHub/roger/drafts/archive/`
+
+Ready to commit the weft guide when you give the word.
+[U22 20:56] i already terminated that shell, need the variables line by line again
+[A80 20:56] ```bash
+export G=698eb8ef8b08ad2ce6a99cf7346cd7cc
+export N=2026-03-04-yolo-mode-security-research.md
+export F=~/Documents/GitHub/roger/drafts/$N
+gh gist edit $G "$F" -f $N
+```
+[U23 20:57] good, check if the gist copy online is updated
+  -> Bash: gh gist view 698eb8ef8b08ad2ce6a99cf7346cd7cc | grep -A2 'GH_TOKEN alias\|securi
+[A82 20:58] The old token was revoked — `gh` inside this session still has the old `GH_TOKEN`. You'll need to restart Claude Code with the new alias (`cc`) so the new token loads. 
+
+Before you do: can you check the gist from your browser or your terminal? The gist push you just did used your terminal (with the new token), so it should have worked. Verify at:
+
+```
+https://gist.github.com/hartphoenix/698eb8ef8b08ad2ce6a99cf7346cd7cc
+```
+
+Then restart with `cc` and we'll commit.
+[U24 20:59] Base directory for this skill: /Users/rhhart/.claude/skills/handoff-prompt
+
+# Handoff Prompt
+
+Do not read files. Work from memory.
+
+## Recipient
+
+Fresh Claude Code instance. Has CLAUDE.md, memory files, full
+tooling. Has nothing from this session.
+
+## Assemble from memory
+
+- **Goal** — session intent
+- **State** — done, in progress, untouched
+- **Key files** — paths and condition
+- **Decisions** — choices and rationale
+- **Discoveries** — anything not yet in persistent files
+- **Blockers** — unresolved issues
+- **Next steps** — prioritized, specific enough to act on
+
+Write plain text addressing the next agent. Be concrete:
+"move token validation from route handler to `src/middleware/auth.ts`"
+not "finish the auth work."
+
+Output the entire handoff inside a single fenced code block.
+
+ARGUMENTS: for the next working agent
+[A83 21:00] ```
+# Handoff: Sandbox Documentation Update Session
+
+## Goal
+Document three fixes across all safety/security guides:
+1. `excludedCommands: ["gh:*"]` (wildcard required, plain `["gh"]` doesn't work)
+2. GH_TOKEN via macOS Keychain in launch alias (not hardcoded)
+3. CLAUDE.md sandbox conventions section (agent-facing)
+
+## State
+
+### Done
+- **CLAUDE.md sandbox conventions** — Hart added to `~/.claude/CLAUDE.md` (lines ~215-224). Five bullets: git add by name, stage before commit, gh for GitHub ops, curl GET-only, no force-push.
+- **weft/guides/safer-yolo-mode.md** — All edits applied:
+  - `excludedCommands: ["gh:*"]` in JSON block (was `["gh"]`)
+  - Step 4 alias updated: Keychain storage + fetch pattern, not hardcoded PAT
+  - "Git remote operations require a separate terminal" section replaced with "Git remote operations: gh:* + GH_TOKEN fix" explaining root cause and solution
+  - "Biggest gap" #1 updated to explain `gh:*` wildcard requirement
+- **roger/drafts/2026-03-04-yolo-mode-security-research.md** (gist source) — All edits applied:
+  - Version bumped to 2026-03-05b
+  - `excludedCommands: ["gh:*"]` in minimum config JSON
+  - GH_TOKEN section updated with Keychain pattern and security rationale
+- **roger/drafts/2026-03-04-yolo-sandbox-settings-plan.md** — All edits applied:
+  - `excludedCommands: ["gh:*"]` in JSON block
+  - Watch-for item #3 updated with `gh:*` syntax, GH_TOKEN Keychain pattern
+- **Gist pushed** — 698eb8ef8b08ad2ce6a99cf7346cd7cc updated via `gh gist edit` from Hart's terminal (twice: once with `gh:*` changes, once with Keychain changes). Needs browser verification — the session's GH_TOKEN was revoked mid-session so `gh gist view` fails from inside Claude Code.
+
+### Not done
+- **Commit weft guide changes** — `weft/guides/safer-yolo-mode.md` has unstaged edits in the weft repo. Needs commit + push.
+- **Commit roger draft changes** — Two files edited in `roger/drafts/`. Sandbox blocks writes to roger/drafts so commits must happen from that repo's work [...truncated]

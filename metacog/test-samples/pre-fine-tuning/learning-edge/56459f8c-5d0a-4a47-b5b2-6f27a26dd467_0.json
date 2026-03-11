@@ -1,0 +1,53 @@
+{
+  "recent_turns": [
+    {
+      "role": "assistant",
+      "content": "\n\n"
+    },
+    {
+      "role": "assistant",
+      "content": "[tools: Read x2]"
+    },
+    {
+      "role": "assistant",
+      "content": "The line itself is fine \u2014 the problem is that `state.view` is typed as the full `View` union (all 4 variants), and only the `LOBBY` variant has `isReady`. TypeScript can't know which variant you're in without narrowing first.\n\nSimplest fix \u2014 add a guard at the top of the component:"
+    },
+    {
+      "role": "assistant",
+      "content": "[tools: Edit x1]"
+    },
+    {
+      "role": "assistant",
+      "content": "\n\n"
+    },
+    {
+      "role": "assistant",
+      "content": "Now let me fix the references to use the destructured variables and fix the bare `playerId` on line 35."
+    },
+    {
+      "role": "assistant",
+      "content": "[tools: Read x1, Edit x1]"
+    },
+    {
+      "role": "assistant",
+      "content": "\n\n"
+    },
+    {
+      "role": "assistant",
+      "content": "Short answer: `git pull` won't silently overwrite your work. Git protects you here. What happens depends on the situation:\n\n**If you have uncommitted changes** (like your Lobby.tsx edits right now), git will **refuse to pull** if the remote touches the same file. It'll tell you to commit or stash first.\n\n**If you've committed your changes**, git will try to **merge** the remote changes with yours. If the same lines were edited on both sides, you get a **merge conflict** \u2014 git marks the file with both versions and asks you to pick.\n\n**Your safest workflow right now:**\n\n1. **Commit your local work first** so nothing is at risk:\n   ```\n   git add src/client/Lobby.tsx\n   git commit -m \"refactor(Lobby): destructure props instead of passing state\"\n   ```\n\n2. **Then pull:**\n   ```\n   git pull origin scoring-dashboard\n   ```\n\n3. **If there's a conflict**, VS Code will highlight both versions inline and let you pick \"Accept Current\" (yours), \"Accept Incoming\" (remote), or \"Accept Both\" and manually edit. After resolving, `git add` the file and `git commit`.\n\n**Alternative if you're not ready to commit:** `git stash` saves your changes temporarily, lets you pull cleanly, then `git stash pop` reapplies them (and flags conflicts if any)."
+    },
+    {
+      "role": "assistant",
+      "content": "[tools: Bash x3]"
+    }
+  ],
+  "user_turn_count": 0,
+  "accumulator": "",
+  "retrieved_chunks": [],
+  "_meta": {
+    "source_session": "56459f8c-5d0a-4a47-b5b2-6f27a26dd467",
+    "source_path": "/Users/rhhart/.claude/projects/-Users-rhhart-Documents-GitHub-schelling-points/56459f8c-5d0a-4a47-b5b2-6f27a26dd467.jsonl",
+    "window_start_turn": 0,
+    "annotation": "Procedural gap: TypeScript union narrowing fix, then user asks 'will git pull overwrite my changes?' -- fundamental git workflow question revealing procedural gap."
+  }
+}

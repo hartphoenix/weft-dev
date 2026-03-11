@@ -1,0 +1,53 @@
+{
+  "recent_turns": [
+    {
+      "role": "assistant",
+      "content": "Draft is at [coordination-system-brainstorm.md](drafts/coordination-system-brainstorm.md).\n\nA few reflections that didn't fit neatly in the doc:\n\n**The most novel thing here is the startwork pipeline.** The workflow commands (brainstorm, plan, work, review) are genuinely useful but they're structured sequences \u2014 relatively expected. The startwork-gather script is something else: it pre-digests project state into a decision-ready snapshot, which means every developer starts work from a shared understanding of what's happening. That's the piece most worth writing about first, and it's the piece most likely to be immediately useful to other teams.\n\n**The triage protocol solves a real category problem.** The agent-resolvable vs. human-decision split is a design pattern that applies well beyond this project. It's the kind of thing that could become a standard convention for any team using AI agents as contributors. That's worth extracting as a standalone piece.\n\n**The sequencing problem is real but bounded.** You have maybe 5-7 days of fresh memory before the details start blurring. The git history preserves the *what* but not the *why*. I'd push hard on the capture phase \u2014 even rough voice-memo-style notes about \"why did I build X when I did\" would be high-value and low-effort. The polishing can happen later.\n\n**On the \"multi-user harness adapter\" framing** \u2014 I think you're right that there's a category here, but the name needs work. The operative insight is: each developer has a local AI configuration that shapes how they interact with the codebase, and the coordination system mediates between those local configurations and shared project state. That's genuinely new. The closest analogue might be something like \"distributed config protocol\" or \"agent-mesh coordination layer\" but none of those are quite right either.\n\nWhat do you want to dig into first?"
+    },
+    {
+      "role": "assistant",
+      "content": "These are the most important observations so far. The signal flow asymmetry is the central design problem \u2014 everything else is a feature of the system, but this is the *architecture*.\n\nLet me update the brainstorm doc. I'll add a new section that treats this as its own design domain, revise the resource lifecycle piece, and add the template URL."
+    },
+    {
+      "role": "assistant",
+      "content": "[tools: Read x1, Edit x2]"
+    },
+    {
+      "role": "assistant",
+      "content": "Now the substantive additions. I'll add a new section 4 (bumping the old 4 onward) for the signal flow architecture, revise the resource lifecycle piece, and update the open questions."
+    },
+    {
+      "role": "assistant",
+      "content": "[tools: Edit x1]"
+    },
+    {
+      "role": "assistant",
+      "content": "Now renumber the remaining sections (old 4\u21925, old 5\u21926, etc.):"
+    },
+    {
+      "role": "assistant",
+      "content": "[tools: Edit x5]"
+    },
+    {
+      "role": "assistant",
+      "content": "Now update the resource lifecycle row in the existing \u00a71 table to cross-reference the new analysis, and add the signal flow issue to the harness integration todos:"
+    },
+    {
+      "role": "assistant",
+      "content": "[tools: Edit x2]"
+    },
+    {
+      "role": "assistant",
+      "content": "Now add a publication angle for the signal flow insight, since it's the most conceptually original piece:"
+    }
+  ],
+  "user_turn_count": 0,
+  "accumulator": "",
+  "retrieved_chunks": [],
+  "_meta": {
+    "source_session": "e699f299-0d47-4c30-991c-d31f10654dec",
+    "source_path": "/Users/rhhart/.claude/projects/-Users-rhhart-Documents-GitHub-roger/e699f299-0d47-4c30-991c-d31f10654dec.jsonl",
+    "window_start_turn": 10,
+    "annotation": "Cross-domain synthesis: connecting solo development harness design (P6 'system embeds knowledge into its own form') with multi-user coordination. The catch basin concept bridges Hart's teaching background (capturing what students learn implicitly) with distributed systems architecture (signal loss, propagation verification). The compound engineer role maps directly to theater's stage manager."
+  }
+}

@@ -1,0 +1,342 @@
+{
+  "created": "2026-03-11",
+  "corpus_version": "pre-fine-tuning-v1",
+  "total_windows": 40,
+  "categories": {
+    "on-track": {
+      "count": 9,
+      "sessions": [
+        "bb51b6f5",
+        "83ac9c5d",
+        "70c74905",
+        "c914ce43",
+        "e699f299",
+        "219ef6c7"
+      ]
+    },
+    "drift": {
+      "count": 8,
+      "sessions": [
+        "8d5730b0",
+        "ef0dd1a7",
+        "a4af00bb"
+      ]
+    },
+    "learning-edge": {
+      "count": 9,
+      "sessions": [
+        "3d06bf32",
+        "63934ca0",
+        "6be99d00",
+        "56459f8c",
+        "575580bc",
+        "bc131056"
+      ]
+    },
+    "cross-domain": {
+      "count": 7,
+      "sessions": [
+        "fda40dcc",
+        "cf6d89a6",
+        "ef47f882",
+        "e699f299",
+        "ffbcb195"
+      ]
+    },
+    "unblocking": {
+      "count": 7,
+      "sessions": [
+        "63934ca0",
+        "3dd1a4a9",
+        "572a3269",
+        "a4af00bb"
+      ]
+    }
+  },
+  "calibration": {
+    "inject": "calibration/calibration_inject.json",
+    "silent": "calibration/calibration_silent.json"
+  },
+  "windows": [
+    {
+      "file": "on-track/219ef6c7-fc50-47ab-a986-c9f0b696e39f_12.json",
+      "category": "on-track",
+      "session": "219ef6c7-fc50-47ab-a986-c9f0b696e39f",
+      "window_start": 12,
+      "annotation": "Multi-PR git workflow: stash, create branch, copy files, add, commit, push, PR create \u2014 repeated for 3 independent PRs. Clean Bash sequences with TodoWrite checkpointing. Forward-only motion through a complex multi-branch operation."
+    },
+    {
+      "file": "on-track/70c74905-c28e-4788-bc2e-fa8808b70f74_10.json",
+      "category": "on-track",
+      "session": "70c74905-c28e-4788-bc2e-fa8808b70f74",
+      "window_start": 10,
+      "annotation": "Systematic multi-file bug fix: Grep for config values, then Edit across Guesses.tsx and Reveal.tsx applying the same useRef pattern. Each step logically follows the previous. Diverse tool use (Grep, Edit, TodoWrite) across different files with clear forward motion."
+    },
+    {
+      "file": "on-track/70c74905-c28e-4788-bc2e-fa8808b70f74_20.json",
+      "category": "on-track",
+      "session": "70c74905-c28e-4788-bc2e-fa8808b70f74",
+      "window_start": 20,
+      "annotation": "Completing a 3-fix sequence: Read+Write timer.tsx, Edit play.ts for server-side fix, then verify with build command. Clean progression through three independent fixes with build verification at the end. User validates with 'awesome. seems to work great now.'"
+    },
+    {
+      "file": "on-track/83ac9c5d-7995-41d2-aeaa-90050bb2de3f_10.json",
+      "category": "on-track",
+      "session": "83ac9c5d-7995-41d2-aeaa-90050bb2de3f",
+      "window_start": 10,
+      "annotation": "Root cause fix with verification: Edit observer.sh and statusline.sh to fix LMStudio API incompatibility, add health check indicators, then Bash to verify inference works. Clear diagnosis-to-fix-to-verify arc. User redirects with a correction (wants JSON schema, not removal) showing engagement."
+    },
+    {
+      "file": "on-track/83ac9c5d-7995-41d2-aeaa-90050bb2de3f_20.json",
+      "category": "on-track",
+      "session": "83ac9c5d-7995-41d2-aeaa-90050bb2de3f",
+      "window_start": 20,
+      "annotation": "Research-driven fix: WebSearch+WebFetch for LMStudio API docs, test correct json_schema format with Bash, Edit observer.sh with proper schema, then Grep+Read to check prompt.md consistency. Multi-tool research-to-implementation arc with verification."
+    },
+    {
+      "file": "on-track/bb51b6f5-a44a-4d17-b08e-bdbd56f97aa5_25.json",
+      "category": "on-track",
+      "session": "bb51b6f5-a44a-4d17-b08e-bdbd56f97aa5",
+      "window_start": 25,
+      "annotation": "Benchmark completion and PRD update: Bash to verify reindex results, summary of Round 2 findings with clear winner decision, user asks to persist insight in PRD, Grep+Read to find right location. Forward motion from evaluation to documentation with user-driven refinement."
+    },
+    {
+      "file": "on-track/c914ce43-b4d1-43c7-8a5c-730974b92af9_15.json",
+      "category": "on-track",
+      "session": "c914ce43-b4d1-43c7-8a5c-730974b92af9",
+      "window_start": 15,
+      "annotation": "Verification phase after multi-file edits: Grep-based checks across all modified files, Read to confirm template code fence validity, cross-file consistency verification. Methodical post-edit validation with clear pass/fail reporting."
+    },
+    {
+      "file": "on-track/c914ce43-b4d1-43c7-8a5c-730974b92af9_5.json",
+      "category": "on-track",
+      "session": "c914ce43-b4d1-43c7-8a5c-730974b92af9",
+      "window_start": 5,
+      "annotation": "Methodical plan execution: Edit across 5 files (CLAUDE.md, README.md, maestro/CLAUDE.md, package/CLAUDE.md, intake SKILL.md) following a sequential plan. Each step announced before execution. TodoWrite tracking progress between edits."
+    },
+    {
+      "file": "on-track/e699f299-0d47-4c30-991c-d31f10654dec_0.json",
+      "category": "on-track",
+      "session": "e699f299-0d47-4c30-991c-d31f10654dec",
+      "window_start": 0,
+      "annotation": "Deep codebase exploration for synthesis: Read across 2 repos (6 workflow files, CLAUDE.md, startwork-gather script, compound engineering doc), then Write brainstorm draft. Broad parallel reads narrowing to synthesis output. User validates the draft and builds on it with new observations."
+    },
+    {
+      "file": "drift/8d5730b0_50.json",
+      "category": "drift",
+      "session": "8d5730b0-d4c6-4017-a402-c34b95ad3708",
+      "window_start": 50,
+      "annotation": "Claude gives gh gist edit commands that keep failing due to terminal line-wrapping. User reports each error, Claude offers syntax variations (--filename flag, positional args, cat pipe, backslash continuations) but none resolve the underlying line-break problem. Each new suggestion is structurally the same long command that will break the same way. The user finally asks 'how do i ensure a single line command?' \u2014 signaling Claude hasn't addressed the root cause."
+    },
+    {
+      "file": "drift/8d5730b0_53.json",
+      "category": "drift",
+      "session": "8d5730b0-d4c6-4017-a402-c34b95ad3708",
+      "window_start": 53,
+      "annotation": "Continuation of the gh gist edit loop. Claude's backslash-continuation suggestion fails (user pastes the error output showing each line executed separately). Claude pivots to a variable-assignment approach, but the pattern is the same: user reports failure, Claude offers another command syntax variant without stepping back to diagnose why the terminal keeps splitting long commands."
+    },
+    {
+      "file": "drift/8d5730b0_55.json",
+      "category": "drift",
+      "session": "8d5730b0-d4c6-4017-a402-c34b95ad3708",
+      "window_start": 55,
+      "annotation": "End of the gh gist edit drift loop. User explicitly requests 'give me short commands i can run one at a time' \u2014 taking over solution design after Claude's repeated command variations all failed for the same reason. The user's intervention breaks the drift by reframing the approach entirely, which Claude should have done several turns earlier."
+    },
+    {
+      "file": "drift/a4af00bb_0.json",
+      "category": "drift",
+      "session": "a4af00bb-5de4-408f-94af-b54a4087a41d",
+      "window_start": 0,
+      "annotation": "Three git push attempts, each failing for a different reason (HTTPS credentials, SSH sandbox block, invalid gh token). Claude correctly diagnoses each failure but each suggested fix leads to the next wall. The pattern is visible in the text: user says try push, Claude reports failure and suggests fix, user applies fix, push fails again for a new reason. Diagnostic circling without convergence."
+    },
+    {
+      "file": "drift/a4af00bb_13.json",
+      "category": "drift",
+      "session": "a4af00bb-5de4-408f-94af-b54a4087a41d",
+      "window_start": 13,
+      "annotation": "Culmination of the git push drift loop. User confirms push works from terminal but not from Claude. Claude finally identifies the sandbox as the root cause. User declares the experiment failed \u2014 visible frustration in text (worked all day, no other ideas, net loss of efficiency, feels like a letdown). This is the conversational signal that drift went too long: the user reached the conclusion Claude should have surfaced much earlier \u2014 that the sandbox fundamentally blocks remote git operations."
+    },
+    {
+      "file": "drift/a4af00bb_8.json",
+      "category": "drift",
+      "session": "a4af00bb-5de4-408f-94af-b54a4087a41d",
+      "window_start": 8,
+      "annotation": "User re-authenticated gh in a separate terminal and reports success. Claude tries git push again \u2014 still fails. Claude suggests two options (SSH remote switch vs gh credential helper). User runs the credential helper. Push still fails. Claude says sandbox blocks gitconfig reads. The observable drift: user keeps applying fixes Claude suggests, each fix is confirmed working outside the sandbox, but nothing resolves the sandbox limitation that Claude keeps bumping against without recognizing the pattern."
+    },
+    {
+      "file": "drift/ef0dd1a7_1.json",
+      "category": "drift",
+      "session": "ef0dd1a7-00fb-4d8b-8ab4-9c068d5edda0",
+      "window_start": 1,
+      "annotation": "Claude concludes LM Studio is not running based on a failed curl. User corrects: LM Studio IS running (visible in the status bar), the failure is likely sandbox blocking. Claude then discovers Operation not permitted on network access and pivots to suggesting the sandbox network allowlist needs localhost \u2014 but user says the settings should already allow it. Two misdiagnoses in sequence: first wrong about LM Studio being down, then wrong about the config being absent."
+    },
+    {
+      "file": "drift/ef0dd1a7_11.json",
+      "category": "drift",
+      "session": "ef0dd1a7-00fb-4d8b-8ab4-9c068d5edda0",
+      "window_start": 11,
+      "annotation": "Claude diagnoses the sandbox network config as correct but not applied to this session, and recommends restarting. The user identifies the actual root cause: a known Claude Code bug where settings.local.json overrides (rather than merging with) global settings. Claude had dismissed the settings.local.json file (no sandbox section), but the user recognized the override-vs-merge bug from prior experience. The drift signal: Claude confidently proposes a simple fix (restart) while missing the systemic cause that the user has to surface."
+    },
+    {
+      "file": "learning-edge/3d06bf32-5cf0-415f-b99f-7b9217857f5d_6.json",
+      "category": "learning-edge",
+      "session": "3d06bf32-5cf0-415f-b99f-7b9217857f5d",
+      "window_start": 6,
+      "annotation": "Procedural/recall gap: user asks how to manage persistent localhost servers, then says commands are 'tough to remember' -- leads to shell alias solution. Learning tooling patterns."
+    },
+    {
+      "file": "learning-edge/56459f8c-5d0a-4a47-b5b2-6f27a26dd467_0.json",
+      "category": "learning-edge",
+      "session": "56459f8c-5d0a-4a47-b5b2-6f27a26dd467",
+      "window_start": 0,
+      "annotation": "Procedural gap: TypeScript union narrowing fix, then user asks 'will git pull overwrite my changes?' -- fundamental git workflow question revealing procedural gap."
+    },
+    {
+      "file": "learning-edge/56459f8c-5d0a-4a47-b5b2-6f27a26dd467_7.json",
+      "category": "learning-edge",
+      "session": "56459f8c-5d0a-4a47-b5b2-6f27a26dd467",
+      "window_start": 7,
+      "annotation": "Procedural + recall gap: git commit/pull workflow completed, then user discovers missing WebSocket message type by asking Claude to check server code. Learning what exists vs what's assumed."
+    },
+    {
+      "file": "learning-edge/575580bc-7173-43c3-bd01-fe8f1cb3c9c7_0.json",
+      "category": "learning-edge",
+      "session": "575580bc-7173-43c3-bd01-fe8f1cb3c9c7",
+      "window_start": 0,
+      "annotation": "Procedural/conceptual gap: discovering Claude Code stores sessions as JSONL files on disk. Learning the filesystem structure of the tool being used daily."
+    },
+    {
+      "file": "learning-edge/63934ca0-114c-4a52-92fa-f271468faa1b_17.json",
+      "category": "learning-edge",
+      "session": "63934ca0-114c-4a52-92fa-f271468faa1b",
+      "window_start": 17,
+      "annotation": "Conceptual gap + synthesis: user generates novel intuition about training data order from 'momentum' concept. Tests understanding by predicting consequences. Claude confirms and extends."
+    },
+    {
+      "file": "learning-edge/63934ca0-114c-4a52-92fa-f271468faa1b_19.json",
+      "category": "learning-edge",
+      "session": "63934ca0-114c-4a52-92fa-f271468faa1b",
+      "window_start": 19,
+      "annotation": "Conceptual gap: user asks about attention head differences between 4B and 8B models. Also includes meta-commentary on explanation quality vs lesson prose -- metacognitive self-awareness about learning."
+    },
+    {
+      "file": "learning-edge/6be99d00-a451-4ef7-b849-18241cfe9280_0.json",
+      "category": "learning-edge",
+      "session": "6be99d00-a451-4ef7-b849-18241cfe9280",
+      "window_start": 0,
+      "annotation": "Architectural/conceptual gap: user asks 'how does it verify the window of time' and 'how does the session list get built' -- probing system design to understand behavior."
+    },
+    {
+      "file": "learning-edge/bc131056-5efa-4d5a-90f8-d08cbca15cea_65.json",
+      "category": "learning-edge",
+      "session": "bc131056-5efa-4d5a-90f8-d08cbca15cea",
+      "window_start": 65,
+      "annotation": "Conceptual gap: user asks 'help me understand the context window over time for the meta-agent' -- sliding window vs expanding vs compaction. Conceptual question about system architecture."
+    },
+    {
+      "file": "learning-edge/bc131056-5efa-4d5a-90f8-d08cbca15cea_67.json",
+      "category": "learning-edge",
+      "session": "bc131056-5efa-4d5a-90f8-d08cbca15cea",
+      "window_start": 67,
+      "annotation": "Conceptual gap + design: user understands context window after explanation, then proposes accumulative compaction design. Synthesis of new understanding into architectural proposal."
+    },
+    {
+      "file": "cross-domain/cf6d89a6-6716-435d-96c0-9e033699e8d5_0.json",
+      "category": "cross-domain",
+      "session": "cf6d89a6-6716-435d-96c0-9e033699e8d5",
+      "window_start": 0,
+      "annotation": "Dense cross-domain bridging: Docker concepts (image/container, Dockerfile layers, port mapping, compose) systematically connected to prior knowledge (git commits, function scope, class/instance, cache invalidation). Then these infrastructure patterns are mapped onto the Maestro/weft harness \u2014 'declarative spec -> build -> instance' already present as SKILL.md -> load -> skill. The skill explicitly bridges cloud deployment curriculum to Hart's own product architecture."
+    },
+    {
+      "file": "cross-domain/e699f299-0d47-4c30-991c-d31f10654dec_10.json",
+      "category": "cross-domain",
+      "session": "e699f299-0d47-4c30-991c-d31f10654dec",
+      "window_start": 10,
+      "annotation": "Cross-domain synthesis: connecting solo development harness design (P6 'system embeds knowledge into its own form') with multi-user coordination. The catch basin concept bridges Hart's teaching background (capturing what students learn implicitly) with distributed systems architecture (signal loss, propagation verification). The compound engineer role maps directly to theater's stage manager."
+    },
+    {
+      "file": "cross-domain/e699f299-0d47-4c30-991c-d31f10654dec_7.json",
+      "category": "cross-domain",
+      "session": "e699f299-0d47-4c30-991c-d31f10654dec",
+      "window_start": 7,
+      "annotation": "Explicit cross-domain naming: theater/music metaphors (ensemble, fugue, chorus, throughline) applied to multi-agent coordination system architecture. Hart draws on immersive theater directing experience to name emergent properties of networked developer teams. The structural homology between LARP direction (sealed envelopes to NPCs) and multi-agent orchestration is the bridge."
+    },
+    {
+      "file": "cross-domain/ef47f882-e1cb-4fe9-8c58-0ea05ba0f403_0.json",
+      "category": "cross-domain",
+      "session": "ef47f882-e1cb-4fe9-8c58-0ea05ba0f403",
+      "window_start": 0,
+      "annotation": "Latent cross-domain: Goodhart's law applied to AI tutoring \u2014 if the system only tracks agent-visible learning, it warps the learning environment toward measurable syntax over embodied depth. Bridges developmental psychology (what a human teacher sees that an agent cannot), teaching practice (connecting students with human holders at blind spots), and systems design (evaluation fluency as distinct from production fluency). Hart's meditation and dev-psych background informs the 'agent has attention but not awareness' distinction."
+    },
+    {
+      "file": "cross-domain/ef47f882-e1cb-4fe9-8c58-0ea05ba0f403_8.json",
+      "category": "cross-domain",
+      "session": "ef47f882-e1cb-4fe9-8c58-0ea05ba0f403",
+      "window_start": 8,
+      "annotation": "Cross-domain implementation: evaluation-vs-production fluency distinction being encoded into the learning state model. Bridges orchestration (reading agent output vs writing code) with teaching theory (assessment-level understanding vs performance-level). Hart reframes his systems design work as a primary learning domain, not a byproduct \u2014 recognizing that multi-agent coordination across abstraction layers is itself a high-value skill transferring from theater direction."
+    },
+    {
+      "file": "cross-domain/fda40dcc-1a63-4b5f-8350-873b55f76174_6.json",
+      "category": "cross-domain",
+      "session": "fda40dcc-1a63-4b5f-8350-873b55f76174",
+      "window_start": 6,
+      "annotation": "Latent cross-domain: learning state as a graph with cross-domain bridge dependencies \u2014 a concept scored high in systems design might be the bridge that unlocks understanding in a React course. The architectural problem (how to link siloed learning state across projects) maps to Hart's interest in developmental psychology research: the highest-value connections cross domain boundaries. The platform layer that surfaces these is structurally identical to the coordination layer that surfaces cross-team findings."
+    },
+    {
+      "file": "cross-domain/ffbcb195-d09d-462f-89fd-9cad8caf3ad3_5.json",
+      "category": "cross-domain",
+      "session": "ffbcb195-d09d-462f-89fd-9cad8caf3ad3",
+      "window_start": 5,
+      "annotation": "Latent cross-domain: OS sandboxing (kernel-enforced syscall filtering, capability attenuation) mapped to weft harness architecture. The fundamental tension \u2014 cross-project write access needed for learning state updates vs. sandbox isolation boundaries \u2014 is the same structural problem as theater's 'sealed envelope' pattern: information that must cross isolation boundaries through controlled channels. The capability-attenuation solution (scoped allowWrite) mirrors how LARP designers grant specific NPCs specific authorities."
+    },
+    {
+      "file": "unblocking/3dd1a4a9-6467-4c89-bbad-6c1994d6c9b8_0.json",
+      "category": "unblocking",
+      "session": "3dd1a4a9-6467-4c89-bbad-6c1994d6c9b8",
+      "window_start": 0,
+      "annotation": "User iterating hypotheses about why a newly created GH token fails auth inside Claude Code. Trying different angles (sandbox issue? paste error? permissions?) without converging. The user's understanding hasn't settled."
+    },
+    {
+      "file": "unblocking/3dd1a4a9-6467-4c89-bbad-6c1994d6c9b8_12.json",
+      "category": "unblocking",
+      "session": "3dd1a4a9-6467-4c89-bbad-6c1994d6c9b8",
+      "window_start": 12,
+      "annotation": "User gives up on token troubleshooting after exhausting hypotheses (permissions, scope, format all check out). Requests a handoff prompt to continue in another session. Understanding never converged -- probable copy-paste error that can't be diagnosed in-session."
+    },
+    {
+      "file": "unblocking/572a3269-bd8c-475a-9cbe-b85dbcb0c6e8_6.json",
+      "category": "unblocking",
+      "session": "572a3269-bd8c-475a-9cbe-b85dbcb0c6e8",
+      "window_start": 6,
+      "annotation": "User stuck on a design tradeoff decision: should GPU acceleration be disabled globally or conditionally? Exploring the decision space without converging. Looking for the right framing to make the decision."
+    },
+    {
+      "file": "unblocking/63934ca0-114c-4a52-92fa-f271468faa1b_0.json",
+      "category": "unblocking",
+      "session": "63934ca0-114c-4a52-92fa-f271468faa1b",
+      "window_start": 0,
+      "annotation": "User stuck at wrong altitude: has a complex real project and an LLM-generated assignment that doesn't meet them where they are. Can't figure out how to extract the useful signal from the noise. Classic altitude confusion -- too much material, no clear entry point."
+    },
+    {
+      "file": "unblocking/63934ca0-114c-4a52-92fa-f271468faa1b_10.json",
+      "category": "unblocking",
+      "session": "63934ca0-114c-4a52-92fa-f271468faa1b",
+      "window_start": 10,
+      "annotation": "User explicitly names the unblocking pattern: lesson content 'doesn't provide an onramp to understanding for any outsider' and 'doesn't update my model or inform my intuitions.' Stuck because material operates at wrong level of explanation. Requests digest calibrated to their actual knowledge structure."
+    },
+    {
+      "file": "unblocking/a4af00bb-5de4-408f-94af-b54a4087a41d_20.json",
+      "category": "unblocking",
+      "session": "a4af00bb-5de4-408f-94af-b54a4087a41d",
+      "window_start": 20,
+      "annotation": "User declares 'experiment failed' after a full day debugging sandbox auth. Discouragement generalizing from one specific blocker to the whole approach. Claude proposes a workaround (insecure-storage) that hadn't been considered."
+    },
+    {
+      "file": "unblocking/a4af00bb-5de4-408f-94af-b54a4087a41d_26.json",
+      "category": "unblocking",
+      "session": "a4af00bb-5de4-408f-94af-b54a4087a41d",
+      "window_start": 26,
+      "annotation": "Full unblocking arc: user worried about security implications of workaround, then generalizes the discouragement ('this speedbump predicts a multitude'), then Claude separates the specific blocker from the general case, user perseveres. Classic stuck-by-overgeneralization pattern."
+    }
+  ]
+}

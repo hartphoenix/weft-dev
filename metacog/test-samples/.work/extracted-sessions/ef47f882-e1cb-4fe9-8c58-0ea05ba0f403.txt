@@ -1,0 +1,232 @@
+[U1 16:04] learning/three-week-audit-2026-03-03.md this report was produced by a swarm of research agents and an orchestrating agent who was tasked with getting me a bunch of insights on how the last three weeks of progress have gone during coding boot camp. And what it shows me is that a lot of recalibration is necessary. And I'm going to start with a top-level recalibration that I think is important for your interpretation of the research. 
+
+The way that I see it, learning to code by hand is going the way of cursive writing. The engineers who currently learn to code by hand in school are learning an antiquated skill, and I think that this is largely agreed upon in my coding boot camp. The bootcamp itself was started a couple of years ago. Even then, there was space in the program for learning to accelerate the process of producing code through coding agents. Now that has accelerated so much that this coding bootcamp is phasing out the word bootcamp and coding in their name, and they are changing their name to AI Accelerator. And I think that this is important as a cultural step forward, and in terms of, quote, skate where the puck is going, end quote, it's important for me to read the career landscape and my potential within it and do what I am best at and most interested in doing and put my abilities to use in those domains.
+
+As such, I'm pushing back on the advice given by the researching agent that I step back to the keyboard and do more hand coding and have Claude be my tutor. I do want to continue learning, and I am learning a great deal, but I think that what I am learning to do is move up the ladder of abstraction and orchestrate more of the production of end product through the skilled use of agents and multi-agent coordination. 
+
+I think this is only the beginning for an industry that is expanding extremely fast. I have had a lot of live conversations with other engineers, people who are working at the forefront of this endeavor to move from hand coding to agent orchestration. and I think that for one thing, the industry doesn't yet know how to price or hire for this position and yet it is going to find it extremely valuable as soon as cutting edge companies are able to make use of this. I'm willing to settle for a bit of uphill battle when it comes to interviewing for jobs. If there are job interviews who are looking for classical coding experts, I'm simply not that and I don't think that I could become competitive at that in the next eight weeks. However, I do think that I am already competitive at orchestrating agents, designing systems that compound and creating clarity for humans on how to use complex systems. So I see a possibility for myself opening up in the near future doing consulting work and design work for companies that are trying to modernize their systems and their teams, teaching those teams how to use agents to accelerate their work rather than getting replaced by agents who do mediocre work for cheap.
+
+ this being the case, I think that I have actually spent my time instinctively on things that are more relevant than what my initial goals set out to accomplish. And by leaning into the role of designer and orchestrator, I have become more effective. I've also noticed that the weft harness that I'm designing is one of the more desired products that's been demoed by anyone in bootcamp and I'm going to continue developing it. It will take code to build out the pieces of it that are not yet built including the platform that connects teachers and students together, the connection between peer groups, the connection for courses. That's all going to take coding that isn't simply writing markdown for agents to parse. But this orchestration that I've learned to do and learned to share is the essence of the functionality that will be shared on that platform. So it has been time well spent, and as such, I want to take the report that was generated and treat it as signal that recalibration in my learning state and goals is necessary.
+
+ I also see many of the suggested automations as being really helpful not only for me, but also for the users of my harness. So I may want to think of ways to not only customize these commands to myself, but also to generalize them to the end user of the weft harness. 
+
+ additionally, I want to see the process that I've used to create this report as another such automation that I'd like to generalize and serve as a product. The capacity to do this kind of self-analysis in a structured way is important. and yet I can also see that there was a gap in the way that it was structured that didn't quite allow for the goal drift. So you can see that even though my goals meaningfully shifted and I didn't simply lose track of them, the agents doing the research were biased to think of the aberrations from stated goals as being somehow failure modes that needed to be addressed rather than potential signal that needed to be updated on. 
+
+so help me parse this report and address it with the perspectives above. and let's turn it into a set of action items that can both address my own needs as a learner, and address my career needs, and also address the design needs that surface in relation to the weft harness.
+  -> Read: three-week-audit-2026-03-03.md
+[A2 16:05] Good report. And your read of its blind spot is precise — the agents measured deviation from stated goals and treated all deviation as drift, when some of it was evolution. That's a real design insight.
+
+Let me work through this in your three frames.
+
+---
+
+## Where the report's bias distorts and where the signal is still real
+
+The report assumes hand-coding reps are the primary value of the bootcamp. You're rejecting that premise. Fair. But there's a layer underneath the premise that survives the rejection:
+
+**Even orchestrators need read fluency.** You don't need to be able to write CSS from memory, but you need to be able to look at agent-produced CSS and know whether it's going to break on mobile. You don't need to write Express middleware by hand, but you need to recognize when an agent put auth on the wrong side of a boundary. Your 2-3 scores in CSS, React Router, and containerization aren't interview liabilities — they're *evaluation gaps*. An orchestrator who can't assess agent output is a PM sending work to contractors they can't evaluate.
+
+So the report's recommendation to "get back to the keyboard" is wrong in form but partially right in function. The reps you need aren't "write a React app from scratch." They're "read this agent-produced code and find the three things wrong with it." That's a different exercise.
+
+**The stale learning state is a real problem regardless of direction.** `current-state.md` being 2.5 weeks old means the harness is flying blind on you. That's true whether the goal is hand-coding or orchestration.
+
+**The "displacement" diagnosis is half-wrong.** Weft isn't displacement — it's the product you're building toward. But the report correctly identifies that the *type* of work shifted: week 1 was learning-dense, week 3 was orchestration-dense. The question isn't "should you be coding instead of designing" — it's "are you still learning at the rate you were, or have you plateaued into execution mode?" The volume tripled but the learning [...truncated]
+[U2 16:18] great answer, and thank you for the pushback on where the signal is still real, and I agree. I think that this reveals that I need better ways of tracking the concepts that still count while not treating them as things that I need muscle memory in as a hand coder. So there needs to be some recalibration of the signal interpretation that updates learning state. 
+
+The flying blind problem is one that I want to fix for both my own harness and the weft harness I'm shipping because I think that it relies on the session reviews being run, and since they always involve quizzes and take a great deal of time, I tend to put them off until the day is completely spent and all of my energy has gone into design and deployment. So what I need is to decouple the skill of updating state from the skill of quizzing for spaced repetition. Both are needed and both should be built into the harness, but they don't need to be collapsed together. So I want to use the newish session discovery skill and script to create some kind of hook that prompts the agent to gather data for the user and improve learning state without a great deal of energy demand placed on the user at a time when they are probably least able to afford that demand. ie the end of work. this applies to me as well as to the users i'm shipping for.
+
+Again, if the displacement diagnosis is half wrong, I think that it's also ignoring the fact that much of my learning hasn't been in the department I planned or expected to learn in. I've actually been learning a great deal about designing systems, and this isn't merely strength that I brought into the program. It's something that I have been improving upon. Systems design is an extremely high premium skill. It takes a great deal of metasystematicity and planning and conscientiousness and modeling multi-user states of mind and states of learning. This is something that is hard to find in high caliber in the market and something I could charge a great deal for. It's also something that I feel satisfied at deploying and extremely excited to work on. So, I'm putting this idea of systems design out front as one of a few clear targets I want to hit. throughout this program. to say "The volume tripled but the learning density dropped" only counts if you're measuring by lines of code written. i've designed systems that run several layers of abstraction concurrently while facilitating complex coding tasks across a team of 4 differentiated specialists. that's evidence of learning that the research agents weren't able to see.
+
+ This points out another problem that I'd like to solve in the design space, especially the design of a tutor agent, in that the agent can only see so much of the learning that's happening.  the user who wants to learn to speak Spanish aloud with fluency, or to sing on pitch, is mostly invisible to a text-native agent.  to a lesser but still important degree, the development of depth and complexity is less apparent than the development of facility with syntactical form.  to whatever degree a person's growth is invisible to the tutoring agent, that growth goes unaccounted for in the plans that it makes for them and their learning state fails to update or reflect their reality.  this is a hard problem for me to solve and one very worth solving because if agent systems built for education continue to miss at this problem, the education environment that I'm familiar with will continue to follow Goodhart's law and simply do what can be measured by available systems rather than do what is worth doing whether or not they have systems that can measure that worth. 
+
+ And what I think solves this the most is not trying to have the tutoring agent do everything for the student. Instead, use the system to help connect the student with human teachers who are naturally adept at these tasks. and designing the system to know that it has blind spots and to accommodate those blind spots not by trying to approximate them with data flattening algorithms, but instead by facilitating greater connection for students in cultures of learning.
+
+ take this in and recalibrate the action items accordingly.
+[A3 16:19] You're right on the learning density point. Designing a system where four specialists coordinate through agent-mediated workflows across multiple abstraction layers is not low-density learning — it's learning in a domain the report wasn't instrumented to measure. The report counted lines of code and sessions tagged "coding." It missed sessions where you were solving coordination problems, state management across humans, and multi-agent architecture. Those are systems design reps.
+
+The Goodhart's law observation is the sharpest thing you've said about weft's design. If the tutoring system only tracks what the agent can see, it incentivizes what the agent can measure. That warps the learning environment toward syntax over depth, toward text-producible evidence over embodied skill. The architectural answer — make the system facilitate human connection where the agent is blind, and make the system *know* it's blind there — is genuinely better than trying to approximate those dimensions with flattened metrics.
+
+Here's the recalibrated list.
+
+---
+
+## Recalibrated action items
+
+### Learning state & tracking
+
+**1. Add "evaluation fluency" as a distinct fluency type in the tracking model.**
+
+Right now current-state.md scores concepts on a 1-5 scale with gap types (conceptual, procedural, reps, recall). That model assumes the goal is production — can you write it? For an orchestrator, the relevant question for many concepts is: can you *read and assess* it? A concept at production-3 might be evaluation-4. CSS is a clear example — you may never write it from memory, but you need to catch when an agent produces broken mobile layout. The scoring model should distinguish these so the system stops flagging evaluation-sufficient concepts as gaps that need reps.
+
+**2. Add a `systems-design` arc.**
+
+This is a primary learning domain, not a byproduct. Sub-skills: multi-agent coordination, cross-abstraction-layer architecture, human-team orchestration through agent systems, state manag [...truncated]
+[U3 16:28] let's turn this into a bucketed list of to-dos and catch all of them in one of these buckets. Quick pass that can be done today, stuff that needs to ship this week, and stuff that will have to take longer. Take a shot at that list and I'll review. Thank you.
+[A4 16:28] ### Today (quick pass)
+
+1. Update current-state.md — add 12 new concepts, apply 9 score bumps, mark stale entries
+2. Populate goals.md capabilities sections with evidence from the audit
+3. CLAUDE.md friction fixes — npm/npx deny rules, 500-error recovery protocol, explicit-paths instruction
+4. Add `systems-design` and `context-engineering` arcs to learning state
+
+### This week
+
+5. Rewrite goals.md to reflect actual trajectory — systems design as primary skill, weft as primary product, evaluation fluency as supporting skill, consulting as income path
+6. Add evaluation-vs-production fluency distinction to the scoring model in current-state.md
+7. Design and build `/session-digest` — lightweight state updater that reads recent sessions via session-discovery, proposes current-state.md updates, no quiz
+8. Split `/session-review` into `/session-digest` and `/session-quiz`
+9. Build `/ship` skill
+10. Merge `/handoff-test` and `/handoff-prompt` into `/handoff`
+11. Name the role — test candidate phrases with real people
+
+### Longer horizon
+
+12. Build goal-evolution detector into audit system — divergence surfaces as question, not diagnosis
+13. Encode visibility principle in weft's learning state model — agent-visible vs. agent-blind markers, connection recommendations at blind spots
+14. Generalize the audit process as a weft feature — configurable goal anchors, evolution-vs-drift distinction, schedulable
+15. Decompose overloaded skills (`/startwork`, `/intake`, `/session-review`) — one session, then stop
+16. Build a demonstration artifact — orchestrated development applied to someone else's problem, before/after case study
+17. Ship something visible every week for 8 weeks (ongoing)
+[U4 16:33] let's move five into the today list. Let's move six into the today list. Let's move seven into the today list. 
+
+Move 12, 13, and 14 into this week.
+
+then persist the list in roger/guides/
+  -> Bash: ls /Users/rhhart/Documents/GitHub/roger/guides/ 2>/dev/null || echo "directory d
+  -> Write: three-week-recalibration-actions.md
+[A7 16:33] Done. Persisted at [three-week-recalibration-actions.md](guides/three-week-recalibration-actions.md).
+
+That's a heavy today list — seven items, three of which (5, 6, 7) are design work, not just data entry. Want to start working through them, or is this the planning artifact for now and you'll pick it up when ready?
+[U5 16:34] go ahead and do 1-4
+  -> TodoWrite
+  -> Read: current-state.md
+  -> Read: goals.md
+  -> Read: arcs.md
+  x Read failed: File does not exist. Note: your current working directory is /Users/rhhart/Documents/GitHub/roger.
+  -> Glob: **/.claude/settings.json in roger
+  x Glob failed: <tool_use_error>Sibling tool call errored</tool_use_error>
+  -> Glob: **/.claude/settings.json in roger
+  -> Glob: learning/arcs* in roger
+  -> Glob: **/.claude/settings*.json in rhhart
+  -> Read: settings.json
+  -> Read: settings.json
+  -> Read: CLAUDE.md
+[A19 16:37] Now I have everything I need. Let me execute all four items in parallel.
+  -> Write: current-state.md
+  -> Edit: goals.md
+  -> Edit: settings.json
+  -> Edit: CLAUDE.md
+  -> Edit: CLAUDE.md
+  -> TodoWrite
+[A26 16:39] Done. Here's what changed:
+
+**current-state.md** — 5 new arcs (`context-engineering`, `systems-design`, `team-coordination`, `game-design`, `product-design`). 12 new concepts added with scores from audit evidence. 9 score bumps applied. Moved `compaction-and-handoffs`, `human-attention-leverage`, and `claude-code-internals` from `ai-agent-orchestration` to `context-engineering` (all bumped to 5). Added `audit:observed` as a source tag for non-quiz-verified scores. Updated the last-modified date.
+
+**goals.md** — All three goals now have populated capabilities sections with specific project evidence rather than placeholders.
+
+**~/.claude/settings.json** — Added deny rules for `npx *`, `npm run *`, and `npm install *`. These will mechanically enforce the bun preference.
+
+**~/.claude/CLAUDE.md** — Added explicit-paths and artifact-output instructions to Communication. Added error-recovery-mid-task as item 8 in Recovery after interruption.
+[U6 16:40] awesome. update the three-week-recalibration-actions.md to remove what's already done, and add any context needed for a future agent to understand the list (including file paths for the conversations and/or research artifacts that produced the list). then /handoff-test it
+  -> Read: three-week-recalibration-actions.md
+  -> Write: three-week-recalibration-actions.md
+[A29 16:41] Now running the handoff test.
+  -> Skill: 
+[U7 16:41] Base directory for this skill: /Users/rhhart/.claude/skills/handoff-test
+
+# Handoff Test
+
+## The Naive Reader
+
+A fresh Claude instance with no session history. Technically competent — can read the codebase, run code, check git history. Has access to standard tooling, CLAUDE.md, and memory files. But has seen nothing from this conversation: no decisions made, options rejected, constraints discovered, or terminology coined. The only things that exist for the naive reader are what's written in persistent artifacts.
+
+The test: could that instance pick up the artifact and execute without asking clarifying questions?
+
+## Process
+
+1. Identify what was created or modified this session. Read each artifact in full.
+2. From the naive reader perspective, find implicit dependencies:
+   - Session-local terminology used without definition
+   - References to "the bug," "the approach," "what we discussed" without grounding
+   - Decisions recorded without rationale (a future reader needs *why* to know when the decision expires)
+   - Scope assumed but not stated
+   - Next steps that depend on conversation memory
+3. Report gaps. For each: what's missing, where it goes, concrete suggested text. Offer to apply fixes.
+
+If the artifact passes, say so in one sentence.
+[A31 16:41] Let me read all the modified artifacts in full.
+  -> Read: three-week-recalibration-actions.md
+  -> Read: current-state.md
+  -> Read: goals.md
+[A35 16:42] ## Handoff Test Results
+
+Testing all artifacts modified this session from the naive reader perspective.
+
+### `guides/three-week-recalibration-actions.md` — primary handoff artifact
+
+**3 gaps found:**
+
+**Gap 1: Item 5 scope is ambiguous given item 2 already executed.**
+Item 5 says "Rewrite goals.md to reflect actual trajectory." But item 2 (completed) already populated the capabilities sections. A naive reader doesn't know whether "rewrite" means reframe the three goal headings and their descriptions, or tear down and rebuild the whole file. The capabilities we just added should survive — that's not obvious.
+
+Suggested fix in item 5:
+> Rewrite the goal framing and descriptions in goals.md (preserve the capabilities sections populated in item 2). Current goals were written pre-recalibration. Reframe to center...
+
+**Gap 2: `systems-design` arc has no concepts.**
+We created the arc but assigned zero concepts to it. A naive reader executing items 5-6 needs to know: is this arc empty on purpose (concepts will be added during the rewrite), or was populating it deferred? The audit didn't list systems-design concepts because it's Hart's recalibration addition, not an audit finding.
+
+Suggested fix — add a note after item 6:
+> Note: The `systems-design` arc was created empty. Its concepts should be identified during the goals rewrite (item 5) — likely drawn from the team orchestration, workflow architecture, and cross-abstraction design work evidenced in the audit but not yet decomposed into trackable concepts.
+
+**Gap 3: `ai-agent-orchestration` arc is now orphaned.**
+Three concepts were moved from `ai-agent-orchestration` to `context-engineering`. The arc still exists with its description but has zero concepts under it. A naive reader would see two overlapping arcs and not know if `ai-agent-orchestration` should be retired, merged, or kept for future use.
+
+Suggested fix in current-state.md — change the arc status or add a note:
+> `ai-agent-orchestration` — status: `deprecated [...truncated]
+[U8 16:42] yes
+  -> Edit: three-week-recalibration-actions.md
+  -> Edit: three-week-recalibration-actions.md
+  -> Edit: current-state.md
+  -> Edit: goals.md
+  -> Edit: goals.md
+[A41 16:43] All four gaps fixed. The artifacts pass handoff.
+[U9 16:43] let's do number 5
+[A42 16:43] I have goals.md in context from the earlier read. Let me work through the reframe.
+  -> Edit: goals.md
+  -> Edit: goals.md
+[A45 16:44] Now let me update the cross-cutting text that references the old goal structure.
+  -> Edit: goals.md
+[A47 16:44] Done. Key changes:
+
+- **Weft** moved to first position and renamed to "Weft: developmental AI tutoring platform." Description centers it as the primary product and vehicle for systems design skill. Added the visibility principle — the system knows its blind spots and connects to humans rather than approximating.
+
+- **Lucid Drama** reframed as long-term, explicitly connected to weft by shared problem class (platform/systems). Notes that systems design skill transfers directly.
+
+- **Sustainable income** renamed to "Sustainable income: consulting and systems design." Specifies the offering (agent workflow redesign + team training), names the missing portfolio piece (demonstration on someone else's problem), and acknowledges the undefined hiring landscape as a frame-setting opportunity rather than a barrier.
+
+- Goal ordering now reflects proximity to current work, with a brief explanation of why.
+
+All capabilities sections preserved unchanged.
+[U10 16:49] you have 37% context left -- enough to complete item 6, or no?
+[A48 16:49] Enough. Item 6 is scoped: update the header/rubric in current-state.md and add fluency-type markers to relevant concepts. The file is already in context. Let me do it.
+  -> Edit: current-state.md
+[A50 16:49] Now add `fluency-target: evaluation` to the concepts where that applies — the ones where reading/assessing agent output is the goal, not writing from memory.
+  -> Edit: current-state.md
+  -> Edit: current-state.md
+  -> Edit: current-state.md
+  -> Edit: current-state.md
+  -> Edit: current-state.md
+  -> Edit: current-state.md
+  -> Edit: current-state.md
+[A58 16:49] Now mark 5 and 6 as done in the action list.
+  -> Edit: three-week-recalibration-actions.md
+[A60 16:50] Done. Items 1-6 complete. Summary of item 6:
+
+- Added `fluency-target` field to the scoring model header with two values: `production` (default, can write from memory) and `evaluation` (can read and assess agent output)
+- Tagged 7 concepts as `fluency-target: evaluation`: CSS mobile layout, React Router, React Context, containerization, Express modular architecture, browser security model, production deployment
+- Concepts without the marker default to production target — the ones where you're building real depth (hooks, state sync, TypeScript narrowing, etc.)
+
+Item 7 (session-digest skill) is the remaining today item. That's a design + build task — likely wants a fresh session given context. Want to continue or pick it up next?
+[U11 16:51] without reading additional documents, draft a brainstorm record for item 7 that will tell them everything you currently know that's relevant to completing item 7. i'll have them continue from there.
+  -> Write: session-digest-brainstorm.md
+[A62 16:52] Written to [session-digest-brainstorm.md](drafts/session-digest-brainstorm.md). That should give a fresh agent everything it needs to pick up from here — the problem, the infrastructure, the design space, and the open questions.

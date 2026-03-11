@@ -1,0 +1,199 @@
+[U1 13:24] ## Handoff: MetaClaude Local — Phase 1 completion + Phase 2 start                                                                                                
+                                                                                                                                                                   
+  ### Goal                                                                                                                                                         
+                                               
+  Complete the MetaClaude Local build per the PRD at                                                                                                               
+  `design/2026-03-09-metaclaude-local-prd.md`. This session was scoped
+  to unstale the PRD checklist against actual repo state, then begin
+  the next work items.
+
+  ### State
+
+  **Done (prior sessions):**
+  - Full hook infrastructure: observer.sh, inject.sh, toggle.sh, statusline.sh
+    in `/Users/rhhart/Documents/GitHub/weft/tools/metaclaude/`
+  - MetaClaude SKILL.md at `/Users/rhhart/Documents/GitHub/weft/.claude/skills/metaclaude/SKILL.md`
+  - Phase 1 model selection interface, backend routing, thinking tag handling,
+    session instruction passing, status line dynamic model tags — all built
+  - Phase 3 observability — complete + extended with structured session logging
+  - Phase 3a session log viewer — built at `tools/log-viewer/` in weft-dev
+  - Session logging (JSONL per conversation in `weft-dev/meta/`)
+  - LM Studio verified serving inference (tested with --sl Qwen3-4B)
+
+  **Done this session:**
+  - toggle.sh hardened: all writes go through `_write`/`_touch` helpers
+    that emit `ERROR:` to stderr and return non-zero on permission failure
+    (was silently succeeding with failed writes)
+  - SETUP.md updated with sandbox allowlist section listing all 8 paths
+    metaclaude needs write access to in `~/.claude/`
+  - User has updated their settings.json with the allowlist but it won't
+    take effect until next session
+
+  **Not started (Phase 1 remaining — 5 items):**
+  1. Try 3 models: --sl (Qwen3-4B), --ml (Qwen3-8B), --ll (Gemma-3-12B)
+  2. Measure per-model: inference time, response quality, memory, responsiveness
+  3. Document results in experiment log
+  4. Select primary model for remaining work
+  5. Model-specific prompt variants (test current prompt.md against each model,
+     decide if per-model variants are needed)
+
+  **Not started (Phase 2 — embedding index, all items):**
+  - sqlite-vec extension for bun:sqlite
+  - index.ts: embed files via LM Studio /v1/embeddings, store in SQLite
+  - query.ts: embed query, cosine similarity, return top-K
+  - Index notepad/ + learning/ + project codebase
+  - Test retrieval quality
+  - Wire into observer as Fast mode baseline
+
+  **Not started:** Phases 4 and 5 entirely.
+
+  ### Key files
+
+  - PRD: `design/2026-03-09-metaclaude-local-prd.md` (modified, uncommitted in weft-dev)
+  - metaclaude tools: `/Users/rhhart/Documents/GitHub/weft/tools/metaclaude/`
+    - `observer.sh` — the main observer pipeline
+    - `inject.sh` — UserPromptSubmit hook
+    - `toggle.sh` — just updated with write error handling
+    - `prompt.md` — meta-agent system prompt (written for Haiku, may need revision per model)
+    - `SETUP.md` — just updated with sandbox allowlist section
+    - `statusline.sh` — status line component
+  - metaclaude skill: `/Users/rhhart/Documents/GitHub/weft/.claude/skills/metaclaude/SKILL.md`
+  - Session logs: `weft-dev/meta/*.jsonl`
+  - Log viewer: `weft-dev/tools/log-viewer/`
+
+  ### Decisions
+
+  - LM Studio is the inference + embedding runtime (MLX backend, Apple Silicon optimized)
+  - Both models served by same LM Studio instance on localhost:1234
+  - Embedding model: nomic-embed-text (~139MB, negligible)
+  - Vector store: SQLite-vec + bun:sqlite (single file, no new deps)
+  - Three observation modes to test: Fast, Deep, Probe (see PRD for details)
+  - Phase 2 embedding index is what connects MetaClaude to the developmental
+    model — prioritize indexing learning/ and design/design-principles.md first
+
+  ### Discoveries
+
+  - Sandbox blocks writes to ~/.claude/ dotfiles. The allowlist fix is in
+    settings.json but requires a fresh session to take effect. First thing
+    to verify: run `toggle.sh --ml` and confirm no ERROR output.
+  - toggle.sh was printing success messages even when writes failed — now fixed
+    but the same pattern may exist in observer.sh and inject.sh (not audited)
+
+  ### Blockers
+
+  - None hard. Sandbox allowlist is applied, just needs session restart to activate.
+  - LM Studio must be running with target model loaded for any model testing.
+
+  ### Next steps (priority order)
+
+  1. Verify sandbox allowlist works: run `/metaclaude --ml` and confirm clean output
+  2. Model testing sprint: run all 3 local models against the same transcript
+     using observer.sh, collect inference time + response quality + memory usage.
+     Use the experiment log format from the PRD.
+  3. Document results, select primary model
+  4. Test prompt.md against each model — does the Haiku-tuned prompt work or
+     does it need revision for local models?
+  5. Start Phase 2: install sqlite-vec, write index.ts and query.ts
+  6. Audit observer.sh and inject.sh for the same silent-write-failure pattern
+     that was in toggle.sh
+
+  ### Repo state
+
+  - weft-dev (main): uncommitted changes to CLAUDE.md and the PRD, plus
+    untracked files in design/, meta/, plans/, research/
+  - weft (main): uncommitted changes to 4 skill files + CLAUDE.md, plus
+    untracked metaclaude skill dir and tools dir — these are the working
+    metaclaude implementation
+[A1 13:24] Got it. Let me verify current state and check the sandbox allowlist.
+  -> Bash: bash /Users/rhhart/Documents/GitHub/weft/tools/metaclaude/toggle.sh --ml 2>&1
+  -> Read: settings.json
+[A4 13:24] Sandbox allowlist is working — `toggle.sh --ml` ran clean, no errors.
+
+Let me check LM Studio status and read the PRD + prompt.md to orient on the model testing sprint.
+  -> Bash: curl -s http://localhost:1234/v1/models 2>&1 | head -50
+  -> Read: prompt.md
+  -> Read: 2026-03-09-metaclaude-local-prd.md
+[A8 13:24] LM Studio isn't responding — curl returned empty. Let me confirm.
+  -> Bash: curl -s --connect-timeout 2 http://localhost:1234/v1/models; echo "EXIT:$?"
+[A10 13:24] Connection refused — LM Studio isn't running. That blocks the model testing sprint entirely.
+
+**Current state summary:**
+
+1. **Sandbox allowlist** — verified working. `toggle.sh --ml` ran clean.
+2. **LM Studio** — not running. Need you to start it and load a model before we can do any inference testing.
+
+**What we can do without LM Studio:**
+
+- Audit `observer.sh` and `inject.sh` for the silent-write-failure pattern (item 6 from handoff)
+- Start Phase 2 scaffolding (`index.ts`, `query.ts` structure) — though we can't test embedding calls
+- Any PRD/doc cleanup
+
+**What needs LM Studio:**
+
+- Model testing sprint (items 2-5)
+- Phase 2 embedding testing
+
+Want me to audit `observer.sh` and `inject.sh` for the write-failure pattern while you start LM Studio? Or different priority?
+[U2 13:25] according to the statusbar on the top of my screen, the lm studio server is running at http://localhost:1234/v1
+[A11 13:25] The sandbox network allowlist is probably blocking `localhost:1234`. Let me verify.
+  -> Bash: curl -s --connect-timeout 5 http://127.0.0.1:1234/v1/models 2>&1; echo "EXIT:$?"
+[A13 13:25] Yeah — the sandbox network allowlist only permits `fullstackopen.com`. Requests to `localhost:1234` are being blocked at the sandbox level.
+
+You'll need to add `localhost` (or `127.0.0.1`) to the allowed network hosts. This would go in your sandbox settings. The sandbox config in `settings.json` has `filesystem` and `excludedCommands` but no `network` section — you'd need to add:
+
+```json
+"network": {
+  "allowedHosts": ["localhost"]
+}
+```
+
+inside the `"sandbox"` block. But since I can't edit `settings.json` (it's in the deny list), you'll need to add that yourself. It'll take effect next session.
+
+Alternatively — is there a project-level or managed settings file that could set this? Or do you want to just add it to `~/.claude/settings.json` now and restart?
+[U3 13:29] review the settings and rationale mentioned in /Users/rhhart/Documents/GitHub/roger/drafts/2026-03-04-yolo-mode-security-research.md and let's consider relative risk of adding localhost to the allowed hosts. let's also consider the entire metaclaude feature and its access points. does metaclaude have CLI access? edit access? tool use? is it sandboxed in the same way builder claude is? research the entire weft/tools/metaclaude/ directory and the PRD mentioned in the handoff to get a complete picture
+  -> Read: 2026-03-04-yolo-mode-security-research.md
+  -> Agent: Audit metaclaude security surface
+[A16 13:31] Good research. Here's the complete picture.
+
+## MetaClaude Security Surface
+
+**The meta-agent has zero authority.** It's purely inference-only — receives JSON (recent turns + notepad file names), returns plain text (1-3 sentences or `[no comment]`). No CLI access, no file access, no tool use, no API calls. The model is caged by the LM Studio inference API boundary.
+
+**Data flow:**
+1. `observer.sh` (Stop hook, async) → reads transcript → curls `localhost:1234/v1/chat/completions` → writes 1-3 sentence result to staging file
+2. `inject.sh` (UserPromptSubmit hook) → reads staging file → outputs as `{"additionalContext": "[MetaClaude] ..."}` → Builder Claude sees it as system context
+
+**Output sanitization:** Thinking tags stripped (including unclosed), silence sentinel filtered, `[MetaClaude]` prefix added. All injections logged with full pipeline data.
+
+**Write targets:** 8 dotfiles in `~/.claude/` (state/config, not code), plus log files. All writes are from your shell scripts, never from the meta-agent directly.
+
+## Risk Analysis: Adding `localhost` to Network Allowlist
+
+**What it enables:**
+- `curl` to `localhost:1234` from inside the sandbox (observer.sh calling LM Studio)
+- Any other localhost connections from sandboxed commands
+
+**What it does NOT enable:**
+- Outbound network (still blocked — localhost is not a route to the internet)
+- File writes outside allowWrite paths
+- Credential access
+- Any new tool capabilities for Builder Claude
+
+**Risks to consider:**
+
+| Risk | Severity | Likelihood | Notes |
+|------|----------|------------|-------|
+| Builder Claude curls localhost:1234 directly | Low | Low | It has no reason to, and the response is just inference text — not executable |
+| Prompt injection directs Builder to hit localhost | Low | Very low | Response is JSON chat completion — no code execution path |
+| Localhost services other than LM Studio exposed | Medium | Low | If you run other local servers (databases, dev servers), sandboxed commands could reach  [...truncated]
+[U4 13:36] can you check that settings.json is now written correctly to allow metaclaude to function?
+  -> Read: settings.json
+[A18 13:36] Looks correct. The `network.allowedHosts` with `["localhost"]` is in the right place inside the `sandbox` block (lines 344-348). Valid JSON structure.
+
+But this won't take effect until the next session — sandbox config is read at session start. Let me verify it's not working yet in this session.
+  -> Bash: curl -s --connect-timeout 2 http://localhost:1234/v1/models 2>&1; echo "EXIT:$?"
+[A20 13:36] Confirmed — still blocked in this session. You'll need to restart Claude Code for the localhost allowlist to activate. Once you do, `observer.sh` will be able to reach LM Studio and we can start the model testing sprint.
+
+One other thing to note: the sandbox config also needs the current working directory's write path. Right now `allowWrite` includes `//Users/rhhart/Documents/GitHub/weft` but not `//Users/rhhart/Documents/GitHub/weft-dev` — that's handled by the implicit cwd allowance (sandbox always allows writes to the project directory). So that's fine.
+
+Everything looks good. Restart the session and we can verify the connection + begin model testing.

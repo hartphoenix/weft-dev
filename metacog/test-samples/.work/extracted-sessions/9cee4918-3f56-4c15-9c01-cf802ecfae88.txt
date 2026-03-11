@@ -1,0 +1,98 @@
+[U1 21:53] design/claude-md-synthesis-plan.md -- review and raise any questions necessary before you begin to execute
+[A1 21:53] Let me read the plan file first.
+  -> Read: claude-md-synthesis-plan.md
+[A3 21:53] Good plan — well-structured and clear about what goes where. Let me read the files that will be modified so I can raise informed questions.
+  -> Read: SKILL.md
+  -> Read: subagents.md
+  -> Read: SKILL.md
+  -> Read: SKILL.md
+  -> Bash: ls /Users/rhhart/Documents/GitHub/weft-dev/package/.claude/references/ 2>/dev/nu
+[A9 21:55] Good plan. Thorough and well-structured. A few questions before I start executing:
+
+**1. System invariant heading level — intentional change?**
+
+Current CLAUDE.md has Security, Recovery, Complex ops, Unexpected behavior as top-level `##` sections. The template nests them under `## System invariants` as `###` subsections. Is that deliberate? It changes how they appear in the output CLAUDE.md.
+
+**2. Existing user migration**
+
+Hart's current CLAUDE.md doesn't have the three predictive sections (How learns, How gets unblocked, Strengths). When session-review's new enrichment check runs, it'll try to enrich sections that don't exist. What should happen?
+
+Options:
+- Session-review creates the missing sections when it has evidence to populate them
+- Session-review notes "your CLAUDE.md predates the learner model — re-run intake or add manually" and skips enrichment
+- Something else?
+
+**3. Phase 4 write template (4b.1, lines 612-641)**
+
+The plan replaces § 3a but doesn't mention updating Phase 4's 4b.1 write template. Currently 4b.1 has `[Full personalized CLAUDE.md content from 3a synthesis]` as a placeholder. With the new flow (synthesis agent stops at Teaching Mode, main agent appends invariants), that placeholder still works — but it doesn't reflect the new section ordering or the synthesis/invariant boundary. Should 4b.1 be updated to be more explicit?
+
+**4. Section-version bump**
+
+Current live CLAUDE.md is `section-version:1`. The existing 4b.1 template bumps to `2` for personalization. Should the structural change (adding predictive sections) bump to `3` instead, to signal which template version generated it? That would also help session-review know whether predictive sections are expected.
+[U2 21:56] for convenience use the askuserquestion tool
+  -> AskUserQuestion
+[A11 22:01] Clear. Three decisions locked in:
+
+1. **Flat ##** for system invariants — no grouping header
+2. **Organic migration** — session-review creates predictive sections when it has evidence
+3. **Explicit 4b.1** — rewrite to show the synthesis/invariant boundary
+
+Let me set up the work and start executing.
+  -> TodoWrite
+  -> TodoWrite
+  -> Write: claude-md-template.md
+  -> TodoWrite
+[A16 22:02] Now replacing § 3a. The current inline template (lines 335-429) gets replaced with the template reference and predictive-section guidance.
+  -> Edit: SKILL.md
+  -> TodoWrite
+[A19 22:03] Now adding the 4 interview probes. Let me re-read the relevant sections to get exact insertion points.
+  -> Read: SKILL.md
+[A21 22:03] Good, now I have the exact lines. Three edits for the four probes:
+  -> Edit: SKILL.md
+  -> Edit: SKILL.md
+  -> Edit: SKILL.md
+  -> TodoWrite
+[A26 22:03] Now updating Phase 4's 4b.1 write template. Let me re-read that section with the current line numbers.
+  -> Read: SKILL.md
+  -> Edit: SKILL.md
+  -> TodoWrite
+[A30 22:04] Now updating the subagents.md CLAUDE.md dispatch.
+  -> Edit: subagents.md
+[A32 22:04] Now update the dispatch prompt pattern to reflect that the CLAUDE.md agent reads from the template file instead of receiving inline text.
+  -> Edit: subagents.md
+  -> TodoWrite
+[A35 22:04] Now adding the enrichment check to session-review. It goes after the "Goals and arcs check" section (after the line about keeping them accurate), before Phase 4.
+  -> Read: SKILL.md
+  -> Edit: SKILL.md
+  -> TodoWrite
+[A39 22:05] Now the progress-review changes. Three edits: learner model lens in Phase 1, `model-update` in Phase 2 action enum, and CLAUDE.md in Phase 4 write targets. Let me re-read the relevant sections.
+  -> Read: SKILL.md
+  -> Read: SKILL.md
+[A42 22:05] Good, I have all three locations. Let me make the three edits.
+  -> Edit: SKILL.md
+  -> Edit: SKILL.md
+  -> Edit: SKILL.md
+  -> TodoWrite
+[A47 22:05] Now let me also update the Phase 1 description in progress-review to reflect the new lens count.
+  -> Edit: SKILL.md
+[A49 22:05] Now move the plan to `design/complete/`.
+  -> Bash: ls /Users/rhhart/Documents/GitHub/weft-dev/design/complete/ 2>/dev/null || echo 
+  -> Bash: mv /Users/rhhart/Documents/GitHub/weft-dev/design/claude-md-synthesis-plan.md /U
+  -> TodoWrite
+[A53 22:06] All edits done. Let me run a quick verification pass against the plan's checklist.
+  -> Task
+[A55 22:07] All 7 verification checks pass. Here's a summary of what was done:
+
+**Created:**
+- [claude-md-template.md](package/.claude/references/claude-md-template.md) — standalone template with synthesis annotations, enrichment principles, and flat ## system invariants
+
+**Edited (intake flow):**
+- [intake/SKILL.md](package/.claude/skills/intake/SKILL.md) — § 3a replaced with template reference + predictive-section guidance; 4 interview probes added to Phase 2 (domains 1, 3, 4); Phase 4 4b.1 rewritten to show the 3-block structure explicitly
+- [intake/subagents.md](package/.claude/skills/intake/subagents.md) — separate dispatch pattern for CLAUDE.md agent (reads template, strips comments, stops at Teaching Mode)
+
+**Edited (enrichment loop):**
+- [session-review/SKILL.md](package/.claude/skills/session-review/SKILL.md) — enrichment check after goals/arcs check, with organic migration for pre-template CLAUDE.md files
+- [progress-review/SKILL.md](package/.claude/skills/progress-review/SKILL.md) — learner model lens (4th lens), `model-update` action type, CLAUDE.md as write target
+
+**Moved:**
+- Plan → [design/complete/claude-md-synthesis-plan.md](design/complete/claude-md-synthesis-plan.md)
