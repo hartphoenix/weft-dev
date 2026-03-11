@@ -7,7 +7,7 @@ interface Props {
   onSelect: (id: string) => void;
 }
 
-type SortKey = "timestamp" | "turns" | "metaAgents" | "gitBranch";
+type SortKey = "timestamp" | "turns" | "metaAgents" | "injections" | "gitBranch";
 type SortDir = "asc" | "desc";
 
 export function SortableTable({ sessions, onSelect }: Props) {
@@ -34,6 +34,9 @@ export function SortableTable({ sessions, onSelect }: Props) {
         break;
       case "metaAgents":
         cmp = a.metaAgents.length - b.metaAgents.length;
+        break;
+      case "injections":
+        cmp = (a.injections ?? 0) - (b.injections ?? 0);
         break;
       case "gitBranch":
         cmp = (a.gitBranch || "").localeCompare(b.gitBranch || "");
@@ -64,16 +67,22 @@ export function SortableTable({ sessions, onSelect }: Props) {
             Branch{arrow("gitBranch")}
           </th>
           <th
+            className={`col-turns ${sortKey === "turns" ? "sorted" : ""}`}
+            onClick={() => handleSort("turns")}
+          >
+            Turns{arrow("turns")}
+          </th>
+          <th
             className={`col-meta ${sortKey === "metaAgents" ? "sorted" : ""}`}
             onClick={() => handleSort("metaAgents")}
           >
             Meta{arrow("metaAgents")}
           </th>
           <th
-            className={`col-turns ${sortKey === "turns" ? "sorted" : ""}`}
-            onClick={() => handleSort("turns")}
+            className={`col-inject ${sortKey === "injections" ? "sorted" : ""}`}
+            onClick={() => handleSort("injections")}
           >
-            Turns{arrow("turns")}
+            Injections{arrow("injections")}
           </th>
           <th className="col-embed">
             Embeddings
@@ -91,6 +100,7 @@ export function SortableTable({ sessions, onSelect }: Props) {
               {s.timestamp ? formatDate(s.timestamp) : "—"}
             </td>
             <td className="col-branch">{s.gitBranch || "—"}</td>
+            <td className="col-turns">{s.turns || "—"}</td>
             <td className="col-meta">
               {s.hasMetaLog ? (
                 <span style={{ color: "var(--accent-blue)" }}>
@@ -98,7 +108,11 @@ export function SortableTable({ sessions, onSelect }: Props) {
                 </span>
               ) : "—"}
             </td>
-            <td className="col-turns">{s.turns || "—"}</td>
+            <td className="col-inject">
+              {s.injections ? (
+                <span style={{ color: "var(--success-green)" }}>{s.injections}</span>
+              ) : "—"}
+            </td>
             <td className="col-embed" style={{ color: "var(--text-dim)" }}>—</td>
           </tr>
         ))}

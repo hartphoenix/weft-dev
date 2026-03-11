@@ -18,6 +18,7 @@ export interface SessionSummary {
   hasMetaLog: boolean;
   metaLogPath?: string;
   transcriptPath: string;
+  injections?: number;
   embeddingQueries?: number; // stub — not yet implemented
 }
 
@@ -48,7 +49,7 @@ export interface ToolResultPair {
 }
 
 export interface MetaEntry {
-  type: "observation" | "injection" | "error" | "session_header";
+  type: "observation" | "observation_skipped" | "injection" | "error" | "session_header";
   timestamp: string;
   turn?: number;
   decision?: string;
@@ -69,8 +70,14 @@ export interface MetaEntry {
   model_name?: string;
   error?: string;
   stage?: string;
+  system_prompt?: string;
+  accumulator_in?: string;
+  accumulator_out?: string;
+  reason?: string;
+  fingerprint?: string;
   context_window?: {
     transcript_turns_used?: number;
+    user_turns?: number;
     notepad_files?: string[];
   };
   pipeline?: Record<string, unknown>;

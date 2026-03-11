@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "fs";
 import { join } from "path";
 import type { MetaEntry } from "../src/lib/types";
 
-const META_DIR = join(process.env.HOME || "/Users/rhhart", "Documents/GitHub/weft-dev/meta");
+const META_DIR = join(process.env.HOME || "/Users/rhhart", "Documents/GitHub/weft-dev/metacog/sessions");
 
 interface MetaLogData {
   sessionId: string;

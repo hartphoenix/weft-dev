@@ -15,6 +15,7 @@ export function ConversationView({ sessionId }: Props) {
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [metaFilter, setMetaFilter] = useState<"injections" | "all">("injections");
 
   useEffect(() => {
     setLoading(true);
@@ -45,12 +46,17 @@ export function ConversationView({ sessionId }: Props) {
     timeline.push({ kind: "turn", data: turn, idx });
   });
 
-  // Filter meta entries to non-header types
-  detail.meta
-    .filter(m => m.type !== "session_header")
-    .forEach(m => {
-      timeline.push({ kind: "meta", data: m });
-    });
+  // Filter meta entries based on mode
+  const filteredMeta = detail.meta.filter(m => {
+    if (m.type === "session_header") return false;
+    if (metaFilter === "all") return true;
+    return m.type === "injection" ||
+      (m.type === "observation" && m.decision === "inject");
+  });
+
+  filteredMeta.forEach(m => {
+    timeline.push({ kind: "meta", data: m });
+  });
 
   // Sort by timestamp
   timeline.sort((a, b) => {
@@ -62,20 +68,41 @@ export function ConversationView({ sessionId }: Props) {
     return new Date(tsA).getTime() - new Date(tsB).getTime();
   });
 
+  const totalMeta = detail.meta.filter(m => m.type !== "session_header").length;
+
   return (
-    <div className="conversation">
-      {timeline.map((item, i) => {
-        if (item.kind === "turn") {
-          return (
-            <TurnBlock
-              key={`turn-${i}`}
-              turn={item.data}
-              toolResults={detail.toolResults}
-            />
-          );
-        }
-        return <MetaEntry key={`meta-${i}`} entry={item.data} />;
-      })}
-    </div>
+    <>
+      <div className="session-filter-bar">
+        <button
+          className={`filter-btn ${metaFilter === "injections" ? "active" : ""}`}
+          onClick={() => setMetaFilter("injections")}
+        >
+          Injections
+        </button>
+        <button
+          className={`filter-btn ${metaFilter === "all" ? "active" : ""}`}
+          onClick={() => setMetaFilter("all")}
+        >
+          All turns
+        </button>
+        <span className="filter-count">
+          {filteredMeta.length} / {totalMeta} entries
+        </span>
+      </div>
+      <div className="conversation">
+        {timeline.map((item, i) => {
+          if (item.kind === "turn") {
+            return (
+              <TurnBlock
+                key={`turn-${i}`}
+                turn={item.data}
+                toolResults={detail.toolResults}
+              />
+            );
+          }
+          return <MetaEntry key={`meta-${i}`} entry={item.data} />;
+        })}
+      </div>
+    </>
   );
 }

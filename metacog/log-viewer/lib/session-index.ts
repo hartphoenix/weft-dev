@@ -49,6 +49,12 @@ export function getSessions(projectId: string): SessionSummary[] {
         const summary = parseSummary(fullPath);
         const prefix = uuid.slice(0, 8);
         const metaData = metaIndex.get(prefix);
+        const injectionCount = metaData
+          ? metaData.entries.filter(e =>
+              e.type === "injection" ||
+              (e.type === "observation" && e.decision === "inject")
+            ).length
+          : 0;
 
         sessions.push({
           id: uuid,
@@ -60,6 +66,7 @@ export function getSessions(projectId: string): SessionSummary[] {
           turns: summary.turns || 0,
           metaAgents: metaData ? [metaData.entries.find(e => e.type === "session_header")?.model || "unknown"] : [],
           hasMetaLog: !!metaData,
+          injections: injectionCount || undefined,
           transcriptPath: fullPath,
         });
       } catch {
