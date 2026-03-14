@@ -1,3 +1,7 @@
+---
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/6f8c0bf4-b2d0-42a1-bf51-f9959d13fca8.jsonl
+stamped: 2026-03-14T14:00:40.218Z
+---
 # Deep Research Synthesis: Learning-State DAG Representation
 
 **Date:** 2026-03-06

@@ -1,3 +1,7 @@
+---
+session: (no matching session found)
+stamped: 2026-02-26T00:20:55.677Z
+---
 # Platform Layer — Courses, Schools, Cohorts
 
 **Status:** Early design (brainstorm capture, 2026-02-25)

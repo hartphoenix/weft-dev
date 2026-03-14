@@ -1,3 +1,7 @@
+---
+session: (no matching session found)
+stamped: 2026-02-23T19:07:04.890Z
+---
 # Schelling Points — Architecture Explainer
 
 **For:** Systems Integrator (Hart)

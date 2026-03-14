@@ -1,3 +1,7 @@
+---
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/6f8c0bf4-b2d0-42a1-bf51-f9959d13fca8.jsonl
+stamped: 2026-03-14T14:00:40.172Z
+---
 original [post](https://x.com/AtlasForgeAI/status/2029708649401307257) on x (x posts tend to be unreadable with claude tooling; below is the full transcript)
 
 TL;DR → the agents that will matter in a year aren't the ones running the best model. They're the ones learning the fastest. Here's what that architecture actually looks like.

@@ -1,3 +1,7 @@
+---
+session: (no matching session found)
+stamped: 2026-02-25T20:29:06.407Z
+---
 # Design Principles
 
 **Status:** Extracted from `harness-features.md`. Single source of truth

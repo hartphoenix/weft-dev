@@ -2,6 +2,8 @@
 name: learnings-researcher
 description: "Searches docs/solutions/ for relevant past solutions by frontmatter metadata. Use before implementing features or fixing problems to surface institutional knowledge and prevent repeated mistakes."
 model: haiku
+session: (no matching session found)
+stamped: 2026-02-23T19:44:43.817Z
 ---
 
 <examples>

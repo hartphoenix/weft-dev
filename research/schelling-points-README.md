@@ -1,3 +1,7 @@
+---
+session: (no matching session found)
+stamped: 2026-02-23T19:07:04.892Z
+---
 # Schelling Points
 
 A Jackbox TV-like mobile word game. Given a category (e.g. cities, animals, types of vehicles), all players privately submit the item they think everyone else will pick. When all answers are in, results are revealed with scores based on semantic clustering.

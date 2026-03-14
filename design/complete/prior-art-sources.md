@@ -1,3 +1,7 @@
+---
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/c7864c80-b1cc-41a7-b1e1-a09990f2dd9b.jsonl
+stamped: 2026-03-03T15:00:10.502Z
+---
 # Theoretical Frameworks for Multi-Dimensional Learner State Representation
 
 ## Research Synthesis for Maestro Learning Model

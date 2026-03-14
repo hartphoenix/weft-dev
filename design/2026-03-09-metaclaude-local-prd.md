@@ -1,3 +1,7 @@
+---
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/f12aa7b6-6393-4e03-b866-7572741bd861.jsonl
+stamped: 2026-03-11T21:40:31.381Z
+---
 # MetaClaude Local: Week PRD
 
 **Status:** Living document — started 2026-03-09, updated 2026-03-11

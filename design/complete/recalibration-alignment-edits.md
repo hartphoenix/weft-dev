@@ -1,3 +1,7 @@
+---
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/b8262af6-7bf9-403f-999a-34791021f178.jsonl
+stamped: 2026-03-03T20:09:49.256Z
+---
 # Recalibration Alignment — Proposed Edits
 
 Source of truth: `roger/guides/three-week-recalibration-actions.md`

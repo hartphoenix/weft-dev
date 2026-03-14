@@ -1,3 +1,7 @@
+---
+session: (no matching session found)
+stamped: 2026-02-25T20:53:37.755Z
+---
 # Agent Hooks: Research Report & Design Implications for Maestro
 
 **Status:** Research report. Not a design spec — presents findings and

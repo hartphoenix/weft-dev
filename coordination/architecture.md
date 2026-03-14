@@ -1,3 +1,7 @@
+---
+session: (no matching session found)
+stamped: 2026-02-25T01:28:14.361Z
+---
 # Coordination Layer — Architecture
 
 Single source of truth for the coordination layer's design reasoning:
