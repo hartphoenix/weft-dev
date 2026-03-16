@@ -1,3 +1,7 @@
+---
+session: (no matching session found)
+stamped: 2026-02-25T01:28:14.361Z
+---
 # Start Work Redesign — Solo & Team
 
 **Status:** Draft (brainstorm capture)

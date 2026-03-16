@@ -6,6 +6,8 @@ source_repos:
   - schelling-points (group project, the built system)
   - claude-game (solo project, predecessor)
   - roger (harness, metacognitive work)
+session: (no matching session found)
+stamped: 2026-02-25T01:28:14.360Z
 ---
 
 # Multi-User Claude Code Coordination System
