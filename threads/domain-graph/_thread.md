@@ -23,30 +23,17 @@ planning artifacts live here in weft-dev.
 
 ## Reading order
 
-1. [[learning-model-research-plan]] — initial research plan for learning model representations (current)
-2. [[dag-representation-research]] — DAG-based representation research (current)
-3. [[learning-dag-representations]] — ML/statistical approaches to learning representations (current)
-4. [[deep-research-synthesis]] — KST synthesis from deep research pass (current)
+1. [[research-plan]] — initial research plan for learning model representations (current)
+2. [[dag-representations]] — DAG-based representation research (current)
+3. [[ml-representations]] — ML/statistical approaches to learning representations (current)
+4. [[kst-synthesis]] — KST synthesis from deep research pass (current)
 5. [[learning-state-evolution]] — learning state evolution design (current)
-6. [[domain-graph-integration-plan]] — integration plan for schema migration (current)
-7. [[domain-graph-schema-learner-state-domain-map]] — broad build plan covering schema + skill (current)
-8. [[domain-map-handoff]] — v2 handoff: schema implemented, skill rewritten (partially superseded by v3)
-9. [[domain-map-v3-handoff]] — v3 handoff: skill on disk, ready for validation (current)
-10. [[domain-map-scaling-brief]] — scaling and user-facing source management design brief (current, depends on v2 validation)
+6. [[integration-plan]] — integration plan for schema migration (current)
+7. [[build-plan]] — broad build plan covering schema + skill (current)
+8. [[handoff-v2]] — v2 handoff: schema implemented, skill rewritten (partially superseded by v3)
+9. [[handoff-v3]] — v3 handoff: skill on disk, ready for validation (current)
+10. [[scaling-brief]] — scaling and user-facing source management design brief (current, depends on v2 validation)
 11. [[taxonomy-lens-validation]] — universal signal taxonomy + lens architecture plan (current, 2026-03-16)
-
-**Current file locations** (pre-reorganization):
-- research/learning-model-research-plan.md
-- research/dag-representation-research.md
-- research/learning-dag-representations.md
-- research/deep-research-synthesis.md
-- research/2026-03-06-learning-state-evolution.md
-- design/2026-03-07-domain-graph-integration-plan.md
-- plans/2026-03-06-domain-graph-schema-learner-state-domain-map.md
-- plans/domain-map-handoff.md
-- plans/domain-map-v3-handoff.md
-- plans/domain-map-scaling-brief.md
-- plans/2026-03-16-universal-taxonomy-lens-architecture-stereoscopic-validation.md
 
 ## Open questions
 

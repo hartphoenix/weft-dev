@@ -8,9 +8,9 @@ stamped: 2026-03-14T14:00:40.218Z
 **Purpose:** Second-round research findings from nine targeted agents,
 investigating the three most promising areas identified in the initial
 DAG representation research. Extends
-`research/dag-representation-research.md` and serves the broader
+[[dag-representations]] and serves the broader
 developmental representation problem in
-`design/learning-model-research-plan.md`.
+[[research-plan]].
 
 ---
 
