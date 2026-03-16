@@ -22,10 +22,7 @@ currently blocking other work.
 
 ## Reading order
 
-1. [[graceful-handoff]] — design spec (current)
-
-**Current file location** (pre-reorganization):
-- design/2026-03-07-graceful-handoff.md
+1. [[design]] — design spec (current)
 
 ## Open questions
 

@@ -20,10 +20,7 @@ calls parsing raw JSON.
 
 ## Reading order
 
-1. [[conversation-extract-and-intake-amendments]] — plan (current, ready to build)
-
-**Current file location** (pre-reorganization):
-- plans/2026-03-05-conversation-extract-and-intake-amendments.md
+1. [[plan]] — plan (current, ready to build)
 
 ## Open questions
 

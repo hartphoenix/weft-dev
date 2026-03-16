@@ -23,12 +23,8 @@ reorganization plan (see plans/2026-03-13-thread-reorganization.md).
 
 ## Reading order
 
-1. [[hydradb-cortex-research]] — HydraDB/Cortex product analysis and competitive landscape (current)
-2. [[memory-routing-references-ssot]] — prior art on routing, cross-references, and SSOT patterns (current, 2026-03-15)
-
-**Current file locations** (pre-reorganization):
-- plans/hydradb-cortex-research.md
-- research/2026-03-15-memory-routing-references-ssot.md
+1. [[hydradb-analysis]] — HydraDB/Cortex product analysis and competitive landscape (current)
+2. [[routing-references-ssot]] — prior art on routing, cross-references, and SSOT patterns (current, 2026-03-15)
 
 ## Open questions
 

@@ -25,10 +25,7 @@ project view — that aren't captured elsewhere.
 
 ## Reading order
 
-1. [[projects-feature]] — design spec (partially superseded, unique elements preserved)
-
-**Current file location** (pre-reorganization):
-- design/projects-feature.md
+1. [[design]] — design spec (partially superseded, unique elements preserved)
 
 ## Open questions
 
