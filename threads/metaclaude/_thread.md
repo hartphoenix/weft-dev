@@ -23,16 +23,10 @@ reporting the findings.
 
 ## Reading order
 
-1. [[metaclaude-local-prd]] — living PRD documenting the full build (current)
-2. [[metaclaude-report-outline]] — blog post outline + visual assets (current)
-3. [[metaclaude-confidence-vs-helpfulness.svg]] — chart asset
-4. [[metaclaude-confidence-vs-helpfulness.png]] — chart asset (raster)
-
-**Current file locations** (pre-reorganization):
-- design/2026-03-09-metaclaude-local-prd.md
-- plans/2026-03-12-metaclaude-report-outline.md
-- plans/metaclaude-confidence-vs-helpfulness.svg
-- plans/metaclaude-confidence-vs-helpfulness.png
+1. [[prd]] — living PRD documenting the full build (current)
+2. [[report-outline]] — blog post outline + visual assets (current)
+3. confidence-vs-helpfulness.svg — chart asset
+4. confidence-vs-helpfulness.png — chart asset (raster)
 
 **Also part of this thread (not moved, cross-repo):**
 - `weft-dev/metacog/` — implementation code, benchmarks, sessions, log-viewer (44MB, stays top-level)

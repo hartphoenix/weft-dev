@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 430" font-family="system-ui, -apple-system, sans-serif">
+  <!-- Background -->
+  <rect width="700" height="430" fill="#ffffff" rx="4"/>
+
+  <!-- Title -->
+  <text x="350" y="34" text-anchor="middle" font-size="17" font-weight="600" fill="#1a1a1a">More Context Made It More Confident — Not More Helpful</text>
+  <text x="350" y="55" text-anchor="middle" font-size="12" fill="#888">Both metrics indexed to no-context baseline (= 100%)</text>
+
+  <!-- Y-axis gridlines and labels -->
+  <line x1="130" y1="340" x2="540" y2="340" stroke="#e5e5e5" stroke-width="1"/>
+  <text x="118" y="344" text-anchor="end" font-size="11" fill="#aaa">80%</text>
+
+  <line x1="130" y1="275" x2="540" y2="275" stroke="#bbb" stroke-width="1" stroke-dasharray="6,4"/>
+  <text x="118" y="279" text-anchor="end" font-size="11" fill="#666" font-weight="500">100%</text>
+
+  <line x1="130" y1="210" x2="540" y2="210" stroke="#e5e5e5" stroke-width="1"/>
+  <text x="118" y="214" text-anchor="end" font-size="11" fill="#aaa">120%</text>
+
+  <line x1="130" y1="145" x2="540" y2="145" stroke="#e5e5e5" stroke-width="1"/>
+  <text x="118" y="149" text-anchor="end" font-size="11" fill="#aaa">140%</text>
+
+  <line x1="130" y1="80" x2="540" y2="80" stroke="#e5e5e5" stroke-width="1"/>
+  <text x="118" y="84" text-anchor="end" font-size="11" fill="#aaa">160%</text>
+
+  <!-- X-axis labels -->
+  <text x="160" y="368" text-anchor="middle" font-size="13" fill="#444">No Context</text>
+  <text x="335" y="368" text-anchor="middle" font-size="13" fill="#444">Simple Search</text>
+  <text x="510" y="368" text-anchor="middle" font-size="13" fill="#444">Deep Search</text>
+  <text x="335" y="390" text-anchor="middle" font-size="11" fill="#999" font-style="italic">Context available to the observer</text>
+
+  <!-- Divergence fill (subtle) -->
+  <polygon points="160,275 335,139 510,109 510,285 335,289 160,275"
+           fill="#f0e0e0" opacity="0.35"/>
+
+  <!-- Confidence line (coral) -->
+  <polyline points="160,275 335,139 510,109"
+            fill="none" stroke="#d94a4a" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="160" cy="275" r="5" fill="#d94a4a"/>
+  <circle cx="335" cy="139" r="5" fill="#d94a4a"/>
+  <circle cx="510" cy="109" r="5" fill="#d94a4a"/>
+
+  <!-- Helpfulness line (blue) -->
+  <polyline points="160,275 335,289 510,285"
+            fill="none" stroke="#3b82f6" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="160" cy="275" r="5" fill="#3b82f6"/>
+  <circle cx="335" cy="289" r="5" fill="#3b82f6"/>
+  <circle cx="510" cy="285" r="5" fill="#3b82f6"/>
+
+  <!-- Value annotations -->
+  <text x="160" y="263" text-anchor="middle" font-size="10" fill="#666">baseline</text>
+  <text x="335" y="127" text-anchor="middle" font-size="10.5" font-weight="500" fill="#d94a4a">+42%</text>
+  <text x="510" y="97" text-anchor="middle" font-size="10.5" font-weight="500" fill="#d94a4a">+51%</text>
+  <text x="335" y="306" text-anchor="middle" font-size="10.5" font-weight="500" fill="#3b82f6">−4%</text>
+  <text x="510" y="302" text-anchor="middle" font-size="10.5" font-weight="500" fill="#3b82f6">−3%</text>
+
+  <!-- Line labels (right side) -->
+  <text x="565" y="102" font-size="13" font-weight="600" fill="#d94a4a">Confidence</text>
+  <text x="565" y="118" font-size="10.5" fill="#d94a4a">How often it spoke up</text>
+
+  <text x="565" y="280" font-size="13" font-weight="600" fill="#3b82f6">Helpfulness</text>
+  <text x="565" y="296" font-size="10.5" fill="#3b82f6">Quality when it did</text>
+
+  <!-- Footer note -->
+  <text x="350" y="420" text-anchor="middle" font-size="10" fill="#aaa">2 models × 3 retrieval modes, 40 test windows, scored blind by Opus | Models averaged (equivalent quality)</text>
+</svg>
