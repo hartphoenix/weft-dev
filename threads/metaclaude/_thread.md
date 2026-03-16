@@ -28,8 +28,10 @@ reporting the findings.
 3. confidence-vs-helpfulness.svg — chart asset
 4. confidence-vs-helpfulness.png — chart asset (raster)
 
-**Also part of this thread (not moved, cross-repo):**
-- `weft-dev/metacog/` — implementation code, benchmarks, sessions, log-viewer (44MB, stays top-level)
+**Also part of this thread:**
+- `metacog/` — implementation code, benchmarks, sessions, log-viewer (44MB)
+
+**Cross-repo references:**
 - `roger/.claude/notepad/008-dual-claude-architecture.md`
 - `roger/.claude/notepad/013-what-i-learned.md`
 - `roger/.claude/notepad/014-local-inference-runtime-research.md`

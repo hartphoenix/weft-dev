@@ -76,7 +76,7 @@ Feature registry organized by principle: `design/harness-features.md`.
   1. What thread does this support? → `threads/<name>/`
   2. What ongoing responsibility does it serve? → `design/`
   3. Does this signal a new thread or responsibility? → propose to user
-  4. Reference material? → `reference/`
+  4. Resource for potential future use? → `resources/`
   5. None? → `archive/`
 - **Cross-references** use `[[wikilinks]]`. Path-qualify when names
   collide (`[[domain-graph/_thread]]`). Add `id:` to frontmatter for
