@@ -14,7 +14,7 @@ Two interoperable tools that learn as they are used:
    shared workflow: task ranking, conflict detection, triage routing,
    dependency tracking, and a signal return path.
 
-Design docs: `design/`. Research: `research/`. Skills: `.claude/skills/`.
+Design docs: `design/`. Active threads: `threads/`. Skills: `.claude/skills/`.
 
 ### Development conventions
 
@@ -60,6 +60,28 @@ Feature registry organized by principle: `design/harness-features.md`.
   more than one distinct system: enter plan mode and develop a stepwise
   plan with the user before executing. Do not proceed on assumptions.
 
+### Thread conventions
+
+`threads/` contains active work. Each thread is a subdirectory.
+`ls threads/` is the thread index — no separate index file.
+
+- **`_thread.md`** is the single source of truth for each thread's
+  metadata (status, reading order, open questions, decisions). When
+  reading one, check whether it matches the actual thread state. If
+  stale, surface it with the user immediately — do not silently work
+  around stale metadata.
+- **When working on a thread,** update its `_thread.md` (last-touched,
+  next-action, reading order, decisions).
+- **When creating a new artifact,** route by actionability:
+  1. What thread does this support? → `threads/<name>/`
+  2. What ongoing responsibility does it serve? → `design/`
+  3. Does this signal a new thread or responsibility? → propose to user
+  4. Reference material? → `reference/`
+  5. None? → `archive/`
+- **Cross-references** use `[[wikilinks]]`. Path-qualify when names
+  collide (`[[domain-graph/_thread]]`). Add `id:` to frontmatter for
+  files referenced from outside their directory.
+
 ### Recovery after interruption
 
 When resuming after an error or API interruption:
@@ -69,3 +91,5 @@ When resuming after an error or API interruption:
 4. Use the todo list as a checkpoint — check what's already marked complete
 5. If the user interrupted and gave a new instruction, treat that as the complete scope. Do not resume the prior plan unless explicitly told to continue
 6. When in doubt about scope or next step after an interruption, ask
+
+<!-- session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/987f594c-5541-45d6-993e-68546c7cbf80.jsonl | 2026-03-14T14:24:20.159Z -->
