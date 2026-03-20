@@ -1,3 +1,7 @@
+---
+session: (no matching session found)
+stamped: 2026-03-05T23:05:31.834Z
+---
 # Build Registry
 
 Registry of personalities, skills, and their build status. Derived from

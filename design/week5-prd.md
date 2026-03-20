@@ -1,3 +1,7 @@
+---
+session: (no matching session found)
+stamped: 2026-03-05T23:05:31.835Z
+---
 # Weft — Week 5: Front Door & Learning Loop
 
 **Builder:** Hart

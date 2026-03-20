@@ -1,3 +1,7 @@
+---
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/f9565279-93c0-4d31-9e73-6cd19af7025c.jsonl
+stamped: 2026-02-27T00:16:16.485Z
+---
 # Persistent Project Registry (`learning/projects.md`)
 
 **Status:** Designed. Implements P3 feature "Project-goal mapping" from

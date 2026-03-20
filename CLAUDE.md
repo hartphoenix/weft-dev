@@ -18,12 +18,16 @@ Design docs: `design/`. Research: `research/`. Skills: `.claude/skills/`.
 
 ### Development conventions
 
-- Runtime: `bun`
+- Runtime: `bun`. Use `bun <script>` for absolute paths — `bun run` resolves relative to `package.json` and silently fails on absolute paths.
 - Git: meaningful commit messages, commit working states frequently,
   always commit to a feature branch (not main)
 - File structure: flat until complexity demands nesting
 - CLAUDE.md edits: keep minimal — only what the agent can't discover
   by exploring the repo. The reasoning token tax is real.
+- Provenance: when creating a new artifact (plan, doc, design, spec),
+  stamp it with `/thischat --stamp <file>`. For auto-read frontmatter
+  files (SKILL.md, CLAUDE.md, memory files), use `--back` instead.
+  Skip for configs, temp files, and generated code.
 
 ### Architecture
 

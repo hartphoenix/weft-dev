@@ -1,3 +1,7 @@
+---
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/61f42dde-040a-4706-9bfa-63ddebdd1567.jsonl
+stamped: 2026-02-27T13:23:38.671Z
+---
 # Plan: Migrate package/ to standalone weft repo + test install
 
 ## Context

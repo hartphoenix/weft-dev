@@ -1,3 +1,7 @@
+---
+session: (no matching session found)
+stamped: 2026-02-25T01:28:14.362Z
+---
 # Decision & Trade-off Audit
 
 Analyze every user-facing decision point introduced in the PR (configuration choices, feature toggles, accept/deny flows, resource allocation). For each one, answer:

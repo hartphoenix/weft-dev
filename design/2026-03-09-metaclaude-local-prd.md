@@ -1,6 +1,10 @@
+---
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/f12aa7b6-6393-4e03-b866-7572741bd861.jsonl
+stamped: 2026-03-11T21:40:31.381Z
+---
 # MetaClaude Local: Week PRD
 
-**Status:** Living document — started 2026-03-09, updated 2026-03-10
+**Status:** Living document — started 2026-03-09, updated 2026-03-11
 **Current state:** Dual-backend MetaClaude (Claude CLI + LM Studio local)
 fully implemented. Phase 1 (local model swap) largely complete. Phase 3
 (observability) complete + extended with structured session logging,
@@ -15,9 +19,10 @@ topK)` was called as `queryItems(vector, topK)` — topK was silently
 interpreted as a BM25 query string, returning unlimited results.
 Handcrafted tests passed because they checked content presence, not
 result count. Fixed in store.ts; broader test confirmed top-K limiting
-works correctly. **Next: update prompt.md with source attribution
-instruction, then wire retrieval into observer.sh pipeline, then
-Phase 2.5 (fine-tune meta-agent on retrieval-aware training data).**
+works correctly. **Phase 2a prep complete** (corpus backfilled, prompt revised,
+parser fixed, test runner + scoring script built, dry run passed).
+**Next: Phase 2a execution (run all 3 models × 3 retrieval modes, score, decide),
+then Phase 2.5 (fine-tune meta-agent on retrieval-aware training data).**
 **Scope:** One week, experimentation-heavy, drift expected
 **Success metric:** A local meta-agent that observably improves session
 alignment with long-term goals, principles, and system self-improvement.
@@ -66,6 +71,20 @@ display modes: dev (full observability) and production (minimal UI).
 │  codebase, reference docs           │
 └─────────────────────────────────────┘
 ```
+
+### Boundary principle (weft/ vs weft-dev/ vs roger/)
+
+- **weft/** — portable tools for weft users (embedding pipeline,
+  observer, skills, anything that ships)
+- **weft-dev/** — personal to Hart's use case (indexes, session logs,
+  experiment data, benchmarks calibrated to his content, development
+  artifacts)
+- **roger/** — learning/growth model data, not harness development
+
+This governs where code and data live. The embedding *code* (index.ts,
+query.ts, etc.) is portable → weft/. The embedding *index* (built from
+roger/ learning state) is personal → weft-dev/ or ~/.claude/metaclaude/.
+Benchmark scripts that test against Hart's content → weft-dev/metacog/.
 
 ### Observation modes (Phase 2 — planned, not yet built)
 
@@ -155,8 +174,9 @@ through the full pipeline:
 7. Inference: send recent turns + accumulator + turn count + retrieved
    chunks (with source paths) to meta-agent (routed to LM Studio or
    Claude CLI based on model config)
-8. Parse structured response: `<inject>` for Builder, `<context>` for
-   accumulator. Fallback: entire response → injection if no tags.
+8. Parse structured response: JSON `{"inject": ..., "context": ...}`.
+   `null` inject = silence. Fallback: entire response → injection if
+   not valid JSON.
 9. If observation: write to per-session staging file + update accumulator
    + log to session JSONL + legacy daily JSONL
 10. Next user prompt → inject hook reads per-session staging file →
@@ -233,24 +253,30 @@ turn, ready for Phase 4.
 | Observability | Log file (must-have), dev-mode inline display (must-have) | Injection is highest-influence point; needs monitoring. Dev mode shows additionalContext inline in chat with ◉ MC heading. |
 | Display modes | Dev (full info) vs Production (minimal) | Different needs for builder vs. user |
 | Toggle | `Cmd+Ctrl+M` global hotkey + mode flag | Out-of-band, doesn't pollute conversation |
-| Session logging | Per-session JSONL in `weft-dev/meta/` | One file per conversation. Captures full pipeline per turn: context window, inference metadata, decision, accumulator state, full response. Serves both human review and Phase 4 empirical framework. Session identity from transcript UUID; per-session pointer file in `sessions/{id}/` coordinates observer.sh and inject.sh. |
+| Session logging | Per-session JSONL in `weft-dev/metacog/sessions/` | One file per conversation. Captures full pipeline per turn: context window, inference metadata, decision, accumulator state, full response. Serves both human review and Phase 4 empirical framework. Session identity from transcript UUID; per-session pointer file in `sessions/{id}/` coordinates observer.sh and inject.sh. |
 | User install | 95% automated / 5% user choices | After personal testing proves the concept |
 | Model selection | Flag-based via toggle.sh (--sl/--ml/--ll/--mch/--mco), abbreviations in status line | Short, scannable. Lowercase flags match shell convention. Abbreviations encode backend class at a glance. |
 | Thinking tag handling | Log full response, strip for injection (two-path) | Thinking chain is valuable data for comparison; Builder Claude should never see meta-agent internals. |
 | Instruction passing | `+[]/−[]` syntax, file-persisted, appended to system prompt | Instructions are session-level directives. `+` appends, `-` replaces, `-[]` clears. File persists until cleared or disabled. |
 | Backend routing | JSON config file (`~/.claude/metaclaude/model`) with `backend` field | Clean separation: toggle.sh writes once, observer.sh reads and routes. Adding a new backend means one case in each. |
 | Hot-swapping models | Flag-based switching via toggle.sh | Status line updates immediately; next observer invocation uses new model. (Moved from deferred.) |
-| Session log viewer | Phase 3a, built then removed | Was React SPA in `tools/log-viewer/`. Session logs are directly queryable with `jq`. |
+| Session log viewer | Phase 3a, active | React SPA + Bun server at `metacog/log-viewer/`. Maintained alongside observer pipeline — changes to log schema or session flow should raise update considerations for the viewer. |
 | Session log `full_response` | New field on observation entries | Preserves full meta-agent output including thinking tags for empirical comparison. |
-| Accumulator system | `<context>` tag in meta-agent response, persisted to per-session file | Running session summary updated each turn. Observer reads it back as input, giving the meta-agent memory across turns without re-reading the full transcript. Read truncation is line-aware (awk, ≤500 bytes at line boundaries) — prevents mid-character splits on multi-byte UTF-8. |
+| Accumulator system | `"context"` key in meta-agent JSON response, persisted to per-session file | Running session summary updated each turn. Observer reads it back as input, giving the meta-agent memory across turns without re-reading the full transcript. Read truncation is line-aware (awk, ≤500 bytes at line boundaries) — prevents mid-character splits on multi-byte UTF-8. |
 | Retrieval payload budget | ~6000 chars total, 2000 chars/chunk max, top-3 default | Raised from 800→2000 chars/chunk after Round 2 A/B test. At 2000/chunk × top-3, total payload ~5.5K chars (~1.5K tokens) — trivial for all models in test matrix (Qwen3-4B 32K, Qwen3-8B 32K, Gemma-3-12B 128K). Eliminates embedding/retrieval mismatch (what's embedded = what's delivered). Winner: recursive-md-2000 (structure-aware, 2000 max, 200 overlap) — 55% actionable chunk rate vs 45% for fixed-2000, 82% hit rate vs 76%, half the payload. No truncation needed; source path preserved for full-file reads. |
 | Vectra API contract | `queryItems(vector, "", topK)` — empty string for BM25 query parameter | Vectra's signature is `queryItems(vector, query, topK, filter?, isBm25?)`. The second parameter is a BM25 text search string, not topK. Passing topK as the second argument silently returns unlimited results. Fixed 2026-03-10 in store.ts. |
 | Fingerprint skip | SHA1 of non-tool turns in the recent window | If the window hasn't changed since last observation (e.g., tool-only turns), skip inference entirely. Saves latency and API/compute cost. |
-| Structured response parsing | `<inject>`/`<context>` tags, fallback to raw | Two-path: inject content for Builder Claude, context for accumulator. Fallback treats entire response as injection (backward-compatible with pre-accumulator behavior). Tested at 5/5 compliance on Qwen3-8B. |
+| Structured response parsing | JSON `{"inject": ..., "context": ...}` via `response_format`, fallback to raw | Two-path: inject content for Builder Claude, context for accumulator. `null` inject = silence. Fallback treats entire response as injection if not valid JSON. Switched from XML tags 2026-03-11. |
 | `[MetaClaude]` prefix on injections | Always prefixed | inject.sh prepends `[MetaClaude]` to all additionalContext. Helps Builder Claude distinguish meta-agent input from other system messages. (Moved from deferred.) |
 | State directory consolidation | `~/.claude/metaclaude/` single directory | All state files under one path. Replaced scattered `~/.claude/.metaclaude-*` flat files. Simplifies sandbox allowlisting (one path). |
 | Per-session state isolation | `~/.claude/metaclaude/sessions/{8-char-id}/` | Injection, accumulator, fingerprint, and session-log pointer are per-session. Prevents cross-contamination when parallel Claude Code sessions run. Global config (enabled, mode, model, instruction) stays at top level. |
-| Test suite | `test-parser.sh` with 29 tests | Validates response parsing, tool-collapsing, accumulator lifecycle (including line-aware truncation and multi-byte UTF-8 safety), and fingerprint skip logic. Runs in ~1s, no external dependencies. |
+| Test suite | `test-parser.sh` with 26 tests | Validates JSON response parsing, tool-collapsing, accumulator lifecycle (including line-aware truncation and multi-byte UTF-8 safety), and fingerprint skip logic. Runs in ~1s, no external dependencies. Reduced from 29 after XML→JSON switch (runtime guarantees structure; XML-specific tests removed). |
+| XML → JSON output format | Prompt-enforced JSON with thinking-tag stripping, no `response_format` constraint | JSON eliminates regex fragility before Phase 2 adds retrieval payload. `null` replaces `[no comment]` sentinel — JSON has native null. Must precede Phase 2.5 fine-tuning (training data format must match inference format). **Schema enforcement deferred** — see thinking vs. schema decision below. |
+| Thinking vs. schema enforcement | Unconstrained output (thinking + JSON) for testing phase; `json_schema` deferred | LM Studio supports `response_format: {type: "json_schema"}` which guarantees valid JSON but suppresses Qwen3's `<think>` reasoning block via constrained decoding. During the testing phase, reasoning quality matters more than format compliance — the meta-agent's inject/silent judgment is the critical output, and chain-of-thought improves it. The observer already strips thinking tags for the injection path and logs the full response (with thinking traces) to session JSONL, preserving both the structured output and the reasoning trace as training signal. Revisit after Phase 2.5 fine-tuning: if fine-tuned models produce reliable JSON without the thinking crutch, switch to schema enforcement. If thinking traces prove valuable as training data, keep unconstrained mode as the default for data collection. |
+| Configurable inference URL | `inference_url` field in model config JSON + env var fallback | Enables Phase 4 multi-backend comparison without editing observer.sh. Embedding endpoint shares the config. |
+| Artifact organization | `weft-dev/metacog/` for dev artifacts, `weft/tools/metaclaude/` for portable features | Boundary principle: tools built for weft users → weft/; personal data, experiment artifacts, benchmarks calibrated to Hart's content → weft-dev/. Indexes are personal (built from roger/ learning state); indexing code is portable. |
+| Experiment log | Structured markdown in `metacog/experiment-log.md`, artifacts co-located in `metacog/` subdirs | Positions project for replication and reporting. Every experiment-generating PRD item explicitly calls for logging. |
+| API unification | Deferred — keep `claude -p` for Anthropic backend | Anthropic Messages API shape differs from OpenAI. Unifying payload composition alone doesn't justify the rewrite. Two code paths are acceptable until Phase 4 model comparison reveals friction. Revisit then. |
 
 ## Decisions deferred
 
@@ -260,6 +286,8 @@ turn, ready for Phase 4.
 | User-facing install flow | Build for self first, then design the onramp. |
 | Ollama as fallback | LM Studio is primary. Ollama stays installed but not required. Revisit if LM Studio proves unreliable for headless/automated use. |
 | Probe escalation threshold | How does the model decide "need more"? Prompt-engineered for now; may need tuning or a confidence score. |
+| API unification (single curl path) | Anthropic API shape mismatch. Two code paths acceptable for now. Revisit for Phase 4 if `claude -p` complicates benchmarking. |
+| `json_schema` enforcement | Constrained decoding suppresses Qwen3 `<think>` block, degrading reasoning quality. Unconstrained output + post-processing during testing phase. Revisit after Phase 2.5: fine-tuned models may not need the thinking step, or thinking traces may prove valuable as training data. Decision depends on empirical results. |
 
 ---
 
@@ -280,17 +308,13 @@ Replace Haiku API call with LM Studio's OpenAI-compatible local API.
 - [x] Session log: new fields (full_response, user_message, model_name)
 - [x] Test observer.sh calling LM Studio API (verified with --sl, Qwen3-4B-Thinking)
 - [x] Verify LM Studio serves inference endpoint (embedding endpoint tested in Phase 2)
-- [ ] Try 3 models: --sl (Qwen3-4B), --ml (Qwen3-8B), --ll (Gemma-3-12B)
-- [ ] Measure per-model: inference time, response quality, memory, responsiveness
-- [ ] Document results in experiment log
-- [ ] Select primary model for remaining work
-- [ ] Model-specific prompt variants: standard prompt.md was written for Haiku. Local models (especially smaller ones) may need different prompting to produce useful observations. Test each model with the current prompt, then evaluate whether per-model prompt variants or a single revised prompt is the right path.
+- *Resequenced to Phase 2a:* model comparison and prompt variants (see below). JSON format switch changes what "response quality" means — do comparison after the switch.
 - [x] Thinking tag strip: handle truncated (unclosed) tags. Fixed in observer.sh — `<think>.*\z` catches unclosed tags at end of string. Token limit removed (local inference is free); 30s curl timeout is the only cap.
 - [x] Accumulator system: meta-agent outputs `<context>` tag with running session summary. Observer persists to file, reads back on next turn. Gives meta-agent memory across turns.
 - [x] Fingerprint skip optimization: SHA1 of recent window's non-tool turns. If unchanged since last observation, skip inference entirely.
-- [x] Structured response parsing: `<inject>`/`<context>` tag extraction with fallback to raw response. Tested at 5/5 on Qwen3-8B.
+- [x] Structured response parsing: JSON `response_format` with jq extraction, fallback to raw response. Replaced XML `<inject>`/`<context>` tags (2026-03-11).
 - [x] Tool-collapsing in transcript parsing: consecutive tool-only assistant turns collapsed into summaries like `[tools: Bash x4, Read x1]`.
-- [x] Test suite: `test-parser.sh` with 28 tests covering parsing, tool-collapsing, accumulator lifecycle, and fingerprint skip.
+- [x] Test suite: `test-parser.sh` with 26 tests covering JSON parsing, tool-collapsing, accumulator lifecycle, and fingerprint skip.
 - [x] State directory consolidation: all state files moved from scattered `~/.claude/.metaclaude-*` to `~/.claude/metaclaude/`.
 - [x] Per-session state isolation: injection, accumulator, fingerprint, session-log pointer scoped to `sessions/{8-char-id}/`. Prevents cross-contamination in parallel sessions.
 - [x] `[MetaClaude]` prefix on all injections (inject.sh additionalContext).
@@ -309,29 +333,110 @@ Items that belong before Phase 2 wiring to prevent rework or
 data corruption in later phases. Identified during cross-platform
 research (2026-03-10).
 
-- [ ] **Switch observer output from XML tags to JSON `response_format`.**
-      Phase 2 adds retrieved chunks + source paths to the response —
-      building more regex parsing on XML compounds fragility. Phase 2.5
-      trains on the target format — switching after training wastes the
-      fine-tune. Both LM Studio and Ollama support `response_format`
-      on `/v1/chat/completions`. Define the JSON schema, update
-      `prompt.md`, add `response_format` to curl payload, replace perl
-      regex parsing with jq extraction. Most of the 29 parser tests
-      become unnecessary (runtime guarantees structure); keep content-
-      logic tests (silence sentinel, accumulator preservation).
+- [x] **Switch observer output from XML tags to JSON.**
+      Done 2026-03-11. JSON schema: `{"inject": "...", "context": "..."}`.
+      `null` for silence (replaces `[no comment]` sentinel). Perl regex
+      parsing replaced with jq extraction. Test suite reduced from 29 → 26
+      tests. **Update 2026-03-11:** `response_format: {type: "json_object"}`
+      removed — LM Studio API changed to require `json_schema` type, and
+      schema enforcement suppresses Qwen3 `<think>` reasoning via constrained
+      decoding, degrading observation quality. Now uses unconstrained output
+      with thinking-tag stripping + JSON fallback parsing. Full response
+      (with thinking traces) logged to session JSONL for training data.
+      Schema enforcement deferred to post-Phase 2.5 (see deferred decisions)
+      (XML-specific tests removed, content-logic and accumulator tests kept).
+      Simulation scripts updated to match.
 - [ ] **Unify Claude CLI path behind OpenAI-compatible interface.**
-      Currently, `claude -p` and `curl` are two code paths with
-      different payload composition and response extraction. Phase 2
-      adds retrieval context to the payload — another divergence point.
-      Route `--mch`/`--mco` through Anthropic API via curl (same
-      pattern as LM Studio, different URL + auth header). One code path
-      for payload composition, one for response extraction. Also makes
-      Phase 4 model comparison cleaner (swap URL + model ID, not
-      invocation mechanism).
-- [ ] **Make `INFERENCE_BASE_URL` configurable.** Even for dev: Phase 4
-      compares models across backends. Hardcoded `localhost:1234` means
-      editing observer.sh between test runs. Add to model config JSON
-      or env var. Not portability — test infrastructure.
+      Deferred — Anthropic API shape mismatch doesn't justify the rewrite.
+      Two code paths acceptable until Phase 4 model comparison reveals
+      friction. See "Decisions deferred" table.
+- [x] **Make `INFERENCE_BASE_URL` configurable.** Done 2026-03-11.
+      `inference_url` field in model config JSON (`~/.claude/metaclaude/model`),
+      read by observer.sh with `http://localhost:1234` default. toggle.sh
+      writes the field for each model. embed.ts reads from
+      `process.env.INFERENCE_BASE_URL` with same default.
+
+### Phase 1.5: Artifact migration (2026-03-11)
+
+Organize artifacts per boundary principle: portable tools → weft/,
+personal data and experiment artifacts → weft-dev/metacog/.
+
+- [x] Create `metacog/` directory structure (sessions, simulation,
+      benchmarks, analysis, log-viewer)
+- [x] Create experiment log (`metacog/experiment-log.md`) with 7
+      backfilled entries from Phase 1 and Phase 2 experiments
+- [x] Move session JSONL logs: `metacog/sessions/*.jsonl` → `metacog/sessions/`
+- [x] Move simulation scripts and logs: `meta/simulate-*` →
+      `metacog/simulation/`
+- [x] Move benchmark scripts and results: `tools/embedding/{benchmark,
+      evaluate,eval-results,retrieval-tests,retrieval-quality-test}` →
+      `metacog/benchmarks/`
+- [x] Move log-viewer: `tools/log-viewer/` → `metacog/log-viewer/`
+- [x] Move analyze-index.ts: root → `metacog/analysis/`
+- [x] Move production embedding code: `tools/embedding/{index,query,
+      store,embed,chunker}.ts` → `weft/tools/metaclaude/embedding/`
+- [x] Update all path references in moved files and observer.sh
+- [x] Delete empty `meta/`, `tools/embedding/`, root `index.ts`
+
+### Phase 2a: Model comparison
+
+Empirical comparison of 2 local models × 3 retrieval modes on frozen
+test corpus (40 windows, 5 categories). Unconstrained output mode
+(no `json_schema`) — format compliance is a measured variable.
+
+**Hardware constraint (2026-03-11):** Gemma-3-12B removed. On M2 Pro
+16 GB, Claude Code session + LM Studio + embedding model leaves ~6 GB
+for inference. 12B (~6.5 GB) exceeds that, forcing constant swap
+(confirmed: 8.3M pageouts). Can't LoRA on this hardware either
+(~12.5 GB peak). Comparison reduced to Qwen3-4B-Thinking vs Qwen3-8B.
+
+#### Phase 2a prep (completed 2026-03-11)
+
+- [x] Backfill `_meta.category` in 31 window files from directory structure
+- [x] Revise `prompt.md`: fix `[no comment]`→`null`, add JSON input framing,
+      index contents description, 2 new examples, tighten retrieval
+      discrimination, check redundancy (6 changes, coupled with parser fixes)
+- [x] Fix `observer.sh` parser: 3-state parse logging (`parse_result` field),
+      don't-inject-on-fallback, trailing thinking tag handling, update stale
+      comment (4 changes, coupled with prompt fixes)
+- [x] Build test runner (`metacog/scripts/run-comparison.ts`): loads corpus,
+      verifies model via `/v1/models`, runs None/Fast/Deep modes, logs
+      structured results with parse_result, thinking traces, latency
+- [x] Build scoring script (`metacog/scripts/score-outputs.ts`): strips
+      model/mode identifiers, shuffles, creates blind batches for Opus
+      sub-agent scoring; `--merge` mode reassembles scored results
+- [x] Build Deep mode query generation prompt (`metacog/scripts/deep-query-prompt.md`)
+- [x] Document methodology in `metacog/experiment-log.md`
+- [x] Dry run: 5 windows through Qwen3-8B (none mode), 100% clean parse,
+      reasonable decisions. Fast mode verified for 1 window (LM Studio
+      model swap issue on subsequent windows — env config, not code bug)
+
+#### Phase 2a execution
+
+**Phase 1: Baseline (no retrieval)**
+- [ ] **LM Studio: pin Qwen3-4B-Thinking, unload other chat models.** Embedding model not needed.
+- [ ] `bun metacog/scripts/run-comparison.ts --model sl --retrieval none --output metacog/benchmarks/model-comparison/results`
+- [ ] **LM Studio: pin Qwen3-8B, unload 4B.**
+- [ ] `bun metacog/scripts/run-comparison.ts --model ml --retrieval none --output metacog/benchmarks/model-comparison/results`
+- [ ] Decision gate: clean-parse rates (<80% eliminate, <90% flag)
+
+**Phase 2: Fast retrieval — surviving models**
+- [ ] **LM Studio: pin Qwen3-4B-Thinking + nomic-embed-text.** Both must stay loaded.
+- [ ] `bun metacog/scripts/run-comparison.ts --model sl --retrieval fast --output metacog/benchmarks/model-comparison/results`
+- [ ] **LM Studio: swap 4B → Qwen3-8B. Keep nomic-embed-text pinned.**
+- [ ] `bun metacog/scripts/run-comparison.ts --model ml --retrieval fast --output metacog/benchmarks/model-comparison/results`
+
+**Phase 3: Deep retrieval — surviving models**
+- [ ] **LM Studio: pin Qwen3-4B-Thinking + nomic-embed-text.** (Same as fast — deep uses chat model for query gen too.)
+- [ ] `bun metacog/scripts/run-comparison.ts --model sl --retrieval deep --output metacog/benchmarks/model-comparison/results`
+- [ ] **LM Studio: swap 4B → Qwen3-8B. Keep nomic-embed-text pinned.**
+- [ ] `bun metacog/scripts/run-comparison.ts --model ml --retrieval deep --output metacog/benchmarks/model-comparison/results`
+
+**Phase 4: Score and decide**
+- [ ] `bun metacog/scripts/score-outputs.ts --input metacog/benchmarks/model-comparison/results --output metacog/benchmarks/model-comparison/scoring`
+- [ ] Send each `batch_*.json` to Opus sub-agent, save as `scored_batch_*.json`
+- [ ] `bun metacog/scripts/score-outputs.ts --merge metacog/benchmarks/model-comparison/scoring`
+- [ ] Apply decision matrix, select primary model → log in experiment-log.md
 
 ### Phase 2: Embedding index (Day 1-2)
 
@@ -392,19 +497,19 @@ Before writing indexing code, verify the infrastructure works:
       should find relevance along any path in these project folders.
 - [x] **Retrieval test cases.** Written 2026-03-10. Five queries
       with expected retrieval targets. Saved to
-      `tools/embedding/retrieval-tests.md`. These become the quality
+      `metacog/benchmarks/retrieval-tests.md`. These become the quality
       baseline for validating the index after build.
 
 #### Phase 2 build
 
 - [x] Write `index.ts`: embed files via LM Studio /v1/embeddings,
       store in Vectra (LocalIndex) behind interface boundary.
-      Built 2026-03-10: `tools/embedding/index.ts` with `store.ts`
+      Built 2026-03-10: `weft/tools/metaclaude/embedding/index.ts` with `store.ts`
       (VectorStore interface + Vectra impl), `embed.ts` (LM Studio
       client), `chunker.ts` (auto-strategy per file type).
 - [x] Write `query.ts`: embed query string, cosine similarity
       search, return top-K with source paths and snippets.
-      Built 2026-03-10: `tools/embedding/query.ts` — exports
+      Built 2026-03-10: `weft/tools/metaclaude/embedding/query.ts` — exports
       `queryIndex()` for observer integration, CLI for manual testing.
 - [x] Index roger/ (learning/, notepad/, background/) + weft-dev/
       (design/, plans/, research/) + weft/ (references/, skills/).
@@ -413,7 +518,7 @@ Before writing indexing code, verify the infrastructure works:
       producing finer splits). Stored at
       `~/.claude/metaclaude/embedding-index/`.
 - [x] Test retrieval quality against pre-flight test cases
-      (tools/embedding/retrieval-tests.md). Deep-mode queries hit
+      (metacog/benchmarks/retrieval-tests.md). Deep-mode queries hit
       expected targets in top 3 for all 7 tests. Fast-mode queries
       less precise (topical neighbors, not pedagogically targeted).
       **Note:** These tests ran with a Vectra API bug — `queryItems`
@@ -432,13 +537,14 @@ Before writing indexing code, verify the infrastructure works:
       from session transcripts (March 3-7), Deep-mode queries. Results:
       8/10 actionable (3 excellent, 5 good), 2 mixed (content gaps,
       not retrieval failures). Found and fixed Vectra topK bug during
-      testing. Full results: `tools/embedding/retrieval-quality-test.md`.
+      testing. Full results: `metacog/benchmarks/retrieval-quality-test.md`.
       Test methodology upgraded: validates result count, payload size,
       and content relevance (see retrieval-tests.md validation rules).
-- [ ] Update prompt.md: when observation draws on retrieved content,
+- [x] Update prompt.md: when observation draws on retrieved content,
       include `(ref: path)` so Builder Claude can look up full context
-- [ ] Wire into observer as Fast mode baseline: embed transcript →
-      retrieve → include in model payload (with source paths)
+- [x] Wire into observer as Fast mode baseline: embed transcript →
+      retrieve → include in model payload (with source paths) → log
+      retrieval latency in experiment-log.md
 
 **Brainstorm:** Silent failure detection. Session logs capture tool calls with exit codes and empty outputs — enough data to surface recurring failures that get routed around by graceful degradation (e.g., `bun run` silently failing on absolute paths, causing skills to skip session data entirely). A periodic diagnostic that scans recent session logs for non-zero exits, empty-where-non-empty-expected, and repeated error patterns could catch these before they compound. Design as part of a dev-mode toolkit.
 
@@ -460,16 +566,17 @@ session logging and inline chat display (2026-03-09).
       in chat via stderr with `◉ MC` heading in bright magenta,
       matching the status line icon. (`inject.sh`)
 - [x] Structured per-session logging: JSONL per conversation in
-      `weft-dev/meta/`, capturing full observation pipeline (see
+      `weft-dev/metacog/sessions/`, capturing full observation pipeline (see
       "Session logging" section below). (`observer.sh` + `inject.sh`)
-- [x] Log viewer: promoted to Phase 3a (see below). Built and later removed.
+- [x] Log viewer: promoted to Phase 3a (see below). Active and maintained.
 
-### Phase 3a: Session Log Viewer (removed)
+### Phase 3a: Session Log Viewer (active)
 
-Was a React SPA + Bun HTTP server in `tools/log-viewer/`. Built during
-initial implementation, later removed from the repo. Session logs are
-directly queryable with `jq` (see Session logging section). A viewer
-may be rebuilt if needed.
+React SPA + Bun HTTP server at `metacog/log-viewer/`. Surfaces all
+session log fields with full fidelity (see Logging fidelity convention).
+Changes to log schema, entry types, or session flow should raise update
+considerations for the viewer to maintain full observability. Session
+logs are also directly queryable with `jq` (see Session logging section).
 
 ### Phase 2.5: Fine-tune meta-agent (after Phase 2 is battle-tested)
 
@@ -481,10 +588,14 @@ the same payload it will see at inference time.
 
 **Prerequisites:**
 - Embedding index (Phase 2) built and running in production
-- **Output format finalized (Phase 2 prerequisite).** Training data
-  must use the same format the fine-tuned model will produce at
-  inference time. If XML→JSON switch happens after training, the
-  fine-tune is wasted.
+- **Output format: JSON finalized, schema enforcement deferred.**
+  Training data must use the same format the fine-tuned model will
+  produce at inference time. JSON structure (`{"inject": ...,
+  "context": ...}`) is locked. Whether inference uses `json_schema`
+  constrained decoding or unconstrained output + post-processing
+  depends on Phase 2a results (does thinking improve observation
+  quality?) and fine-tuning results (does the fine-tuned model
+  produce reliable JSON without the thinking crutch?).
 - 3-10 real sessions accumulated with retrieval-augmented observations
   (50-100+ observation turns as training examples)
 - Alternatively: replay old transcripts through the retrieval pipeline
@@ -492,20 +603,26 @@ the same payload it will see at inference time.
 
 **Training data pipeline:**
 - [ ] Write `generate_training_data.ts`: reads session logs from
-      `weft-dev/meta/`, extracts `context_window` from each observation
+      `weft-dev/metacog/sessions/`, extracts `context_window` from each observation
       entry, formats as meta-agent input (matching observer.sh payload:
       system prompt + recent turns + accumulator + turn count)
-- [ ] For each input, call Opus to produce the ideal `<inject>`/
-      `<context>` response — this is the distillation step. Opus
+- [ ] For each input, call Opus to produce the ideal JSON
+      `{"inject": ..., "context": ...}` response — this is the
+      distillation step. Opus
       receives **exactly the same input** the fine-tuned model will
       see (no extra context that would leak)
 - [ ] Format as chat JSONL for MLX-LM: system = prompt.md content,
       user = recent turns + accumulator JSON, assistant = Opus response
+      → persist training JSONL in metacog/
 - [ ] Quality review: inspect 10-20 examples for format compliance,
       silence accuracy, injection relevance before training
-- [ ] Handle Qwen3 `<think>` tags: strip from formatted training text
-      with `enable_thinking=False` + regex (per bootcamp assignment
-      guidance on Qwen3 thinking mode)
+- [ ] Handle Qwen3 `<think>` tags in training data: session logs
+      store full responses (with thinking traces) in `full_response`.
+      Training pipeline must decide: strip thinking for assistant
+      output (train on JSON only), or preserve as reasoning trace.
+      If stripping: regex + `enable_thinking=False`. If preserving:
+      evaluate whether thinking traces improve fine-tuned model
+      quality. Decision depends on Phase 2a comparison results.
 
 **Fine-tune execution:**
 - [ ] Install uv + mlx-lm (or use pip in venv)
@@ -515,6 +632,7 @@ the same payload it will see at inference time.
       MLP layers, 600 iterations, batch_size=1
 - [ ] Monitor loss curve: healthy = 2-3 → 0.5-1.0. Below 0.1 =
       overfitting. Above 2.0 = data format or learning rate issue
+      → log loss curve in experiment-log.md, persist adapter in metacog/
 - [ ] Fuse adapter: `mlx_lm.fuse` → local model directory
 - [ ] Verify fused model loads in LM Studio (check directory format
       compatibility)
@@ -522,8 +640,9 @@ the same payload it will see at inference time.
 
 **Evaluation:**
 - [ ] Compare fine-tuned vs. base+prompt on: format compliance rate,
-      silence accuracy (correct `[no comment]` when on track),
-      injection relevance, latency
+      silence accuracy (correct null inject when on track),
+      injection relevance, latency → log comparison results in
+      experiment-log.md
 - [ ] Run simulate-accumulator with fine-tuned model on held-out
       sessions
 - [ ] Does fine-tuning eliminate the need for model-specific prompt
@@ -570,7 +689,8 @@ and baseline comparison.
       design principle connections, boundary-confusion detection.
 - [ ] Log all results in structured format (JSONL per session,
       including mode, model, fine-tuned flag, latency, escalation,
-      injection content)
+      injection content) → log structured results in experiment-log.md,
+      persist artifacts in metacog/
 - [ ] Write up findings
 
 **Curriculum alignment:** Model evaluation, benchmarking,
@@ -602,7 +722,7 @@ Make it work smoothly for daily use.
 ## Stretch goals (this week if time allows)
 
 - [ ] Same-turn injection (if local model is fast enough)
-- [x] Dashboard/viewer for injection history → built as Phase 3a, later removed
+- [x] Dashboard/viewer for injection history → built as Phase 3a, active and maintained
 - [x] Hot-swap model command → toggle.sh flags (--sl/--ml/--ll/--mch/--mco)
 - [ ] MetaAgent writes to notepad (Level 2 from note 010)
 - [x] Session-spanning memory → built as the accumulator system. Meta-agent outputs `<context>` with running summary; observer persists per-session, reads back on next turn.
@@ -666,11 +786,11 @@ benchmarking) overlaps almost completely.
 
 ## Session logging (built)
 
-Structured per-session logs in `weft-dev/meta/`. Each file covers one
+Structured per-session logs in `weft-dev/metacog/sessions/`. Each file covers one
 Claude Code conversation. Format: JSONL with typed entries.
 
-**Storage:** `weft-dev/meta/<date>_<uuid-prefix>.jsonl`
-(e.g., `meta/2026-03-09_0beb743c.jsonl`)
+**Storage:** `weft-dev/metacog/sessions/<date>_<uuid-prefix>.jsonl`
+(e.g., `metacog/sessions/2026-03-09_0beb743c.jsonl`)
 
 **Session identity:** Derived from transcript path UUID
 (`basename "$TRANSCRIPT_PATH" .jsonl`). Per-session pointer file at
@@ -701,11 +821,35 @@ pointer) is isolated in its own directory.
 preserved via dual-write. Will be removed once structured logging is
 verified across multiple sessions.
 
+### Logging fidelity convention
+
+Every step of log functionality — recording, storage, viewing,
+rendering — preserves the log in high fidelity for development
+purposes. Specifically:
+
+1. **Recording:** The observer logs the exact inputs sent to the
+   meta-agent (`system_prompt`, `user_message`) and its exact output
+   (`full_response`), untruncated. Pipeline metadata (latency, model,
+   retrieval stats) is logged alongside but kept separate from the
+   verbatim content.
+2. **Storage:** JSONL entries are complete JSON objects. No fields are
+   omitted to save space. If a field is empty, it's logged as `""` or
+   `null`, not dropped.
+3. **Viewing:** The log viewer surfaces all fields present in each
+   entry. Missing fields (from older entries) simply don't render —
+   no empty sections, no errors. Present fields render in full — no
+   viewer-side truncation.
+4. **Error handling:** "Graceful degradation" in logging context means
+   reporting every error and minimizing data loss at every handoff —
+   not silently swallowing failures. If a pipeline stage fails, the
+   error is captured in the log entry alongside whatever partial data
+   was collected. The observation still completes and logs what it can.
+
 **Phase 4 parsability:** Logs are directly queryable with `jq`:
 ```bash
-jq 'select(.type=="observation")' meta/*.jsonl          # all observations
-jq 'select(.type=="observation") | .total_latency_ms' meta/*.jsonl  # latency
-jq 'select(.type=="error")' meta/*.jsonl                # errors
+jq 'select(.type=="observation")' metacog/sessions/*.jsonl          # all observations
+jq 'select(.type=="observation") | .total_latency_ms' metacog/sessions/*.jsonl  # latency
+jq 'select(.type=="error")' metacog/sessions/*.jsonl                # errors
 ```
 
 ---
@@ -727,8 +871,10 @@ Dev/prod mode system implemented in `weft/tools/metaclaude/`:
   abbreviation replaces generic "MC").
 - **Mode switching** (built): `toggle.sh --dev / --prod / mode dev / mode prod`.
 - **Global hotkey** (built): `Cmd+Ctrl+M` via macOS Quick Action.
-- **Dashboard/viewer**: Was Phase 3a (session log viewer), built then removed.
-  Session logs are directly queryable with `jq`.
+- **Dashboard/viewer** (built, active): Phase 3a session log viewer at
+  `metacog/log-viewer/`. Maintained alongside observer pipeline — schema
+  or flow changes should raise viewer update considerations. Session logs
+  are also directly queryable with `jq`.
 - **Expandable injection view** (hotkey to peek): Nice-to-have for prod mode.
 
 ---
@@ -751,10 +897,11 @@ Dev/prod mode system implemented in `weft/tools/metaclaude/`:
 | 13-14B (Phi-4, Qwen2.5-14B) | ~8-9 GB | Tight | May cause memory pressure with other apps running |
 | 32B+ | >16 GB | No | Would require heavy quantization (Q2/Q3) with severe quality loss |
 
-**Test matrix (MLX models already downloaded in LM Studio):**
+**Test matrix (MLX models in LM Studio):**
 - Small: Qwen3-4B-Thinking-2507-MLX-4bit (~2.1GB)
 - Medium: Qwen3-8B-MLX-4bit (~4.3GB, primary candidate)
-- Stretch: Gemma 3 12B it-qat-4bit (~7.5GB, test memory pressure)
+- ~~Stretch: Gemma 3 12B it-qat-4bit (~7.5GB)~~ — removed 2026-03-11,
+  exceeds available memory when Claude Code + embedding model are running
 
 The embedding model (nomic-embed-text, GGUF) is ~139MB in LM Studio
 (or ~270MB via Ollama). Negligible. Both inference and embedding models

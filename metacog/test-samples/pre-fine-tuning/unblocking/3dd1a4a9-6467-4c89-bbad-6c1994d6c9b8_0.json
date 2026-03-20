@@ -26,7 +26,7 @@
     },
     {
       "role": "assistant",
-      "content": "`GH_TOKEN` is set (93 chars) and the config files are readable. The token is loading \u2014 it's just being rejected by GitHub. This isn't a sandbox issue.\n\nA 93-char token that fails auth suggests it may be expired or revoked. When you run `gh auth status` in your terminal, is it possibly using a different token (the one stored in `hosts.yml` via the keychain, not `GH_TOKEN`)?\n\nCheck in your terminal:\n```\necho ${#GH_TOKEN}\n```\n\nIf `GH_TOKEN` isn't set in your regular shell, then `gh` falls back to the keychain-stored credential \u2014 which works. But Claude Code's environment has `GH_TOKEN` set (probably by Claude Code itself), and that token is stale, so it takes priority and fails."
+      "content": "`GH_TOKEN` is set (93 chars) and the config files are readable. The token is loading — it's just being rejected by GitHub. This isn't a sandbox issue.\n\nA 93-char token that fails auth suggests it may be expired or revoked. When you run `gh auth status` in your terminal, is it possibly using a different token (the one stored in `hosts.yml` via the keychain, not `GH_TOKEN`)?\n\nCheck in your terminal:\n```\necho ${#GH_TOKEN}\n```\n\nIf `GH_TOKEN` isn't set in your regular shell, then `gh` falls back to the keychain-stored credential — which works. But Claude Code's environment has `GH_TOKEN` set (probably by Claude Code itself), and that token is stale, so it takes priority and fails."
     },
     {
       "role": "user",
@@ -48,6 +48,7 @@
     "source_session": "3dd1a4a9-6467-4c89-bbad-6c1994d6c9b8",
     "source_path": "/Users/rhhart/.claude/projects/-Users-rhhart-Documents-GitHub-weft-dev/3dd1a4a9-6467-4c89-bbad-6c1994d6c9b8.jsonl",
     "window_start_turn": 0,
-    "annotation": "User iterating hypotheses about why a newly created GH token fails auth inside Claude Code. Trying different angles (sandbox issue? paste error? permissions?) without converging. The user's understanding hasn't settled."
+    "annotation": "User iterating hypotheses about why a newly created GH token fails auth inside Claude Code. Trying different angles (sandbox issue? paste error? permissions?) without converging. The user's understanding hasn't settled.",
+    "category": "unblocking"
   }
 }

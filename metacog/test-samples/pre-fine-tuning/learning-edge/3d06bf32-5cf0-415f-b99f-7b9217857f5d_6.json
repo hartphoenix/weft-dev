@@ -10,7 +10,7 @@
     },
     {
       "role": "assistant",
-      "content": "Ollama is running fine with `nomic-embed-text` loaded, but the Vite proxy isn't working \u2014 it's returning the HTML page instead of proxying to Ollama:\n\n```\ncurl localhost:11434/api/tags  \u2192 \u2705 JSON with model list\ncurl localhost:5173/api/tags   \u2192 \u274c HTML (index.html fallback)\n```\n\nThe proxy config in [vite.config.ts](scoring-sandbox/vite.config.ts) looks correct. Most likely the dev server was started before the proxy config was added, or needs a restart. Try killing the dev server and restarting it:\n\n```bash\ncd scoring-sandbox && bun run dev\n```\n\nIf it's already running, kill it first (Ctrl+C) and re-launch. Vite doesn't hot-reload config changes \u2014 you have to restart the server for proxy changes to take effect."
+      "content": "Ollama is running fine with `nomic-embed-text` loaded, but the Vite proxy isn't working — it's returning the HTML page instead of proxying to Ollama:\n\n```\ncurl localhost:11434/api/tags  → ✅ JSON with model list\ncurl localhost:5173/api/tags   → ❌ HTML (index.html fallback)\n```\n\nThe proxy config in [vite.config.ts](scoring-sandbox/vite.config.ts) looks correct. Most likely the dev server was started before the proxy config was added, or needs a restart. Try killing the dev server and restarting it:\n\n```bash\ncd scoring-sandbox && bun run dev\n```\n\nIf it's already running, kill it first (Ctrl+C) and re-launch. Vite doesn't hot-reload config changes — you have to restart the server for proxy changes to take effect."
     },
     {
       "role": "assistant",
@@ -18,7 +18,7 @@
     },
     {
       "role": "assistant",
-      "content": "There it is \u2014 there's a `vite.config.ts` in the parent directory too. Let me check it."
+      "content": "There it is — there's a `vite.config.ts` in the parent directory too. Let me check it."
     },
     {
       "role": "assistant",
@@ -26,7 +26,7 @@
     },
     {
       "role": "assistant",
-      "content": "That's your problem. The parent project also has a Vite dev server, and it's likely claiming port 5173 first.\n\nThe parent's [vite.config.ts](vite.config.ts) only proxies `/ws` \u2014 it has no `/api` proxy. So when you hit `localhost:5173/api/tags`, you're hitting the **parent's** Vite server, which has no idea about Ollama and just returns its `index.html` fallback.\n\n**Fix:** Make sure the parent dev server isn't running when you start the scoring-sandbox one. If both need to run simultaneously, add an explicit port to the scoring-sandbox config:\n\n```ts\nserver: {\n  port: 5174,  // avoid colliding with the parent project\n  proxy: { ... }\n}\n```\n\nOr just kill the parent dev server, then `cd scoring-sandbox && bun run dev` \u2014 it'll get port 5173 and the proxy will work."
+      "content": "That's your problem. The parent project also has a Vite dev server, and it's likely claiming port 5173 first.\n\nThe parent's [vite.config.ts](vite.config.ts) only proxies `/ws` — it has no `/api` proxy. So when you hit `localhost:5173/api/tags`, you're hitting the **parent's** Vite server, which has no idea about Ollama and just returns its `index.html` fallback.\n\n**Fix:** Make sure the parent dev server isn't running when you start the scoring-sandbox one. If both need to run simultaneously, add an explicit port to the scoring-sandbox config:\n\n```ts\nserver: {\n  port: 5174,  // avoid colliding with the parent project\n  proxy: { ... }\n}\n```\n\nOr just kill the parent dev server, then `cd scoring-sandbox && bun run dev` — it'll get port 5173 and the proxy will work."
     },
     {
       "role": "assistant",
@@ -38,7 +38,7 @@
     },
     {
       "role": "assistant",
-      "content": "Easiest option: add a couple aliases to your `~/.zshrc`:\n\n```bash\nalias ports='lsof -iTCP -sTCP:LISTEN -nP'\nalias killport='f() { lsof -ti:$1 | xargs kill; }; f'\n```\n\nThen it's just:\n\n```bash\nports              # see everything listening\nkillport 5173      # kill whatever's on that port\n```\n\nIf you'd prefer a GUI, **Sloth** is a free open-source Mac app that shows all open connections/ports with a nice interface \u2014 you can find and kill processes visually. Install with `brew install --cask sloth`.\n\nWant me to add those aliases to your `.zshrc`?"
+      "content": "Easiest option: add a couple aliases to your `~/.zshrc`:\n\n```bash\nalias ports='lsof -iTCP -sTCP:LISTEN -nP'\nalias killport='f() { lsof -ti:$1 | xargs kill; }; f'\n```\n\nThen it's just:\n\n```bash\nports              # see everything listening\nkillport 5173      # kill whatever's on that port\n```\n\nIf you'd prefer a GUI, **Sloth** is a free open-source Mac app that shows all open connections/ports with a nice interface — you can find and kill processes visually. Install with `brew install --cask sloth`.\n\nWant me to add those aliases to your `.zshrc`?"
     }
   ],
   "user_turn_count": 0,
@@ -48,6 +48,7 @@
     "source_session": "3d06bf32-5cf0-415f-b99f-7b9217857f5d",
     "source_path": "/Users/rhhart/.claude/projects/-Users-rhhart-Documents-GitHub-schelling-points/3d06bf32-5cf0-415f-b99f-7b9217857f5d.jsonl",
     "window_start_turn": 6,
-    "annotation": "Procedural/recall gap: user asks how to manage persistent localhost servers, then says commands are 'tough to remember' -- leads to shell alias solution. Learning tooling patterns."
+    "annotation": "Procedural/recall gap: user asks how to manage persistent localhost servers, then says commands are 'tough to remember' -- leads to shell alias solution. Learning tooling patterns.",
+    "category": "learning-edge"
   }
 }

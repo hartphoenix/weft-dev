@@ -2,7 +2,7 @@
   "recent_turns": [
     {
       "role": "assistant",
-      "content": "You're right \u2014 `localhost` is in the network allowlist (line 347). The sandbox config looks correct. Let me check if it's a port issue or if LM Studio is binding to a different interface."
+      "content": "You're right — `localhost` is in the network allowlist (line 347). The sandbox config looks correct. Let me check if it's a port issue or if LM Studio is binding to a different interface."
     },
     {
       "role": "assistant",
@@ -18,7 +18,7 @@
     },
     {
       "role": "assistant",
-      "content": "Still blocked. The sandbox environment shown at the top of this session says:\n\n```\nNetwork: {\"allowedHosts\":[\"fullstackopen.com\"]}\n```\n\nThat's the **active** sandbox config for this session \u2014 it only allows `fullstackopen.com`. Your settings.json says `localhost`, but this session was started with a different config (probably from a project-level or managed settings override, or the settings change hadn't taken effect when this session launched).\n\n**Fix:** Restart this Claude Code session. The sandbox network allowlist is baked in at session start. Your settings.json is correct (`\"allowedHosts\": [\"localhost\"]`), but this session loaded before it took effect \u2014 or there's a higher-priority settings file overriding it.\n\nLet me check if there's a project-level settings file that might be winning."
+      "content": "Still blocked. The sandbox environment shown at the top of this session says:\n\n```\nNetwork: {\"allowedHosts\":[\"fullstackopen.com\"]}\n```\n\nThat's the **active** sandbox config for this session — it only allows `fullstackopen.com`. Your settings.json says `localhost`, but this session was started with a different config (probably from a project-level or managed settings override, or the settings change hadn't taken effect when this session launched).\n\n**Fix:** Restart this Claude Code session. The sandbox network allowlist is baked in at session start. Your settings.json is correct (`\"allowedHosts\": [\"localhost\"]`), but this session loaded before it took effect — or there's a higher-priority settings file overriding it.\n\nLet me check if there's a project-level settings file that might be winning."
     },
     {
       "role": "assistant",
@@ -26,7 +26,7 @@
     },
     {
       "role": "assistant",
-      "content": "There's no network sandbox override here \u2014 just a permission allow for WebFetch. The sandbox config in your user settings.json looks correct.\n\nThe issue is just session timing. The sandbox network allowlist shown in my system prompt is `[\"fullstackopen.com\"]` \u2014 that's what loaded when this session started. Your settings.json now says `[\"localhost\"]`, but it wasn't applied to this session.\n\n**You need to restart the Claude Code session.** The sandbox network config is immutable once the session starts. When you relaunch, it should pick up `localhost` from your settings.json and curl to LM Studio will work."
+      "content": "There's no network sandbox override here — just a permission allow for WebFetch. The sandbox config in your user settings.json looks correct.\n\nThe issue is just session timing. The sandbox network allowlist shown in my system prompt is `[\"fullstackopen.com\"]` — that's what loaded when this session started. Your settings.json now says `[\"localhost\"]`, but it wasn't applied to this session.\n\n**You need to restart the Claude Code session.** The sandbox network config is immutable once the session starts. When you relaunch, it should pick up `localhost` from your settings.json and curl to LM Studio will work."
     },
     {
       "role": "user",
@@ -34,7 +34,7 @@
     },
     {
       "role": "assistant",
-      "content": "It's not causing the problem directly \u2014 it has no sandbox section. But the fact that the active sandbox shows `allowedHosts: [\"fullstackopen.com\"]` is suspicious. That domain matches the `WebFetch(domain:fullstackopen.com)` permission in that file exactly, and your global settings say `[\"localhost\"]`.\n\nThis suggests Claude Code might derive the sandbox network allowlist from WebFetch permissions rather than (or instead of) the `sandbox.network.allowedHosts` key. Your global sandbox config might not be doing what you expect.\n\n**Don't remove it** \u2014 you probably want the fullstackopen.com access for coursework. Instead, try adding localhost network access there too:\n\n```json\n{\n  \"permissions\": {\n    \"allow\": [\n      \"WebFetch(domain:fullstackopen.com)\",\n      \"Bash(network:localhost:1234)\"\n    ]\n  }\n}\n```\n\nThen restart the session. If the sandbox derives allowed hosts from permissions, this should add localhost. If not, we'll need to dig into how Claude Code actually resolves the sandbox network config.\n\nWant to try that?"
+      "content": "It's not causing the problem directly — it has no sandbox section. But the fact that the active sandbox shows `allowedHosts: [\"fullstackopen.com\"]` is suspicious. That domain matches the `WebFetch(domain:fullstackopen.com)` permission in that file exactly, and your global settings say `[\"localhost\"]`.\n\nThis suggests Claude Code might derive the sandbox network allowlist from WebFetch permissions rather than (or instead of) the `sandbox.network.allowedHosts` key. Your global sandbox config might not be doing what you expect.\n\n**Don't remove it** — you probably want the fullstackopen.com access for coursework. Instead, try adding localhost network access there too:\n\n```json\n{\n  \"permissions\": {\n    \"allow\": [\n      \"WebFetch(domain:fullstackopen.com)\",\n      \"Bash(network:localhost:1234)\"\n    ]\n  }\n}\n```\n\nThen restart the session. If the sandbox derives allowed hosts from permissions, this should add localhost. If not, we'll need to dig into how Claude Code actually resolves the sandbox network config.\n\nWant to try that?"
     },
     {
       "role": "user",
@@ -48,6 +48,7 @@
     "source_session": "ef0dd1a7-00fb-4d8b-8ab4-9c068d5edda0",
     "source_path": "/Users/rhhart/.claude/projects/-Users-rhhart-Documents-GitHub-weft-dev/ef0dd1a7-00fb-4d8b-8ab4-9c068d5edda0.jsonl",
     "window_start_turn": 11,
-    "annotation": "Claude diagnoses the sandbox network config as correct but not applied to this session, and recommends restarting. The user identifies the actual root cause: a known Claude Code bug where settings.local.json overrides (rather than merging with) global settings. Claude had dismissed the settings.local.json file (no sandbox section), but the user recognized the override-vs-merge bug from prior experience. The drift signal: Claude confidently proposes a simple fix (restart) while missing the systemic cause that the user has to surface."
+    "annotation": "Claude diagnoses the sandbox network config as correct but not applied to this session, and recommends restarting. The user identifies the actual root cause: a known Claude Code bug where settings.local.json overrides (rather than merging with) global settings. Claude had dismissed the settings.local.json file (no sandbox section), but the user recognized the override-vs-merge bug from prior experience. The drift signal: Claude confidently proposes a simple fix (restart) while missing the systemic cause that the user has to surface.",
+    "category": "drift"
   }
 }

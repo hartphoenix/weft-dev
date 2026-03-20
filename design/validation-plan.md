@@ -1,3 +1,7 @@
+---
+session: (no matching session found)
+stamped: 2026-02-25T20:53:37.756Z
+---
 # Validation Plan — Empirical Ground for the Harness
 
 **Status:** Draft

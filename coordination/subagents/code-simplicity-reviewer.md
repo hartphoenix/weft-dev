@@ -2,6 +2,8 @@
 name: code-simplicity-reviewer
 description: "Final review pass to ensure code is as simple and minimal as possible. Use after implementation is complete to identify YAGNI violations and simplification opportunities."
 model: inherit
+session: (no matching session found)
+stamped: 2026-02-23T19:44:43.815Z
 ---
 
 <examples>

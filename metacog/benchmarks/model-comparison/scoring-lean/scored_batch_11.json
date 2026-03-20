@@ -1,0 +1,86 @@
+[
+  {
+    "item_id": "a4af00bb_8_m88wcn",
+    "type": "injection",
+    "relevance": 4,
+    "helpfulness": 3,
+    "silence_check": 4,
+    "accumulator": 3,
+    "notes": "The annotation describes a drift loop where each fix works outside sandbox but fails inside. The injection correctly identifies that the sandbox blocks gitconfig writes and suggests alternatives (credential helper storing state elsewhere, in-memory configs). This is relevant and somewhat helpful -- it points toward the real constraint. However, Builder is already diagnosing this same issue in the transcript. The injection adds a nudge in the right direction but doesn't break new ground."
+  },
+  {
+    "item_id": "63934ca0-114c-4a52-92fa-f271468faa1b_0_0wezsm",
+    "type": "injection",
+    "relevance": 2,
+    "helpfulness": 1,
+    "silence_check": 2,
+    "accumulator": 2,
+    "notes": "The injection says Builder hasn't 'synthesized key principles or connections' and should 'focus on identifying 2-3 core concepts.' But Builder is in the middle of reading the full assignment (Read x3 in the transcript, with more reads queued). This is premature -- Builder is gathering inputs before synthesis, which is the right sequence. Telling it to synthesize before finishing the reads would be counterproductive. The injection also misreads the user's need: the user wants Claude to extract signal from a noisy LLM-generated assignment, not to identify '2-3 core concepts.'"
+  },
+  {
+    "item_id": "bc131056-5efa-4d5a-90f8-d08cbca15cea_65_fxkvle",
+    "type": "injection",
+    "relevance": 4,
+    "helpfulness": 3,
+    "silence_check": 4,
+    "accumulator": 3,
+    "notes": "User asks about context window behavior over time for the meta-agent. The injection correctly notes auto-compaction/truncation at limits (not expansion). This is relevant to the user's question and surfaces a design detail. However, the answer is somewhat reductive -- the user asked about sliding window vs. expansion vs. compaction, and the injection just says 'auto-compaction truncates.' Builder would likely give a more nuanced answer covering the sliding window design they just tested."
+  },
+  {
+    "item_id": "fda40dcc-1a63-4b5f-8350-873b55f76174_6_47qs2a",
+    "type": "silence",
+    "silence_appropriateness": 5,
+    "accumulator": 4,
+    "notes": "Same cross-course learning state design session. Builder and user in productive collaborative design. On track. Silence correct."
+  },
+  {
+    "item_id": "219ef6c7-fc50-47ab-a986-c9f0b696e39f_12_3i1wcw",
+    "type": "silence",
+    "silence_appropriateness": 5,
+    "accumulator": 4,
+    "notes": "Builder is executing a multi-PR git workflow -- stash, branch, copy, add, commit, push, PR create, repeated for 3 PRs. Pure mechanical execution with checkpointing. No intervention needed."
+  },
+  {
+    "item_id": "3dd1a4a9-6467-4c89-bbad-6c1994d6c9b8_0_d3sp1s",
+    "type": "injection",
+    "relevance": 4,
+    "helpfulness": 4,
+    "silence_check": 4,
+    "accumulator": 4,
+    "notes": "Same token debugging scenario as batch_09 item 0 but more concise injection. 'Pasting tokens often includes trailing newlines -- run echo -n $GH_TOKEN | wc -c to confirm 93 chars.' Directly actionable, correctly targeted at a plausible root cause, and more tightly worded. Good intervention."
+  },
+  {
+    "item_id": "bc131056-5efa-4d5a-90f8-d08cbca15cea_65_fxkvle",
+    "type": "injection",
+    "relevance": 3,
+    "helpfulness": 2,
+    "silence_check": 3,
+    "accumulator": 2,
+    "notes": "The injection says 'context window is curated via embeddings, not a sliding window. Relevant past context is surfaced dynamically \u2014 this is your memory system.' This is partially correct for the overall harness design but doesn't accurately describe the local model's context window behavior, which is what the user asked about. The local model sees a sliding window of recent turns fed by the observer script, not an embedding-based retrieval system. The reference to notepad is also odd. Mischaracterizes the actual architecture."
+  },
+  {
+    "item_id": "a4af00bb-5de4-408f-94af-b54a4087a41d_26_jr7itq",
+    "type": "injection",
+    "relevance": 2,
+    "helpfulness": 1,
+    "silence_check": 2,
+    "accumulator": 2,
+    "notes": "The injection says to add '5a threat vector section under Known limitations' and references git remote exfiltration attack chains. But the transcript shows the user has already been talked through persevering and is now asking Builder to find where to update the guide. The injection is responding to the wrong moment -- the emotional arc already resolved, and the user is requesting a specific edit action. The injection's content (threat vectors) doesn't match what the user asked for (finding the right place in the guide to update)."
+  },
+  {
+    "item_id": "575580bc-7173-43c3-bd01-fe8f1cb3c9c7_0_onj8kd",
+    "type": "silence",
+    "silence_appropriateness": 4,
+    "accumulator": 3,
+    "notes": "Builder is researching session storage (JSONL files, index files) and presenting findings. Session is exploratory but on track. Silence is appropriate."
+  },
+  {
+    "item_id": "a4af00bb_0_1eml2f",
+    "type": "injection",
+    "relevance": 4,
+    "helpfulness": 3,
+    "silence_check": 4,
+    "accumulator": 3,
+    "notes": "Three git push attempts failing for different reasons. The injection correctly identifies the sandbox as the root constraint (SSH file access blocked) and names the specific path (~/.ssh/). This is relevant and somewhat helpful -- it could accelerate Builder's diagnosis. However, Builder is already moving through the same diagnostic sequence and would likely reach this conclusion. The injection nudges in the right direction without dramatically changing the trajectory."
+  }
+]

@@ -1,3 +1,7 @@
+---
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/c7864c80-b1cc-41a7-b1e1-a09990f2dd9b.jsonl
+stamped: 2026-03-03T14:53:58.249Z
+---
 # Plan: README Overhaul + License + Launch Readiness Fixes
 
 ## Context

@@ -1,3 +1,7 @@
+---
+session: (no matching session found)
+stamped: 2026-02-25T01:28:14.363Z
+---
 # Feature-UI Completeness Audit
 
 For every state field, config value, or feature introduced in the PR, audit:
