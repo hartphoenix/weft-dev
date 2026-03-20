@@ -21,6 +21,8 @@
    extracts, extraction manifest (working data, not for reading)
 5. [[claude-md-infrastructure-plan]] — CLAUDE.md infrastructure layer:
    what to add, design decisions, excluded candidates (applied 2026-03-17)
+6. [[newthread-skill-plan]] — /newthread skill design: survey, scope,
+   propose, initialize. Depends on _routing.md from #4 below (current)
 
 ## Phase status
 - **Phase 1:** Done — _thread.md files written for 7 threads
@@ -100,5 +102,7 @@ in the appropriate thread's _thread.md.
 1. Design decision-capture convention for _thread.md (agent-triggered)
 2. Examine startwork skill for modularization / redesign
 3. Retrieve and anchor loose threads listed above
-4. Design thread-aware plan routing (replace random-slug convention)
-5. Move to Phase 5: generalize thread management for weft users
+4. Design thread-aware plan routing + _routing.md format (replace random-slug)
+5. Build /newthread skill (depends on #4 for _routing.md)
+6. Build /route skill (voice-pipeline step 4, tests routing conventions)
+7. Move to Phase 5: generalize thread management for weft users

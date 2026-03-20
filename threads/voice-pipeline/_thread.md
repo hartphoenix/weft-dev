@@ -77,7 +77,7 @@
 - **Thread reorganization:** /route is the first real test of thread
   routing conventions from Phase 4. Findings feed back into that
   thread's open questions.
-- **Ensemble PRD:** (`roger/plans/2026-03-12-ensemble-prd.md`) — this
+- **Ensemble PRD:** (`roger/threads/ensemble/ensemble-prd.md`) — this
   pipeline's IDs become ensemble's memo_id. Archive structure aligns.
 - **Desire path analysis:** This pipeline directly addresses Path 3
   ("design conversation with no artifact",

@@ -13,7 +13,7 @@ step: create the thread directory, move this plan there as
 Hart records voice memos on iPhone (m4a). These contain design thinking,
 action items, and thread-relevant content that currently dies in
 ~/Downloads. 446 historical memos sit in an Obsidian vault (see ensemble
-PRD at `roger/plans/2026-03-12-ensemble-prd.md`), 420 unread. The
+PRD at `roger/threads/ensemble/ensemble-prd.md`), 420 unread. The
 ensemble project will eventually reprocess all memos through a
 multi-layer feature extraction pipeline (faster-whisper, diarization,
 acoustic, prosodic, embeddings). This skill is the **intake layer** —
@@ -378,7 +378,7 @@ session on 2026-03-16 in weft-dev project, branch build-your-own-dashboard.
    formatted for Obsidian (wikilinks, `%%timestamp%%`). Historical
    memos are ensemble's Phase 1/3 responsibility. The PRD should
    reference this location as source.
-   *Route to:* ensemble PRD (`roger/plans/2026-03-12-ensemble-prd.md`)
+   *Route to:* ensemble PRD (`roger/threads/ensemble/ensemble-prd.md`)
 
 3. **Add `threadRoots` to config.json schema**
    Cross-project thread discovery needs a configurable project

@@ -94,18 +94,21 @@ Claude's sandbox never weakened
   outside Claude's sandbox, accessed via localhost HTTP. Same pattern,
   different resource (audio transcription vs. filesystem writes).
 
-## Related extracts
+## Routed extracts (in this thread dir)
 
-In `/Users/rhhart/Documents/GitHub/roger/extract/`:
-- `2026-03-16-1826-build-your-own-dashboard-zillow-plus--3--build-your-own-dashboard.md`
-  — names the platform, identifies the two primitives (API keys +
-  conversation topics as the drivers for modular integrations)
-- `2026-03-16-1826-build-your-own-dashboard-zillow-plus--2--semantic-subscription-network.md`
-  — generalizes to semantic subscription networks: natural-language
-  filters against general feeds, routed to user-chosen channels
-- `2026-03-16-1826-build-your-own-dashboard-zillow-plus--1--housing-search-tool.md`
-  — concrete use case: Claude cron job scraping listing sites, fronted
-  by intake interview capturing aesthetic/neighborhood preferences
+- [[2026-03-16-build-your-own-dashboard-platform]] — names the platform,
+  two primitives (API keys + conversation topics driving modular integrations)
+- [[2026-03-16-semantic-subscription-network]] — generalizes to semantic
+  subscription: natural-language filters against general feeds, routed
+  to user-chosen channels
+- [[2026-03-16-housing-search-tool]] — concrete use case: Claude cron
+  scraping listing sites, intake interview for preferences
+- [[2026-03-03-aios-vision-attractor-basins]] — AIOS as nervous system
+  extension, self-models as attractor basins, telos as vehicle
+- [[2026-03-03-species-level-ai-transformation]] — speciation of selves,
+  Fermi's paradox, exponential differentiation
+- [[2026-03-18-conversation-tree-4d-instrument]] — 4D conversation
+  navigation: clone sessions, peg linkable moments, search turning points
 
 ## Relationship to MetaClaude
 
@@ -137,10 +140,10 @@ aggregator — "Yoda in the backpack." BuilderClaude is the ground-level
 attentional head. MetaClaude holds temporal surround. User turns are
 best spent directing MetaClaude, not individual builders.
 
-Related extracts:
-- `extract/2026-03-03-07ec-aios--1--aios-vision-and-attractor-basins.md`
-- `extract/2026-03-03-07ec-aios--2--species-level-ai-transformation.md`
-- `extract/2026-03-18-portfolio-session--4--metaclaude-as-attentional-aggregator.md`
+Related routed files:
+- [[2026-03-03-aios-vision-attractor-basins]] (this thread)
+- [[2026-03-03-species-level-ai-transformation]] (this thread)
+- `threads/metaclaude/2026-03-18-metaclaude-attentional-aggregator.md`
 
 ---
 
