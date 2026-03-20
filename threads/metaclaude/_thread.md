@@ -49,10 +49,10 @@ intelligence that responds.
 **Advance in parallel.** Neither blocks the other's next steps. The
 write broker is where they first need each other.
 
-Related extracts:
-- `extract/2026-03-03-07ec-aios--1--aios-vision-and-attractor-basins.md`
-- `extract/2026-03-03-07ec-aios--2--species-level-ai-transformation.md`
-- `extract/2026-03-18-portfolio-session--4--metaclaude-as-attentional-aggregator.md`
+Related routed files:
+- `threads/weft-dashboard/2026-03-03-aios-vision-attractor-basins.md`
+- `threads/weft-dashboard/2026-03-03-species-level-ai-transformation.md`
+- [[2026-03-18-metaclaude-attentional-aggregator]] (this thread)
 
 ## Design documents
 
