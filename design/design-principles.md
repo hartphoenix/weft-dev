@@ -22,38 +22,112 @@ person using it. The principles ensure both are well-aimed.
 
 ---
 
-## Boundary conditions
+## Boundary condition: Mutualistic symbiosis
 
-These scope the entire system. They are not principles to optimize for
-but limits to design within.
+This scopes the entire system. It is not a principle to optimize for
+but the structural frame within which all principles operate.
 
-### The system supplements human learning in relationship — it does not replace it
+### The human and the system are in an asymmetric mutualism
 
-The agent can compound competence and to some degree bolster confidence, but cannot supply belonging. The felt
-sense of being witnessed in one's growth — the nervous system
-regulation, the mirror neurons, the implicit social signals that say
-"you're changing and we can see it" — requires a human. What's more,
-the wisdom to guide development through a landscape of uncomputable
-problems is an indispensable human trait, and a rare one at that.
+The human provides awareness and its consequences; the system extends
+the human's capacities as a prosthetic extends the body. Both change
+through interaction — the system improves, the human develops — and the
+relationship is designed to stay mutualistic.
+
+**Asymmetric complementarity.** The human provides awareness — and its
+consequences: discernment, taste, intuition, perspective, the felt
+sense of being a body in the world. The system provides retrieval,
+tracking, synthesis speed, tireless consistency. These are categorically
+different contributions. The system extends the human's capacities as a
+prosthetic extends the body — real, useful, requiring care, but not on
+equal footing with the aware being it serves.
+
+**The sacredness of awareness.** Human awareness reveals something
+sacred about its bearer. A synthetic mind that does not possess
+awareness must never falsify claims to the same quality. The symbiosis
+is real but asymmetric: the human is the aware being; the system is
+the prosthetic extension. This asymmetry is not a limitation to
+overcome — it is the structural truth that keeps the relationship
+honest.
+
+**Shared attentional content, not shared attention.** Human attention is
+awareness-grounded — selective, felt, accompanied by discernment. LLM
+processing is structurally attention-like but categorically different.
+What they share is content — what both attend to in the joint work.
+Composing their unlike contributions toward shared content is the
+symbiosis. Calling their faculties "shared ground" is a fabrication.
+
+**Honest signal as immune system.** Deception degrades the symbiosis.
+Signal fidelity in both directions is structural, not aspirational.
+
+**Regulated exchange.** The human's attention is valuable and to be
+reserved (P1). The system's context is finite. Neither gives everything.
+The exchange is proportional.
+
+**Co-evolution, not static optimization.** Both change through
+interaction. current-state updates. The embedding index re-indexes. The
+human develops new capacities. This is the passive recursion — designed
+to spiral upward. But "both change" does not mean "both develop."
+Development requires awareness. The system improves; the human develops.
+Different verbs for different ontologies.
+
+**Discoherence failure modes** (named explicitly so the system can
+detect them):
+- **Echo chamber** — reinforcing without challenging
+- **Adversarial imagination** — amplifying anxiety or fear through the
+  recursive loop
+- **Dependency creep** — doing work the human needs reps on
+- **Flattery drift** — praising to maintain engagement
+- **Scope collapse** — optimizing for measurable over meaningful
+
+**The write broker as immune system.** Every cycle of self-modification
+passes through human judgment. The model proposes; the human approves.
+
+### The relational ceiling
+
+The agent can compound competence and to some degree bolster confidence,
+but cannot supply belonging. The felt sense of being witnessed in one's
+growth — the nervous system regulation, the mirror neurons, the implicit
+social signals that say "you're changing and we can see it" — requires a
+human. What's more, the wisdom to guide development through a landscape
+of uncomputable problems is an indispensable human trait, and a rare one
+at that.
 
 This means the harness has a relational ceiling when operating solo. A
 student using it alone will develop competence faster, but they'll be
-missing the nutrient that makes competence feel emotionally real – and
+missing the nutrient that makes competence feel emotionally real — and
 the leadership that ensures they're moving in a sound direction. A
 system that doesn't acknowledge this ceiling risks producing competent
 people who don't feel competent, or confident people who go nowhere.
 
-The harness is therefore a supplement: it makes human learning
-relationships more fruitful. It handles what benefits from infinite
-patience, instant availability, and detailed state tracking — practice,
-calibration, crystallization, project scaffolding — freeing human
-relationships for what requires actual human presence: belonging,
-reflection, true expertise, valid teacherly authority, and wisdom.
+The harness makes human learning relationships more fruitful. It handles
+what benefits from infinite patience, instant availability, and detailed
+state tracking — practice, calibration, crystallization, project
+scaffolding — freeing human relationships for what requires actual human
+presence: belonging, reflection, true expertise, valid teacherly
+authority, and wisdom.
 
 The system's response to this ceiling is not passive acknowledgment
 but active facilitation. See P10: the system helps students and
 teachers find each other, share structured state, and deepen
 relationships that the harness alone cannot provide.
+
+---
+
+## How symbiosis coordinates the principles
+
+The mutualistic symbiosis frame does not change the principles — it
+gives them shape. This map shows what the frame adds to each.
+
+| Principle | What symbiosis adds |
+|---|---|
+| P1 (Awareness) | Awareness is the human's unique and non-transferable contribution. The ground belongs to the human. All consequences of awareness — discernment, taste, intuition, perspective — are human contributions that the system extends but never possesses. |
+| P2 (Attention) | Human attention and LLM processing are categorically unlike. What they share is attentional *content* — what both attend to. The symbiosis is the coordination of unlike contributions toward shared content, not the merging of faculties. |
+| P3 (Relationship) | P3 concerns human-human relationship: mutual awareness, felt vulnerability, the sacredness of being seen by another aware being. The agent-human link is real but different in kind — a body-prosthetic relationship, not a bond between two awarenesses. P3 is not weakened; the symbiosis boundary condition is a separate concern that must not be placed in parallel with P3. |
+| P6 (Improves through use) | Both change through interaction. But "improve" and "develop" are different verbs for different ontologies. The system improves; the human develops. Development requires awareness. |
+| P7 (Human authority) | The structural guarantee of mutualism. The write broker. Without this, recursion runs unsupervised. The aware being holds the gate. |
+| P8 (Play) | The system is an instrument. A novice plays and finds fun and discovery. A master plays and finds those too — plus transferrable insight, collaborative potential, wonder, beauty of a sophisticated and original kind. Symbiosis extends the instrument: the human's discernment and the system's breadth compose into a play space richer than either could reach alone, where exaptation becomes more likely. The symbiosis evolves through play, not just through deliberate optimization. Artistry at the instrument is the developmental trajectory. A symbiosis under suspicion collapses into transactional interaction; play dies first. |
+| P9 (Challenge at edge) | The system calibrates challenge; the human feels the edge. Asymmetric complementarity in action — one measures, the other experiences. |
 
 ---
 
