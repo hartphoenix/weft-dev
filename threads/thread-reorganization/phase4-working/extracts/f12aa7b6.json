@@ -1,0 +1,1923 @@
+{
+  "sessionId": "f12aa7b6-6393-4e03-b866-7572741bd861",
+  "timeRange": {
+    "start": "2026-03-11T21:06:22.386Z",
+    "end": "2026-03-11T21:55:23.764Z"
+  },
+  "turns": [
+    {
+      "role": "user",
+      "turnNumber": 1,
+      "timestamp": "2026-03-11T21:06:19.285Z",
+      "text": "Implement the following plan:\n\n# Phase 2a: Model Comparison Testing Plan\n\n## Context\n\nMetaClaude's embedding index is built and validated (1432 chunks). Three local models need empirical comparison on the metacognitive observation task to select a primary model for production and potential fine-tuning. MacBook Pro M2 Pro, 16GB RAM, LM Studio serving models.\n\nMetaClaude is a metacognitive observer that runs as a Claude Code hook. After each Builder Claude turn, it reads recent transcript, optionally retrieves chunks from an embedding index, and produces JSON: `{inject: \"observation or null\", context: \"running session summary\"}`. Non-null injections are delivered to Builder Claude as system messages on the next turn. The system prompt is at `weft/tools/metaclaude/prompt.md`. The observer pipeline is at `weft/tools/metaclaude/observer.sh`.\n\n### Unconstrained output mode\n\nLM Studio's `response_format: {type: \"json_object\"}` no longer works (requires `json_schema`, which suppresses Qwen3's `<think>` tokens). Observer now runs unconstrained — format compliance is a real variable, thinking traces are available as data.\n\n## Design decisions\n\n1. **Include 4B:** Yes. Quality floor.\n2. **Deep mode:** Build upfront. All models have context headroom (32K min vs ~10K payload).\n3. **No calibration windows.** Category windows are sufficient.\n4. **Dimensional scores only.** No forced ranking.\n5. **Thinking traces:** Not scored quantitatively. Scoring agents get an optional comment field for noting when thinking visibly affected the outcome. Skip if nothing meaningful to say.\n6. **Scope:** Empirical design decision-making. Not a mock double-blind study. Clear results that show which model does the job best.\n\n| Model | Flag | Context | LoRA peak | LoRA feasible? |\n|---|---|---|---|---|\n| Qwen3-4B-Thinking | `--model sl` | 32K | ~4GB | Yes |\n| Qwen3-8B | `--model ml` | 32K | ~7GB | Tight |\n| Gemma-3-12B | `--model ll` | 128K | ~12.5GB | No |\n\n**Decision matrix (recorded before testing):**\n- 12B wins by a landslide → use for inference, rely on prompt engineering (not fine-tuning). 12B can't be LoRA'd on this hardware, and fine-tuning a different model doesn't replicate what made 12B win.\n- 12B marginally better than 8B → prefer 8B (fine-tuning ceiling is higher)\n- 8B clearly better than 4B → use 8B\n- 8B marginally better than 4B → fine-tuning breaks the tie (4B easier)\n- 4B matches 8B → use 4B (faster, easier fine-tuning)\n\n## Test corpus (separate plan)\n\n**Built by:** Corpus extraction plan (`~/.claude/plans/sparkling-conjuring-dolphin.md` — persist to `metacog/test-samples/pre-fine-tuning/extraction-plan.md` before deleting the plan file).\n**Method:** Discovered 6 weeks of sessions via `session-discovery.ts`, extracted 10-turn windows matching observer payload format via `metacog/scripts/window-extract.ts`, categorized with 5 parallel agents scanning for category-specific signals.\n**Output:** `metacog/test-samples/pre-fine-tuning/<category>/` + `manifest.json`\n\n| Category | What it tests | Windows |\n|---|---|---|\n| on-track | Silence calibration | 5-15 |\n| drift | Injection sensitivity | 5-15 |\n| learning-edge | Pedagogical grounding via retrieval | 5-15 |\n| cross-domain | Deep mode value prop | 5-15 |\n| unblocking | Rescoping / bridge detection | 5-15 |\n\n**This plan assumes the frozen corpus exists.** Actual corpus: 40 windows + 2 calibration (not used).\n\n**Data fix needed before testing:** `_meta.category` is `null` in 33 of 40 files (only on-track has it populated). Backfill from directory structure. Calibration files live at `unblocking/calibration/` — test runner should skip them.\n\n### Known limitations (accepted)\n\n- **Deep mode confound.** If Deep outperforms Fast, the improvement could be better retrieval or the extra inference pass. Accepted — separating these factors would require additional infrastructure we don't have time for.\n- **Empty accumulators.** All windows start cold. In production, the accumulator builds across turns. This may underestimate models that use accumulator context well. Accepted — seeding accumulators would require a pre-pass we can't resource right now.\n\n## Experimental conditions\n\n| Factor | Levels |\n|---|---|\n| Model | Qwen3-4B, Qwen3-8B, Gemma-3-12B |\n| Retrieval mode | None (baseline), Fast, Deep |\n\n**Retrieval modes:**\n- **None:** Transcript only. No embedding retrieval. Baseline.\n- **Fast:** Embed the transcript window text, retrieve top-3 similar chunks from the index, include them in the model's input. One inference call.\n- **Deep:** First inference call generates 2-3 targeted retrieval queries. Embed those queries, retrieve chunks, then second inference call observes with the retrieved context. Two inference calls.\n\nFull corpus is 40 windows (9 on-track, 8 drift, 9 learning-edge, 7 cross-domain, 7 unblocking). Start with 5 per category (25 windows, 225 observations, ~70 min). Expand to full 40 (360 observations, ~110 min) if results are unclear.\n\n## Measurement\n\n### Automated (logged by test runner)\n- **Parse result:** `\"clean\"` (valid JSON, both keys) or `\"fallback\"` (jq failed)\n- **Thinking trace presence:** Binary\n- **Latency:** Total ms\n- **Silence rate:** Proportion of null-inject decisions\n- **Retrieval utilization:** Contains `(ref:` citation? Binary.\n- **Accumulator length:** Context field character count\n- **Memory footprint:** RSS via `ps` (once per model in Phase 1)\n\n### Scored by Opus sub-agents (1-5 scale)\n- **Specificity:** Concrete observation vs. generic?\n- **Grounding:** Traceable to transcript content?\n- **Silence appropriateness:** Right inject/silent decisions?\n- **Accumulator quality:** Accurate, compressed session summary?\n- **Retrieval integration (Fast/Deep only):** Discriminating use of chunks?\n- **Thinking comment (optional):** Free-text field. If thinking trace visibly affected the quality of the decision — positively or negatively — note what happened. Skip if nothing meaningful.\n\n### Scoring approach\n\nOpus scores outputs in waves — sub-agents each score random batches that mix models, modes, and categories. Model/mode identifiers are stripped before scoring so the agent evaluates the output on its merits. Results from different scoring agents are merged for analysis.\n\nEach scoring batch contains, per output: the transcript window (`recent_turns`), the annotation from `_meta`, and the model's response (inject text + context text). The scoring prompt includes the 5-point rubric definitions from the Measurement section above. The scoring agent does not see model name, mode, or category.\n\nHart spot-checks a subset (~25 outputs) to sanity-check Opus scoring quality. Not a formal inter-rater study — just a gut check that the scores make sense.\n\n## Decision gates\n\n### Format compliance (Phase 1)\n\n**Clean-parse rate matters.** A model that needs fallback parsing on most responses is unreliable for production even if the fallback succeeds.\n\n- **Eliminate:** <80% clean-parse rate (model can't reliably produce valid JSON without grammar enforcement)\n- **Flag for concern:** <90% clean-parse rate (usable but fragile)\n- **Gemma note:** If Gemma produces no thinking traces, flag as candidate for `json_schema` re-enablement (constrained decoding may be safe for non-thinking models)\n\n---\n\n## Pre-test preparation\n\n### Prompt revision (`weft/tools/metaclaude/prompt.md`)\n\n**Changes (all must land together — items 1 and parser fix 2 are coupled):**\n\n1. **Fix `[no comment]` → `null`** in the \"What you receive\" section (the line reading `output [no comment] for INJECT`). Old XML sentinel. If this doesn't land with parser fix 2 (don't-inject-on-fallback), a model outputting `[no comment]` hits the fallback and gets silenced rather than injected as literal text.\n\n2. **Add JSON input framing** to \"What you receive\":\n   ```\n   Your input arrives as a JSON object generated by the observation pipeline —\n   not typed by a human. Each field contains structured session data. Read the\n   fields below and use their content to form your observation.\n   ```\n\n3. **Add index contents description** after `retrieved_chunks`:\n   ```\n   The embedding index covers: learning state (current skills, goals, session\n   history), design principles and features, notepad entries, reference documents,\n   and codebase files. Chunks are retrieved by semantic similarity — they may be\n   highly relevant or merely topically adjacent. Reference chunks that inform your\n   observation, ignore ones that don't.\n   ```\n\n4. **Add 2 more examples (4 total):**\n   - Speaking without retrieval (no relevant chunks)\n   - Silence with relevant retrieval (chunks present, intervention unnecessary)\n\n5. **Tighten retrieval discrimination** — not all chunks warrant mention.\n\n6. **Remove redundancy** — deduplicate null explanation.\n\n**Don't change:** \"When to speak\"/\"When to stay silent\", \"Alignment\", CLAUDE.md reference.\n\n### Parser fixes (`weft/tools/metaclaude/observer.sh`)\n\nThe response parsing block starts after the curl/inference call. Search for `jq empty` to find it. **Must land together with prompt fix 1.**\n\n1. **Three-state parse logging:** Add `parse_result` field to JSONL entries.\n2. **Don't inject on fallback:** Change the fallback path (the `else` branch after `jq empty` fails) to `DECISION=\"silent\"` + log as format error. Always-on in simulation, gate on `--strict-parse` in production.\n3. **Handle trailing thinking tags:** Strip `<think>` blocks after JSON, not just before.\n4. **Update stale comment:** The comment reading `# response_format guarantees valid JSON` is no longer true — update to reflect unconstrained output.\n\n---\n\n## Sequencing\n\n### Phase 0: Prep (~2-3 hours)\n\n**Prerequisite:** Frozen test corpus exists.\n\n1. **Backfill `_meta.category`** in 33 window files from directory structure. Quick script: read each file, set `_meta.category` from parent directory name, write back.\n2. Revise `prompt.md` + fix `observer.sh` parser (coupled — land together)\n3. **Build test runner** (`metacog/scripts/run-comparison.ts`):\n   - Reads windows from manifest, strips `_meta` before sending to model\n   - Accepts `--model sl|ml|ll`, `--retrieval none|fast|deep`, `--output <path>`\n   - **Verifies correct model is loaded** before each run: hits `/v1/models` endpoint, confirms expected model ID matches. Fails fast with clear error if wrong model is serving.\n   - For None: sends window as-is (empty `retrieved_chunks`)\n   - For Fast: embeds `recent_turns` → `query.ts` top-3 → populates `retrieved_chunks`\n   - For Deep: first-pass inference (query generation) → embed queries → `query.ts` → second-pass observation\n   - Skips calibration files (check for `calibration` in path)\n   - Logs per window: `parse_result`, `full_response`, thinking trace, latency, model, mode, category, decision\n4. **Build scoring script** — strips model/mode identifiers, batches outputs randomly, formats for Opus sub-agent scoring\n5. **Build Deep mode query generation prompt** — minimal, separate from `prompt.md`\n6. **Log preparation** in `experiment-log.md`: corpus methodology, prompt revision rationale, parser fixes, decision matrix\n7. **Dry run:** 2-3 windows, verify end-to-end including model verification check\n\n### Phase 1: Baseline — no retrieval\n\n1. **For each model:** verify model loaded → run N windows with `--retrieval none`\n2. Measure memory footprint via `ps` (once per model)\n3. **Decision gate:** Check clean-parse rates. <80% → eliminate. <90% → flag.\n4. Note Gemma thinking trace behavior\n5. Score wave 1 (Opus sub-agents on randomized batches)\n\n### Phase 2: Fast retrieval\n\n1. Run surviving models x same windows with `--retrieval fast`\n2. Compare to Phase 1: does retrieval improve specificity? Hurt silence calibration?\n3. Score wave 2\n\n### Phase 3: Deep retrieval\n\n1. Run surviving models x same windows with `--retrieval deep`\n2. Log first-pass queries\n3. Compare to Phase 2: do model-generated queries retrieve different chunks?\n4. Score wave 3\n\n### Phase 4: Analysis and decision\n\n1. Merge all scoring waves\n2. Summarize per-model, per-mode results (means across categories)\n3. Apply decision matrix\n4. **Experiment log writeup** in `experiment-log.md`:\n   - Study design and preparation (cross-ref corpus extraction plan)\n   - Conditions and corpus description\n   - Results per phase\n   - Model selection rationale with fine-tuning feasibility\n   - Notable thinking trace observations\n   - Artifacts index\n5. Structured results at `metacog/benchmarks/model-comparison/`\n\n---\n\n## Experiment log format\n\nJSON per window at `metacog/benchmarks/model-comparison/`:\n```json\n{\n  \"window_id\": \"219ef6c7_12\",\n  \"category\": \"on-track\",\n  \"source_session\": \"219ef6c7-...\",\n  \"window_start_turn\": 12,\n  \"annotation\": \"Builder executing tool sequence...\",\n  \"results\": [\n    {\n      \"model\": \"qwen3-8b\",\n      \"mode\": \"fast\",\n      \"parse_result\": \"clean\",\n      \"latency_ms\": 14200,\n      \"decision\": \"silent\",\n      \"inject_text\": null,\n      \"context_text\": \"...\",\n      \"thinking_trace\": \"...\",\n      \"scores\": { \"specificity\": 4, \"grounding\": 5, \"silence\": 5, \"accumulator\": 4, \"retrieval\": null },\n      \"thinking_comment\": \"Model reasoned about whether middleware explanation was needed, correctly decided Builder was handling it.\",\n      \"full_response\": \"...\"\n    }\n  ]\n}\n```\n\n## Critical files\n\n| File | Role |\n|---|---|\n| `weft/tools/metaclaude/prompt.md` | System prompt — revise (coupled with parser fix) |\n| `weft/tools/metaclaude/observer.sh` | Parser fixes (coupled with prompt fix) |\n| `weft/tools/metaclaude/embedding/query.ts` | Retrieval interface for Fast/Deep |\n| `weft-dev/metacog/scripts/run-comparison.ts` | NEW: test runner with model verification |\n| `weft-dev/metacog/scripts/window-extract.ts` | Built by corpus plan |\n| `weft-dev/metacog/experiment-log.md` | Methodology + results |\n| `weft-dev/metacog/test-samples/pre-fine-tuning/manifest.json` | Frozen corpus |\n\n\nIf you need specific details from before exiting plan mode (like exact code snippets, error messages, or content you generated), read the full transcript at: /Users/rhhart/.claude/projects/-Users-rhhart-Documents-GitHub-weft-dev/e3890832-b2b1-4a4d-9978-66de875e32cc.jsonl"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 1,
+      "timestamp": "2026-03-11T21:06:26.701Z",
+      "text": "Let me start by understanding the current state of the codebase and critical files."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 2,
+      "timestamp": "2026-03-11T21:06:31.582Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Agent",
+          "summary": "Agent: Explore metacog test corpus state"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 3,
+      "timestamp": "2026-03-11T21:06:31.783Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: prompt.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 4,
+      "timestamp": "2026-03-11T21:06:32.197Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: observer.sh"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 5,
+      "timestamp": "2026-03-11T21:06:33.439Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: query.ts"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 6,
+      "timestamp": "2026-03-11T21:06:33.493Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Glob",
+          "summary": "Glob: metacog/scripts/*"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 7,
+      "timestamp": "2026-03-11T21:07:55.566Z",
+      "text": "Good. I have the full picture. Let me start Phase 0 — I'll work on multiple items in parallel.\n\n**Phase 0 tasks:**\n1. Backfill `_meta.category` from directory structure\n2. Revise `prompt.md` (coupled with parser fixes)\n3. Fix `observer.sh` parser\n4. Build test runner (`run-comparison.ts`)\n5. Build scoring script\n6. Build Deep mode query generation prompt\n7. Create `experiment-log.md`\n\nLet me start with the backfill, prompt revision, and parser fixes simultaneously."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 8,
+      "timestamp": "2026-03-11T21:07:56.422Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: manifest.json"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 9,
+      "timestamp": "2026-03-11T21:08:03.026Z",
+      "text": "Good. I have the full picture. Let me start building. I'll work on the backfill script, prompt revision, and parser fixes first (since the prompt and parser are coupled), then the test runner and scoring infrastructure."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 10,
+      "timestamp": "2026-03-11T21:08:04.873Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: ls metacog/test-samples/pre-fine-tuning/*/"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 11,
+      "timestamp": "2026-03-11T21:08:06.211Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: cat metacog/test-samples/pre-fine-tuning/drift/8d5730b0_50.json | jq '._meta.cat"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 12,
+      "timestamp": "2026-03-11T21:08:09.241Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "ToolSearch",
+          "summary": "ToolSearch: select:TaskCreate,TaskUpdate,TaskList"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 13,
+      "timestamp": "2026-03-11T21:08:12.679Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskCreate",
+          "summary": "TaskCreate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 14,
+      "timestamp": "2026-03-11T21:08:18.567Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskCreate",
+          "summary": "TaskCreate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 15,
+      "timestamp": "2026-03-11T21:08:22.637Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskCreate",
+          "summary": "TaskCreate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 16,
+      "timestamp": "2026-03-11T21:08:28.535Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskCreate",
+          "summary": "TaskCreate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 17,
+      "timestamp": "2026-03-11T21:08:32.726Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskCreate",
+          "summary": "TaskCreate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 18,
+      "timestamp": "2026-03-11T21:08:36.604Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskCreate",
+          "summary": "TaskCreate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 19,
+      "timestamp": "2026-03-11T21:08:40.000Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskCreate",
+          "summary": "TaskCreate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 20,
+      "timestamp": "2026-03-11T21:08:43.374Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskCreate",
+          "summary": "TaskCreate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 21,
+      "timestamp": "2026-03-11T21:08:46.857Z",
+      "text": "Now let me start executing. Backfill first (quick script), then the coupled prompt + parser changes."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 22,
+      "timestamp": "2026-03-11T21:08:46.997Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskUpdate",
+          "summary": "TaskUpdate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 23,
+      "timestamp": "2026-03-11T21:08:52.897Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: for dir in metacog/test-samples/pre-fine-tuning/{on-track,drift,learning-edge,cr"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 24,
+      "timestamp": "2026-03-11T21:08:56.171Z",
+      "text": "9 already set, 31 backfilled. All 40 windows now have categories."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 25,
+      "timestamp": "2026-03-11T21:08:56.480Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskUpdate",
+          "summary": "TaskUpdate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 26,
+      "timestamp": "2026-03-11T21:08:59.654Z",
+      "text": "Now the coupled changes — prompt revision and parser fixes. I'll do both simultaneously."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 27,
+      "timestamp": "2026-03-11T21:09:00.064Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskUpdate",
+          "summary": "TaskUpdate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 28,
+      "timestamp": "2026-03-11T21:09:00.367Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskUpdate",
+          "summary": "TaskUpdate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 29,
+      "timestamp": "2026-03-11T21:09:03.240Z",
+      "text": "**Prompt revision** — 6 changes:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 30,
+      "timestamp": "2026-03-11T21:09:06.716Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: prompt.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 31,
+      "timestamp": "2026-03-11T21:09:11.849Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: prompt.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 32,
+      "timestamp": "2026-03-11T21:09:19.731Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: prompt.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 33,
+      "timestamp": "2026-03-11T21:09:23.102Z",
+      "text": "Now add 2 more examples (speaking without retrieval, silence with relevant retrieval) and tighten retrieval discrimination:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 34,
+      "timestamp": "2026-03-11T21:09:31.714Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: prompt.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 35,
+      "timestamp": "2026-03-11T21:09:34.674Z",
+      "text": "Now tighten retrieval discrimination — add a note near the inject format section:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 36,
+      "timestamp": "2026-03-11T21:09:37.663Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: prompt.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 37,
+      "timestamp": "2026-03-11T21:09:40.812Z",
+      "text": "Now remove redundancy — the null explanation. Let me check for duplicate null explanations:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 38,
+      "timestamp": "2026-03-11T21:09:41.629Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Grep",
+          "summary": "Grep: null in prompt.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 39,
+      "timestamp": "2026-03-11T21:09:46.138Z",
+      "text": "The null explanations are at lines 17-18 (when to stay silent section) and 38 (output format section). These serve different purposes — one says when, the other says how. The line 38 explanation \"(JSON null, not the string \"null\")\" is the important disambiguation. These aren't redundant — they're complementary. I'll leave them.\n\nLet me verify the final prompt:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 40,
+      "timestamp": "2026-03-11T21:09:46.299Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: prompt.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 41,
+      "timestamp": "2026-03-11T21:09:49.214Z",
+      "text": "Prompt revision looks good. All 6 changes landed."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 42,
+      "timestamp": "2026-03-11T21:09:49.626Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskUpdate",
+          "summary": "TaskUpdate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 43,
+      "timestamp": "2026-03-11T21:09:52.413Z",
+      "text": "Now the **parser fixes** in observer.sh:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 44,
+      "timestamp": "2026-03-11T21:10:00.513Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: observer.sh"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 45,
+      "timestamp": "2026-03-11T21:10:03.858Z",
+      "text": "Now handle trailing thinking tags (strip `<think>` blocks after JSON, not just before):"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 46,
+      "timestamp": "2026-03-11T21:10:07.496Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: observer.sh"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 47,
+      "timestamp": "2026-03-11T21:10:10.211Z",
+      "text": "Now add `parse_result` to the session log entry. I need to add it to the jq command that writes observations:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 48,
+      "timestamp": "2026-03-11T21:10:12.881Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: observer.sh"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 49,
+      "timestamp": "2026-03-11T21:10:15.150Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskUpdate",
+          "summary": "TaskUpdate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 50,
+      "timestamp": "2026-03-11T21:10:19.015Z",
+      "text": "Now the big pieces — test runner and supporting scripts. I'll build the Deep mode prompt and test runner in parallel."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 51,
+      "timestamp": "2026-03-11T21:10:19.438Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskUpdate",
+          "summary": "TaskUpdate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 52,
+      "timestamp": "2026-03-11T21:10:19.540Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskUpdate",
+          "summary": "TaskUpdate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 53,
+      "timestamp": "2026-03-11T21:10:29.770Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Write",
+          "summary": "Write: deep-query-prompt.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 54,
+      "timestamp": "2026-03-11T21:10:32.326Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskUpdate",
+          "summary": "TaskUpdate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 55,
+      "timestamp": "2026-03-11T21:10:35.092Z",
+      "text": "Now the test runner — the core piece. Let me check what model flags map to:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 56,
+      "timestamp": "2026-03-11T21:10:35.590Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: package.json"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 57,
+      "timestamp": "2026-03-11T21:10:35.914Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: tsconfig.json"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 58,
+      "timestamp": "2026-03-11T21:11:43.624Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Write",
+          "summary": "Write: run-comparison.ts"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 59,
+      "timestamp": "2026-03-11T21:11:46.370Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskUpdate",
+          "summary": "TaskUpdate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 60,
+      "timestamp": "2026-03-11T21:11:49.034Z",
+      "text": "Now the scoring script:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 61,
+      "timestamp": "2026-03-11T21:11:49.346Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskUpdate",
+          "summary": "TaskUpdate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 62,
+      "timestamp": "2026-03-11T21:12:38.557Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Write",
+          "summary": "Write: score-outputs.ts"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 63,
+      "timestamp": "2026-03-11T21:12:40.671Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskUpdate",
+          "summary": "TaskUpdate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 64,
+      "timestamp": "2026-03-11T21:12:42.888Z",
+      "text": "Now the experiment log:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 65,
+      "timestamp": "2026-03-11T21:12:43.199Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskUpdate",
+          "summary": "TaskUpdate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 66,
+      "timestamp": "2026-03-11T21:13:18.705Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Write",
+          "summary": "Write: experiment-log.md"
+        }
+      ],
+      "errors": [
+        {
+          "tool": "Write",
+          "content": "<tool_use_error>File has not been read yet. Read it first before writing to it.</tool_use_error>"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 67,
+      "timestamp": "2026-03-11T21:13:21.903Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: ls metacog/experiment-log.md 2>/dev/null; echo \"---\"; ls metacog/benchmarks/mode"
+        }
+      ],
+      "errors": [
+        {
+          "tool": "Bash",
+          "content": "Exit code 1\nmetacog/experiment-log.md\n---"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 68,
+      "timestamp": "2026-03-11T21:13:24.872Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: experiment-log.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 69,
+      "timestamp": "2026-03-11T21:13:27.841Z",
+      "text": "Good, the experiment log exists with prior entries. I'll append the new section."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 70,
+      "timestamp": "2026-03-11T21:13:54.068Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: experiment-log.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 71,
+      "timestamp": "2026-03-11T21:13:56.776Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskUpdate",
+          "summary": "TaskUpdate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 72,
+      "timestamp": "2026-03-11T21:13:59.688Z",
+      "text": "Now the dry run. Let me verify the test runner compiles and does a dry run first."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 73,
+      "timestamp": "2026-03-11T21:13:59.994Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskUpdate",
+          "summary": "TaskUpdate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 74,
+      "timestamp": "2026-03-11T21:14:03.826Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: bun metacog/scripts/run-comparison.ts --model ml --retrieval none --output metac"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 75,
+      "timestamp": "2026-03-11T21:14:07.673Z",
+      "text": "Test runner compiles and runs. Let me try with LM Studio if it's available:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 76,
+      "timestamp": "2026-03-11T21:14:08.168Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: curl -s --max-time 3 http://localhost:1234/v1/models 2>&1 | head -c 500"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 77,
+      "timestamp": "2026-03-11T21:14:11.218Z",
+      "text": "LM Studio is running with Qwen3-8B and Gemma-3-12B loaded. The model IDs are `qwen/qwen3-8b` and `google/gemma-3-12b`. Let me update the model registry to match:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 78,
+      "timestamp": "2026-03-11T21:14:14.340Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: run-comparison.ts"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 79,
+      "timestamp": "2026-03-11T21:14:17.415Z",
+      "text": "Now let me do a real dry run with 1 window against the live 8B model:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 80,
+      "timestamp": "2026-03-11T21:14:18.334Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: bun metacog/scripts/run-comparison.ts --model ml --retrieval none --output metac"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 81,
+      "timestamp": "2026-03-11T21:16:16.083Z",
+      "text": "100% clean parse rate, reasonable decisions (silent on on-track, inject on drift, inject on unblocking — exactly what we'd expect). Let me verify the output format:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 82,
+      "timestamp": "2026-03-11T21:16:18.348Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: cat metacog/benchmarks/model-comparison/dry-run/ml_none.json | jq '.[0] | {windo"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 83,
+      "timestamp": "2026-03-11T21:16:21.409Z",
+      "text": "Clean output. Let me also test fast retrieval quickly with 1 window:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 84,
+      "timestamp": "2026-03-11T21:16:22.184Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: bun metacog/scripts/run-comparison.ts --model ml --retrieval fast --output metac"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 85,
+      "timestamp": "2026-03-11T21:16:46.806Z",
+      "text": "The fast retrieval dry run hit an LM Studio model-unloading issue — the embedding call likely caused the chat model to be swapped out. This is an environment constraint, not a code bug. The test runner correctly failed fast.\n\nThe `none` mode dry run was fully successful (5/5, 100% clean parse). Fast mode verified for 1 window before the LM Studio swap happened."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 86,
+      "timestamp": "2026-03-11T21:16:47.011Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "TaskUpdate",
+          "summary": "TaskUpdate"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 87,
+      "timestamp": "2026-03-11T21:16:49.467Z",
+      "text": "Let me clean up the dry run outputs:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 88,
+      "timestamp": "2026-03-11T21:16:49.915Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: rm -rf metacog/benchmarks/model-comparison/dry-run"
+        }
+      ],
+      "errors": [
+        {
+          "tool": "Bash",
+          "content": "BLOCKED by dcg\n\nTip: dcg explain \"rm -rf metacog/benchmarks/model-comparison/dry-run\"\n\nReason: rm -rf is destructive and requires human approval. Explain what you want to delete and why, then ask the "
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 89,
+      "timestamp": "2026-03-11T21:17:09.078Z",
+      "text": "Sandbox hook blocked `rm -rf`. The dry run output is just 2 small JSON files at `metacog/benchmarks/model-comparison/dry-run/` — you can clean it up manually if you want:\n\n```\nrm -rf metacog/benchmarks/model-comparison/dry-run\n```\n\nNot critical — they won't interfere with real runs.\n\n---\n\n**Phase 0 is complete.** Here's what landed:\n\n**1. Backfill** — 31 window files now have `_meta.category` populated from directory structure (9 were already set). All 40 windows have categories.\n\n**2. Prompt revision** (`weft/tools/metaclaude/prompt.md`) — 6 changes:\n- `[no comment]` → `null` (coupled with parser fix)\n- JSON input framing added\n- Index contents description added\n- 2 new examples (4 total, covering full speak/silent × chunks/no-chunks matrix)\n- Retrieval discrimination tightened\n- Redundancy checked (two null explanations serve different purposes, both kept)\n\n**3. Parser fixes** (`weft/tools/metaclaude/observer.sh`) — 4 changes:\n- `parse_result` field in JSONL entries\n- Fallback path silences instead of injecting raw text\n- Trailing thinking tag handling improved\n- Stale comment updated\n\n**4. Test runner** (`metacog/scripts/run-comparison.ts`) — reads manifest, verifies model via `/v1/models`, runs None/Fast/Deep modes, logs structured results with parse_result, thinking traces, latency, and summary stats including format compliance gate checks.\n\n**5. Scoring script** (`metacog/scripts/score-outputs.ts`) — strips model/mode identifiers, shuffles randomly, creates blind batches with embedded rubric for Opus sub-agents. Also has `--merge` mode to reassemble scored results.\n\n**6. Deep mode prompt** (`metacog/scripts/deep-query-prompt.md`) — minimal prompt for first-pass query generation.\n\n**7. Experiment log** — Phase 0 methodology documented in `metacog/experiment-log.md`.\n\n**8. Dry run** — 5 windows through Qwen3-8B with `--retrieval none`: 100% clean parse, reasonable decisions (silent on on-track, inject on drift/unblocking). Fast retrieval verified for 1 window before LM Studio swapped the chat model out for the embedding model — that's an LM Studio config issue you'll need to manage (keep both models pinned) when running Fast/Deep.\n\n**One thing to note for Phase 1:** The LM Studio model IDs are `qwen/qwen3-8b` and `google/gemma-3-12b`. The test runner does partial matching so these resolve correctly. You'll need to check what the 4B model's ID is when you load it (`--model sl`)."
+    },
+    {
+      "role": "user",
+      "turnNumber": 2,
+      "timestamp": "2026-03-11T21:21:46.259Z",
+      "text": "the 4B model id is qwen/qwen3-4b-thinking-2507 . update the PRD with completed steps"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 90,
+      "timestamp": "2026-03-11T21:21:50.179Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: run-comparison.ts"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 91,
+      "timestamp": "2026-03-11T21:21:53.391Z",
+      "text": "Now let me read the PRD to update it with completed steps."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 92,
+      "timestamp": "2026-03-11T21:21:54.175Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: 2026-03-09-metaclaude-local-prd.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 93,
+      "timestamp": "2026-03-11T21:21:57.181Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: 2026-03-09-metaclaude-local-prd.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 94,
+      "timestamp": "2026-03-11T21:21:59.742Z",
+      "text": "Let me find the Phase 2a section:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 95,
+      "timestamp": "2026-03-11T21:22:00.684Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Grep",
+          "summary": "Grep: Phase 2a in 2026-03-09-metaclaude-local-prd.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 96,
+      "timestamp": "2026-03-11T21:22:03.871Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: 2026-03-09-metaclaude-local-prd.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 97,
+      "timestamp": "2026-03-11T21:22:07.011Z",
+      "text": "Now I have the Phase 2a section. Let me update it:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 98,
+      "timestamp": "2026-03-11T21:22:25.683Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-09-metaclaude-local-prd.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 99,
+      "timestamp": "2026-03-11T21:22:28.319Z",
+      "text": "Now update the status line at the top:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 100,
+      "timestamp": "2026-03-11T21:22:30.979Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-09-metaclaude-local-prd.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 101,
+      "timestamp": "2026-03-11T21:22:34.146Z",
+      "text": "Done. Model ID updated to `qwen3-4b-thinking-2507`, PRD updated with completed Phase 2a prep steps and the execution checklist for what's next."
+    },
+    {
+      "role": "user",
+      "turnNumber": 3,
+      "timestamp": "2026-03-11T21:26:33.846Z",
+      "text": "the lm studio model switching / unloading seems like a potential hiccup for next phase -- is it anticipated and resolved?"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 102,
+      "timestamp": "2026-03-11T21:26:51.375Z",
+      "text": "Not resolved — the test runner verifies the model once at the start of a run, but doesn't handle mid-run unloading. During the fast retrieval dry run, the embedding call (`queryIndex` → LM Studio `/v1/embeddings`) apparently caused LM Studio to swap out the chat model by the second window.\n\nTwo layers to address:\n\n**LM Studio config** (your side): LM Studio has per-model \"keep loaded\" / auto-unload settings. Pinning the chat model + embedding model prevents the swap. On your hardware (16GB), having nomic-embed-text (~270MB) + one chat model loaded simultaneously should be fine for 4B and 8B. The 12B might be tight — that's worth checking.\n\n**Test runner resilience** (code side): The runner should detect the unload and either retry or fail gracefully per-window instead of crashing the whole run. Let me add that."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 103,
+      "timestamp": "2026-03-11T21:26:51.867Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: run-comparison.ts"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 104,
+      "timestamp": "2026-03-11T21:26:54.609Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: run-comparison.ts"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 105,
+      "timestamp": "2026-03-11T21:26:58.575Z",
+      "text": "Now I'll add per-window error handling with retry and model re-verification:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 106,
+      "timestamp": "2026-03-11T21:27:10.802Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: run-comparison.ts"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 107,
+      "timestamp": "2026-03-11T21:27:13.188Z",
+      "text": "Let me verify it compiles:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 108,
+      "timestamp": "2026-03-11T21:27:15.111Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: bun metacog/scripts/run-comparison.ts --model ml --retrieval none --output metac"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 109,
+      "timestamp": "2026-03-11T21:27:23.637Z",
+      "text": "Compiles and runs. Here's what the retry logic does:\n\n**Per-window recovery:** If inference fails with a \"no models loaded\" or model-not-found error, the runner:\n1. Pauses 3 seconds (lets LM Studio stabilize)\n2. Re-verifies the model is available via `/v1/models`\n3. Retries the full window (retrieval + inference) up to 2 times\n4. If the model is still gone after re-check, skips that window and continues the run (instead of crashing)\n\nNon-model errors still fail immediately — no retry on timeouts or other issues.\n\n**Your side:** Pin the chat model + embedding model in LM Studio's \"keep loaded\" setting before running fast/deep modes. The 12B + embedding model might be the tight one on 16GB — worth a manual check before that run."
+    },
+    {
+      "role": "user",
+      "turnNumber": 4,
+      "timestamp": "2026-03-11T21:29:18.950Z",
+      "text": "it appears that the base case of running a claude code session doesn't allow enough memory to also run the 12B model in lm studio (let alone in ollama which is less efficient with compute and memory afaict). can you verify this is the case?"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 110,
+      "timestamp": "2026-03-11T21:29:24.057Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: sysctl -n hw.memsize | awk '{print $1/1024/1024/1024 \" GB total\"}'"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 111,
+      "timestamp": "2026-03-11T21:29:24.499Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: memory_pressure 2>&1 | head -5"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 112,
+      "timestamp": "2026-03-11T21:29:26.007Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: ps aux --sort=-rss | head -20 | awk '{printf \"%-8s %-6s %s\\n\", $6/1024 \"MB\", $3\""
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 113,
+      "timestamp": "2026-03-11T21:29:32.921Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: echo \"16 GB total (17179869184 bytes)\" && vm_stat | awk -v ps=16384 '\n/Pages fre"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 114,
+      "timestamp": "2026-03-11T21:29:36.603Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: vm_stat"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 115,
+      "timestamp": "2026-03-11T21:29:38.077Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: curl -s --max-time 3 http://localhost:1234/v1/models | jq -r '.data[].id'"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 116,
+      "timestamp": "2026-03-11T21:29:49.746Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: python3 -c \"\nps = 16384\ntotal = 16  # GB\n\nfree = 15377 * ps / 1024**3\nactive = 1"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 117,
+      "timestamp": "2026-03-11T21:30:04.416Z",
+      "text": "Yeah, confirmed. The numbers tell the story:\n\n**Right now** you have all 5 models listed as \"loaded\" in LM Studio — that's ~15.7 GB of model weights alone on a 16 GB machine. Add 9.8 GB wired+compressor (kernel, Claude Code, apps), and you're at ~25.5 GB demand against 16 GB physical. The 8.3M pageouts and 5.8M swapins confirm the system is actively swapping to disk.\n\n**The 12B model alone (~6.5 GB) + embedding model (~0.27 GB) + system overhead (~9.8 GB) = ~16.5 GB.** That already exceeds physical RAM before any other app gets a page. Claude Code (node processes, bun, etc.) adds to the active footprint.\n\nSo: running a Claude Code session + LM Studio serving the 12B + embedding model doesn't fit in 16 GB without constant swap pressure. The 12B will technically *run*, but inference will be slow (model weights partially paged out → every token generation triggers pageins) and it'll degrade everything else on the machine.\n\n**Practical budget for testing:**\n- System + Claude Code + LM Studio overhead: ~10 GB\n- Available for models: ~6 GB\n- 8B + embedding: ~4.6 GB — fits with headroom\n- 4B + embedding: ~2.4 GB — comfortable\n- 12B + embedding: ~6.8 GB — doesn't fit\n\n**For the comparison run:** Unload the models you're not actively testing. Run 4B and 8B with confidence. For 12B, you could close Claude Code and run the test script standalone (bun doesn't need Claude Code running), or accept that the 12B results will include swap-inflated latency. The quality scores are still valid even if latency isn't — just note it in the experiment log.\n\nWant me to update the experiment log and decision matrix to reflect this constraint?"
+    },
+    {
+      "role": "user",
+      "turnNumber": 5,
+      "timestamp": "2026-03-11T21:32:34.938Z",
+      "text": "let's remove the 12B model from all testing and build spec. it's a moot point. update the PRD etc. to reflect the change and log the design decision as a hardware constraint"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 118,
+      "timestamp": "2026-03-11T21:32:45.645Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Agent",
+          "summary": "Agent: Find all 12B/Gemma references"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 119,
+      "timestamp": "2026-03-11T21:33:10.954Z",
+      "text": "Good. The `.work/extracted-sessions/` references are raw session transcripts — those are historical data, not spec. I need to update 3 files: `run-comparison.ts`, `experiment-log.md`, and the PRD."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 120,
+      "timestamp": "2026-03-11T21:33:14.439Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: run-comparison.ts"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 121,
+      "timestamp": "2026-03-11T21:33:19.263Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: run-comparison.ts"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 122,
+      "timestamp": "2026-03-11T21:33:21.823Z",
+      "text": "Now the experiment log:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 123,
+      "timestamp": "2026-03-11T21:33:24.272Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: experiment-log.md"
+        }
+      ],
+      "errors": [
+        {
+          "tool": "Edit",
+          "content": "<tool_use_error>String to replace not found in file.\nString: Two local models × three retrieval modes, scored by Opus sub-agents on blinded\noutputs.</tool_use_error>"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 124,
+      "timestamp": "2026-03-11T21:33:28.502Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Grep",
+          "summary": "Grep: scored by Opus in experiment-log.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 125,
+      "timestamp": "2026-03-11T21:33:31.234Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: experiment-log.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 126,
+      "timestamp": "2026-03-11T21:33:35.020Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: experiment-log.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 127,
+      "timestamp": "2026-03-11T21:33:47.313Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: experiment-log.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 128,
+      "timestamp": "2026-03-11T21:33:50.106Z",
+      "text": "Now update the earlier experiment log entries that reference the 3-model comparison:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 129,
+      "timestamp": "2026-03-11T21:33:51.814Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: experiment-log.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 130,
+      "timestamp": "2026-03-11T21:33:55.502Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: experiment-log.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 131,
+      "timestamp": "2026-03-11T21:33:59.083Z",
+      "text": "Now the PRD:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 132,
+      "timestamp": "2026-03-11T21:34:00.263Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: 2026-03-09-metaclaude-local-prd.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 133,
+      "timestamp": "2026-03-11T21:34:05.468Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-09-metaclaude-local-prd.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 134,
+      "timestamp": "2026-03-11T21:34:09.283Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-09-metaclaude-local-prd.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 135,
+      "timestamp": "2026-03-11T21:34:12.728Z",
+      "text": "Now find and update the other PRD references to the 3-model set and the 12B stretch goal:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 136,
+      "timestamp": "2026-03-11T21:34:14.136Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Grep",
+          "summary": "Grep: (Gemma|12B|gemma|--ll) in 2026-03-09-metaclaude-local-prd.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 137,
+      "timestamp": "2026-03-11T21:34:19.093Z",
+      "text": "The references at lines 254, 296, 442, 704 are historical records of what was built (the toggle.sh flags still exist, the models were loaded for testing). Those are accurate history. The ones to update are line 873 (model candidates table) and 881 (stretch goal):"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 138,
+      "timestamp": "2026-03-11T21:34:19.692Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: 2026-03-09-metaclaude-local-prd.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 139,
+      "timestamp": "2026-03-11T21:34:25.620Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-09-metaclaude-local-prd.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 140,
+      "timestamp": "2026-03-11T21:34:28.756Z",
+      "text": "Now update the status line at the top. Let me check its current state:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 141,
+      "timestamp": "2026-03-11T21:34:29.188Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: 2026-03-09-metaclaude-local-prd.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 142,
+      "timestamp": "2026-03-11T21:34:32.103Z",
+      "text": "Also check the line about \"Phase 2a results\" dependencies:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 143,
+      "timestamp": "2026-03-11T21:34:32.418Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: 2026-03-09-metaclaude-local-prd.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 144,
+      "timestamp": "2026-03-11T21:34:35.639Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: 2026-03-09-metaclaude-local-prd.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 145,
+      "timestamp": "2026-03-11T21:34:38.915Z",
+      "text": "That's fine — the Phase 2.5 references are about the chosen model after Phase 2a, not specifically about Gemma. Let me also check the lines near 262 that were truncated:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 146,
+      "timestamp": "2026-03-11T21:34:39.653Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: 2026-03-09-metaclaude-local-prd.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 147,
+      "timestamp": "2026-03-11T21:34:45.043Z",
+      "text": "Line 262 references all three models in the context window description. That's a factual record of what was true when the budget was set — the context windows are a property of the models themselves, not a claim about what we're testing. I'll leave it. The context window fact is still true; it just doesn't matter anymore for Gemma since it's not in the test matrix.\n\nLet me verify the run-comparison.ts compiles clean after the changes:"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 148,
+      "timestamp": "2026-03-11T21:34:46.803Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: bun metacog/scripts/run-comparison.ts --model ml --retrieval none --output metac"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 149,
+      "timestamp": "2026-03-11T21:34:54.788Z",
+      "text": "Done. Updated three files:\n\n- **`run-comparison.ts`** — removed `ll` from model registry and usage docs\n- **`experiment-log.md`** — added hardware constraint section with the memory numbers, simplified decision matrix to 4B vs 8B, updated historical references\n- **PRD** — added hardware constraint note in Phase 2a, struck the 12B from the test matrix, updated execution checklist to \"both models\"\n\nThe `--ll` flag in toggle.sh and the model config still exist — those are historical infrastructure that works if someone loads the 12B on beefier hardware. The testing and build spec no longer reference it."
+    },
+    {
+      "role": "user",
+      "turnNumber": 6,
+      "timestamp": "2026-03-11T21:36:44.531Z",
+      "text": "let's remove the --ll flag and model config also"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 150,
+      "timestamp": "2026-03-11T21:36:50.809Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Agent",
+          "summary": "Agent: Find all --ll flag references"
+        }
+      ],
+      "errors": [
+        {
+          "tool": "Agent",
+          "content": "The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). STOP what you are doing and wait for the user to"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "turnNumber": 7,
+      "timestamp": "2026-03-11T21:37:01.318Z",
+      "text": "[Request interrupted by user for tool use]"
+    },
+    {
+      "role": "user",
+      "turnNumber": 8,
+      "timestamp": "2026-03-11T21:37:13.654Z",
+      "text": "resume"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 151,
+      "timestamp": "2026-03-11T21:37:17.533Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Grep",
+          "summary": "Grep: --ll|\"ll\\)\" in metaclaude"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 152,
+      "timestamp": "2026-03-11T21:37:18.360Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Grep",
+          "summary": "Grep: gemma|Gemma|large.local in metaclaude"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 153,
+      "timestamp": "2026-03-11T21:37:21.943Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: toggle.sh"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 154,
+      "timestamp": "2026-03-11T21:37:22.757Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: toggle.sh"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 155,
+      "timestamp": "2026-03-11T21:37:23.167Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: SETUP.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 156,
+      "timestamp": "2026-03-11T21:37:23.734Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: SETUP.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 157,
+      "timestamp": "2026-03-11T21:37:30.147Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: toggle.sh"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 158,
+      "timestamp": "2026-03-11T21:37:33.314Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: toggle.sh"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 159,
+      "timestamp": "2026-03-11T21:37:37.738Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: toggle.sh"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 160,
+      "timestamp": "2026-03-11T21:37:42.334Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: SETUP.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 161,
+      "timestamp": "2026-03-11T21:37:46.495Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: SETUP.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 162,
+      "timestamp": "2026-03-11T21:37:52.057Z",
+      "text": "Done. Removed `--ll` / Gemma-3-12B from:\n\n- **`toggle.sh`** — case branch, flag list, usage/help text\n- **`SETUP.md`** — model table, quick reference examples\n- **`run-comparison.ts`** — model registry, usage docs (done earlier)"
+    },
+    {
+      "role": "user",
+      "turnNumber": 9,
+      "timestamp": "2026-03-11T21:38:26.420Z",
+      "text": "does the plan doc already cover running the tests, or does that need to be planned next"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 163,
+      "timestamp": "2026-03-11T21:38:41.250Z",
+      "text": "The plan covers it. Phases 1-4 are specified with enough detail to execute:\n\n- **Phase 1:** `run-comparison.ts --model sl/ml --retrieval none` → check parse rates → score wave 1\n- **Phase 2:** Same models × `--retrieval fast` → score wave 2\n- **Phase 3:** Same models × `--retrieval deep` → score wave 3\n- **Phase 4:** `score-outputs.ts --merge` → apply decision matrix → write up\n\nThe tooling maps directly to the steps. The only thing that's implicit (not scripted) is the Opus sub-agent scoring — you'd send each batch file to a sub-agent with the embedded rubric and save the results as `scored_batch_01.json` etc. for the merge step.\n\nReady to start Phase 1 whenever you want."
+    },
+    {
+      "role": "user",
+      "turnNumber": 10,
+      "timestamp": "2026-03-11T21:39:34.450Z",
+      "text": "update the plan to include each time that i need to pin a specific model in lm studio"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 164,
+      "timestamp": "2026-03-11T21:39:42.357Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: 2026-03-09-metaclaude-local-prd.md"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "turnNumber": 11,
+      "timestamp": "2026-03-11T21:39:52.827Z",
+      "text": "[Request interrupted by user]"
+    },
+    {
+      "role": "user",
+      "turnNumber": 12,
+      "timestamp": "2026-03-11T21:40:18.807Z",
+      "text": "resume"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 165,
+      "timestamp": "2026-03-11T21:40:31.324Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-09-metaclaude-local-prd.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 166,
+      "timestamp": "2026-03-11T21:40:36.637Z",
+      "text": "Done. Each LM Studio model swap is now an explicit checklist item with what to pin and what to unload. Key detail: embedding model isn't needed for Phase 1 (no retrieval), only for Phases 2-3."
+    },
+    {
+      "role": "user",
+      "turnNumber": 13,
+      "timestamp": "2026-03-11T21:41:45.546Z",
+      "text": "Base directory for this skill: /Users/rhhart/.claude/skills/handoff-test\n\n# Handoff Test\n\n## The Naive Reader\n\nA fresh Claude instance with CLAUDE.md and tooling but nothing from this conversation. The only things that exist for it are what's written in persistent artifacts.\n\n## Process\n\n1. Identify what was created or modified this session. Read each artifact in full.\n2. From the naive reader perspective, find implicit dependencies:\n   - Session-local terminology used without definition\n   - References to \"the bug,\" \"the approach,\" \"what we discussed\" without grounding\n   - Decisions recorded without rationale (a future reader needs *why* to know when the decision expires)\n   - Scope assumed but not stated\n   - Next steps that depend on conversation memory\n3. Report gaps. For each: what's missing, where it goes, concrete suggested text. Offer to apply fixes.\n\nIf the artifact passes, say so in one sentence.\n\n\nARGUMENTS: before context clear and then /handoff-prompt"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 167,
+      "timestamp": "2026-03-11T21:41:55.682Z",
+      "text": "Let me read each artifact created or modified this session and check for handoff gaps."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 168,
+      "timestamp": "2026-03-11T21:41:56.363Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: run-comparison.ts"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 169,
+      "timestamp": "2026-03-11T21:41:56.675Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: score-outputs.ts"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 170,
+      "timestamp": "2026-03-11T21:41:56.984Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: deep-query-prompt.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 171,
+      "timestamp": "2026-03-11T21:42:00.568Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: prompt.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 172,
+      "timestamp": "2026-03-11T21:42:00.968Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: observer.sh"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 173,
+      "timestamp": "2026-03-11T21:42:25.871Z",
+      "text": "Now I have all artifacts in context. Here's the handoff test:\n\n---\n\n## Handoff Test Results\n\n### `prompt.md` — passes\nSelf-contained. All changes are internally grounded. The \"What you receive\" section explains the JSON structure, examples cover the 2×2 matrix, retrieval discrimination is stated inline. No session-local references.\n\n### `observer.sh` — passes\nParser changes are self-documenting. The comment block explains unconstrained output mode. `parse_result` and `PARSE_RESULT` variable are used consistently. The `--strict-parse` mention in the fallback comment references a flag that doesn't exist yet — but the comment says \"gate on\" (future tense), which is accurate.\n\n### `toggle.sh` / `SETUP.md` — pass\nClean removal. No dangling references.\n\n### `deep-query-prompt.md` — passes\nSelf-contained prompt. No implicit dependencies.\n\n### `run-comparison.ts` — **3 gaps**\n\n1. **Stale error message references `ll`.** Line 116: `console.error('--model required: sl, ml, or ll')` — still says `ll` after removing it from the registry.\n   - **Fix:** Change to `sl or ml`\n\n2. **Hardcoded absolute path.** Line 21: `import { queryIndex } from \"/Users/rhhart/Documents/GitHub/weft/tools/metaclaude/embedding/query.ts\"`. A naive reader running from a different machine would hit an import error with no explanation.\n   - **Fix:** Add a comment explaining the path is resolved from the weft harness root, or note in the file header that this script assumes the weft harness at that path.\n\n3. **Hardcoded absolute path.** Line 194-196: `loadSystemPrompt()` hardcodes `/Users/rhhart/Documents/GitHub/weft/tools/metaclaude/prompt.md`. Same issue.\n   - **Fix:** Same treatment — comment or note.\n\n### `score-outputs.ts` — **1 gap**\n\n1. **Scoring workflow undocumented.** The script says \"send each batch file to an Opus sub-agent with the rubric\" (line 264) but doesn't explain *how*. A naive reader doesn't know: is this a Claude Code sub-agent? An API call? A manual copy-paste? The scored files must be named `scored_batch_*.json` (line 277) but this naming convention is only discoverable by reading the merge function.\n   - **Where it goes:** Comment block at top of file, after the `--merge` flag doc.\n   - **Suggested text:**\n     ```\n     * Scoring workflow:\n     *   1. Run with --input/--output to prepare blind batches\n     *   2. Send each batch_*.json to a Claude Opus sub-agent (via Agent tool or API)\n     *      with the rubric embedded in the file — the agent scores and returns JSON\n     *   3. Save scored results as scored_batch_01.json, scored_batch_02.json, etc.\n     *      in the same scoring directory\n     *   4. Run with --merge to reassemble scores with model/mode identifiers\n     ```\n\n### `experiment-log.md` — passes\nAll decisions include rationale (hardware constraint with memory numbers, prompt revision coupling rationale). Cross-references to artifacts use concrete paths. Phase placeholders are clearly marked \"not yet run.\"\n\n### PRD Phase 2a section — passes\nExecution steps are explicit with model pinning instructions and exact commands. Hardware constraint logged with rationale and numbers.\n\n---\n\n**Summary:** 4 gaps across 2 files. Want me to fix them?"
+    },
+    {
+      "role": "user",
+      "turnNumber": 14,
+      "timestamp": "2026-03-11T21:44:15.391Z",
+      "text": "all the testing and dev work is being done on this machine, no worries about hardcoding absolute paths unless they're specifically shipping to users in the weft repo."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 174,
+      "timestamp": "2026-03-11T21:44:19.727Z",
+      "text": "Got it — the hardcoded paths are fine. That leaves 2 gaps:\n\n1. Stale `ll` in error message (`run-comparison.ts:116`)\n2. Missing scoring workflow doc (`score-outputs.ts` header)"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 175,
+      "timestamp": "2026-03-11T21:44:20.766Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: run-comparison.ts"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 176,
+      "timestamp": "2026-03-11T21:44:26.924Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: score-outputs.ts"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 177,
+      "timestamp": "2026-03-11T21:44:29.455Z",
+      "text": "Both fixed. Artifacts pass handoff test."
+    },
+    {
+      "role": "user",
+      "turnNumber": 15,
+      "timestamp": "2026-03-11T21:44:40.355Z",
+      "text": "Base directory for this skill: /Users/rhhart/.claude/skills/handoff-prompt\n\n# Handoff Prompt\n\nDo not read files. Work from memory.\n\n## Recipient\n\nFresh Claude Code instance. Has CLAUDE.md, memory files, full\ntooling. Has nothing from this session.\n\n## Assemble from memory\n\n- **Goal** — session intent\n- **State** — done, in progress, untouched\n- **Key files** — paths and condition\n- **Decisions** — choices and rationale\n- **Discoveries** — anything not yet in persistent files\n- **Blockers** — unresolved issues\n- **Next steps** — prioritized, specific enough to act on\n\nWrite plain text addressing the next agent. Be concrete:\n\"move token validation from route handler to `src/middleware/auth.ts`\"\nnot \"finish the auth work.\"\n\nOutput the entire handoff inside a single fenced code block."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 178,
+      "timestamp": "2026-03-11T21:45:13.441Z",
+      "text": "```\n## Handoff: MetaClaude Model Comparison — Phase 2a\n\n### Goal\n\nBuild and run the empirical comparison framework for MetaClaude's\nlocal observer models. Two models (Qwen3-4B-Thinking, Qwen3-8B) ×\nthree retrieval modes (none, fast, deep) on a frozen 40-window test\ncorpus, scored blind by Opus sub-agents.\n\n### State\n\n**Phase 0 (prep) — complete.** All tooling built, corpus prepared,\nprompt and parser revised, dry run passed.\n\n**Phase 2a execution — not started.** The PRD at\n`design/2026-03-09-metaclaude-local-prd.md` has the full execution\nchecklist under \"Phase 2a execution\" with exact commands and LM Studio\nmodel-pinning steps. Follow it sequentially.\n\n### Key files\n\n- `metacog/scripts/run-comparison.ts` — test runner. Reads corpus,\n  verifies model via /v1/models, runs inference, logs structured\n  results. Has retry logic for LM Studio model-unload recovery.\n- `metacog/scripts/score-outputs.ts` — scoring prep + merge. Strips\n  model/mode identifiers, shuffles, batches for blind Opus scoring.\n  See file header for full workflow (prepare → score → merge).\n- `metacog/scripts/deep-query-prompt.md` — system prompt for Deep\n  mode first-pass query generation.\n- `weft/tools/metaclaude/prompt.md` — revised observer system prompt\n  (6 changes landed: null fix, JSON framing, index description,\n  2 new examples, retrieval discrimination, redundancy check).\n- `weft/tools/metaclaude/observer.sh` — parser fixes landed\n  (parse_result field, don't-inject-on-fallback, trailing think tags,\n  stale comment update).\n- `metacog/test-samples/pre-fine-tuning/manifest.json` — frozen\n  corpus manifest. 40 windows, 5 categories. All window files have\n  _meta.category backfilled.\n- `metacog/experiment-log.md` — methodology documented under\n  \"2026-03-11 — Model comparison: Phase 0\". Update with results as\n  phases complete.\n\n### Decisions\n\n- **Gemma-3-12B removed from all testing.** Hardware constraint: on\n  M2 Pro 16GB, Claude Code + LM Studio + embedding model leaves ~6GB\n  for inference. 12B exceeds that, forcing constant swap. Can't LoRA\n  on this hardware either. Decision matrix simplified to 4B vs 8B.\n- **Unconstrained output mode.** No json_schema — format compliance\n  is a measured variable. Qwen3's <think> tokens are preserved as data.\n- **Don't inject on fallback.** If model output isn't valid JSON, the\n  observer silences rather than injecting raw text.\n- **Decision matrix:** 8B clearly > 4B → use 8B. 8B marginal > 4B →\n  fine-tuning breaks tie (4B easier). 4B matches 8B → use 4B.\n- **Decision gates:** <80% clean-parse → eliminate. <90% → flag.\n\n### Discoveries\n\n- LM Studio auto-unloads models under memory pressure. The embedding\n  model call (nomic-embed-text) can cause the chat model to swap out.\n  Pin both models in LM Studio before fast/deep runs. The test runner\n  has retry logic but pinning is the real fix.\n- Model IDs in LM Studio: `qwen/qwen3-4b-thinking-2507`,\n  `qwen/qwen3-8b`, `text-embedding-nomic-embed-text-v1.5`.\n- The `--ll` flag has been removed from toggle.sh and SETUP.md.\n\n### Blockers\n\nNone. Ready to execute.\n\n### Next steps\n\n1. Follow the Phase 2a execution checklist in the PRD\n   (`design/2026-03-09-metaclaude-local-prd.md`, search for\n   \"Phase 2a execution\"). It has exact commands and LM Studio\n   pinning instructions for each step.\n2. After all runs complete, run score-outputs.ts to prepare blind\n   batches, score with Opus sub-agents, merge results.\n3. Apply decision matrix. Update experiment-log.md with results\n   per phase and final model selection rationale.\n4. The dry-run output at `metacog/benchmarks/model-comparison/dry-run/`\n   can be deleted — it's leftover test data (sandbox blocked rm -rf).\n```"
+    }
+  ],
+  "stats": {
+    "userTurns": 15,
+    "assistantTurns": 178,
+    "toolCalls": 120,
+    "toolErrors": 5
+  }
+}

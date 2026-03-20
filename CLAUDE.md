@@ -40,6 +40,27 @@ The harness is built on Claude Code's native infrastructure:
 Design principles governing the build: `design/design-principles.md`.
 Feature registry organized by principle: `design/harness-features.md`.
 
+### Infrastructure
+
+Two repos: `weft` (shipped harness — skills, scripts, hooks, references)
+and `weft-dev` (development — design docs, coordination layer, threads,
+research). Code the harness ships lives in weft; everything else lives here.
+
+Config: `~/.config/weft/config.json` — path resolution and feature
+settings (`learningRoot`, `voiceMemoRoot`, `threadRoots`, `digestInterval`,
+`digestMode`, `updates`, `progressReviewDays`, `progressReviewSessions`).
+Harness root pointer: `~/.config/weft/root` (written by bootstrap).
+
+Hooks: `weft/.claude/hooks/`
+- `session-start.sh` — context injection on session open
+- `guard.sh` — PreToolUse gating for context-file writes
+
+Scripts: `weft/scripts/` — bun/bash utilities invoked by skills and hooks.
+
+Threads: `threads/<name>/`. Each thread has `_thread.md` (status,
+reading order, decisions, open questions, next actions). Check thread
+state before starting work on a thread.
+
 ### Key design decisions
 
 - **Loading policy over transport.** What matters is when/how content

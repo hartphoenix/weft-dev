@@ -1,0 +1,561 @@
+{
+  "sessionId": "4fdbbcab-0a93-4aea-acc6-c118c3e5ccfe",
+  "timeRange": {
+    "start": "2026-02-26T22:05:50.443Z",
+    "end": "2026-02-26T23:06:55.351Z"
+  },
+  "turns": [
+    {
+      "role": "user",
+      "turnNumber": 1,
+      "timestamp": "2026-02-26T22:05:50.454Z",
+      "text": "based on the current intake and startwork skills, would you expect startwork to be able to surface relevant steps that need to be taken with a user's current projects or no?"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 1,
+      "timestamp": "2026-02-26T22:05:54.809Z",
+      "text": "Let me read both skills to give you a grounded answer."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 2,
+      "timestamp": "2026-02-26T22:05:55.162Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: SKILL.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 3,
+      "timestamp": "2026-02-26T22:05:55.750Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: SKILL.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 4,
+      "timestamp": "2026-02-26T22:06:29.364Z",
+      "text": "Good question. Short answer: **partially, but there's a meaningful gap.**\n\nHere's what connects and what doesn't:\n\n## What startwork CAN surface about projects\n\n- **Continuation signals from git** — uncommitted work, feature branches, recent commits. This is the strongest project-awareness mechanism, but it only sees the *current working directory*.\n- **Session log threads** — \"remaining work\" / \"next steps\" from recent session logs. This carries forward what was last worked on.\n- **TODO/task files** — scans for `TODO.md`, `.todo`, README checklists in the CWD. Only useful if they exist and are maintained.\n- **Growth-edge connections** — cross-references arcs and current-state scores against what a project *needs*, so it can say \"this project needs useReducer and you're at level 2.\"\n\n## The gap\n\n**Intake asks about projects but doesn't persist project state in a form startwork can consume.**\n\nIntake's Phase 2 \"Projects\" section gathers rich information — what you're working on, where you're blocked, what skills it requires, why it matters. But that all goes into `.intake-notes.md`, which gets **deleted** at the end of intake (Phase 4e). The synthesized outputs are:\n\n- `goals.md` — aspirational states, not project-specific\n- `arcs.md` — capability clusters, projects referenced obliquely at best\n- `current-state.md` — concept scores, no project context\n\nSo there's **no persistent project registry**. The project knowledge dissolves into learning-oriented abstractions. Startwork can't say \"here are your 3 active projects and what each needs next\" because that information doesn't live anywhere after intake finishes.\n\n## What it would take to close the gap\n\nA `learning/projects.md` (or similar) that:\n1. Lists active projects with repo paths\n2. Tracks status and next concrete steps\n3. Gets seeded by intake and updated by session-review\n4. Gets read by startwork in its Gather phase\n\nThat would let startwork compose across projects — not just the one you happen to be sitting in — and connect project needs to learning state the way the growth-edge tier already tries to.\n\nWant me to think through what that file and the skill changes would look like?"
+    },
+    {
+      "role": "user",
+      "turnNumber": 2,
+      "timestamp": "2026-02-26T22:14:26.840Z",
+      "text": "yes. consider @design/design-principles.md  in your thinking process"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 5,
+      "timestamp": "2026-02-26T22:14:33.768Z",
+      "text": "Let me explore the existing patterns to design this well."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 6,
+      "timestamp": "2026-02-26T22:14:40.392Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Task",
+          "summary": "Task"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 7,
+      "timestamp": "2026-02-26T22:14:44.147Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Task",
+          "summary": "Task"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 8,
+      "timestamp": "2026-02-26T22:14:47.142Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Task",
+          "summary": "Task"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 9,
+      "timestamp": "2026-02-26T22:18:24.225Z",
+      "text": "Good exploration results. Let me check one more thing and then design the solution."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 10,
+      "timestamp": "2026-02-26T22:18:25.168Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: harness-features.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 11,
+      "timestamp": "2026-02-26T22:19:01.009Z",
+      "text": "Excellent. I found a key detail: harness-features.md already has **\"Project-goal mapping\"** as a planned P3 feature (\"Not started\"). This design is essentially the implementation of that feature.\n\nNow let me launch a Plan agent to work through the implementation details."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 12,
+      "timestamp": "2026-02-26T22:19:24.751Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Task",
+          "summary": "Task"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 13,
+      "timestamp": "2026-02-26T22:21:55.501Z",
+      "text": "The Plan agent produced a thorough design. Let me write the plan file."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 14,
+      "timestamp": "2026-02-26T22:22:25.631Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Write",
+          "summary": "Write: jiggly-wibbling-blanket.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 15,
+      "timestamp": "2026-02-26T22:22:29.679Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "ExitPlanMode",
+          "summary": "ExitPlanMode"
+        }
+      ],
+      "errors": [
+        {
+          "tool": "ExitPlanMode",
+          "content": "The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). The user provided the following reason for the r"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 16,
+      "timestamp": "2026-02-26T22:30:15.998Z",
+      "text": "Good feedback. Let me refine the file format with explicit path/URL fields and move the plan to `design/`."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 17,
+      "timestamp": "2026-02-26T22:30:16.646Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: jiggly-wibbling-blanket.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 18,
+      "timestamp": "2026-02-26T22:30:17.373Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Bash",
+          "summary": "Bash: ls /Users/rhhart/Documents/GitHub/weft-dev/design/"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 19,
+      "timestamp": "2026-02-26T22:30:41.330Z",
+      "text": "Good points. Let me redesign the file format with explicit `Path` and `Repo` fields, and update startwork to use them for cross-repo gathering."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 20,
+      "timestamp": "2026-02-26T22:31:05.852Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Write",
+          "summary": "Write: jiggly-wibbling-blanket.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 21,
+      "timestamp": "2026-02-26T22:31:19.325Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: jiggly-wibbling-blanket.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 22,
+      "timestamp": "2026-02-26T22:31:23.021Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "ExitPlanMode",
+          "summary": "ExitPlanMode"
+        }
+      ],
+      "errors": [
+        {
+          "tool": "ExitPlanMode",
+          "content": "The user doesn't want to proceed with this tool use. The tool use was rejected (eg. if it was a file edit, the new_string was NOT written to the file). The user provided the following reason for the r"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 23,
+      "timestamp": "2026-02-26T22:50:26.295Z",
+      "text": "Let me write the design doc to `design/` and then run the handoff test."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 24,
+      "timestamp": "2026-02-26T22:50:26.317Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: jiggly-wibbling-blanket.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 25,
+      "timestamp": "2026-02-26T22:50:55.193Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Write",
+          "summary": "Write: projects-feature.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 26,
+      "timestamp": "2026-02-26T22:50:58.730Z",
+      "text": "Now running the handoff test."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 27,
+      "timestamp": "2026-02-26T22:50:59.125Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Skill",
+          "summary": "Skill: "
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "turnNumber": 3,
+      "timestamp": "2026-02-26T22:50:59.135Z",
+      "text": "Base directory for this skill: /Users/rhhart/.claude/skills/handoff-test\n\n# Handoff Test\n\n## The Naive Reader\n\nA fresh Claude instance with no session history. Technically competent — can read the codebase, run code, check git history. Has access to standard tooling, CLAUDE.md, and memory files. But has seen nothing from this conversation: no decisions made, options rejected, constraints discovered, or terminology coined. The only things that exist for the naive reader are what's written in persistent artifacts.\n\nThe test: could that instance pick up the artifact and execute without asking clarifying questions?\n\n## Process\n\n1. Identify what was created or modified this session. Read each artifact in full.\n2. From the naive reader perspective, find implicit dependencies:\n   - Session-local terminology used without definition\n   - References to \"the bug,\" \"the approach,\" \"what we discussed\" without grounding\n   - Decisions recorded without rationale (a future reader needs *why* to know when the decision expires)\n   - Scope assumed but not stated\n   - Next steps that depend on conversation memory\n3. Report gaps. For each: what's missing, where it goes, concrete suggested text. Offer to apply fixes.\n\nIf the artifact passes, say so in one sentence."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 28,
+      "timestamp": "2026-02-26T22:51:03.366Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: projects-feature.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 29,
+      "timestamp": "2026-02-26T22:51:06.537Z",
+      "text": "Now let me check the referenced files to understand what the naive reader would need to cross-reference."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 30,
+      "timestamp": "2026-02-26T22:51:15.167Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Task",
+          "summary": "Task"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 31,
+      "timestamp": "2026-02-26T22:52:26.508Z",
+      "text": "## Handoff Test Results\n\nThe design doc passes as a forward-looking spec. A naive reader would understand *what* to build and *why*. But there are a few gaps where the doc assumes session context or leaves ambiguity for the implementer.\n\n### Gap 1: No decision rationale for \"main agent drafts, not sub-agent\"\n\nThe doc says the main agent drafts `projects.md` instead of a 5th sub-agent, and gives a one-line reason (\"structured transcription, not developmental synthesis\"). But it doesn't explain the competing concern it's overriding — intake's own anti-pattern says \"Don't draft the document yourself — keep the main agent's context clean.\" A naive reader implementing this will see the contradiction and wonder if it's intentional.\n\n**Where it goes:** Section \"Skill changes > Intake\", item 2\n\n**Suggested text:**\n```\n   Note: intake's Phase 3 anti-pattern says \"don't draft documents\n   yourself — keep the main agent's context clean.\" That rule protects\n   against the main agent doing synthesis work that requires modeling\n   the full interview. Projects.md is different: the main agent just\n   conducted the projects interview and wrote the ## Projects notes —\n   the concrete facts (names, repos, status, next steps) are already\n   in context. No developmental model analysis is needed. A sub-agent\n   would add dispatch overhead without adding analytical value.\n```\n\n### Gap 2: No guidance on project naming as a join key\n\nThe doc says session-review matches `project:` from session log frontmatter to `## [Project Name]` headings in `projects.md`. But it never says what happens when names don't match exactly (e.g., session log says \"assignment-4\" but projects.md heading is \"Assignment 4\"). A naive reader implementing the session-review change won't know whether to require exact match, fuzzy match, or normalize.\n\n**Where it goes:** Section \"Skill changes > Session-review\", after the first bullet\n\n**Suggested text:**\n```\n   Name matching: the `project:` field in session logs should use the\n   exact `## heading` text from projects.md as the canonical name.\n   Session-review writes the `project:` field, so it can enforce this\n   by reading projects.md before writing the session log. If no match\n   is found (new project not yet in projects.md), note this to the\n   user and offer to add a new project entry.\n```\n\n### Gap 3: No guidance on adding projects *after* intake\n\nThe doc covers seeding at intake and updating at session-review, but doesn't say what happens when the learner starts a new project mid-lifecycle. Session-review encounters a `project:` that doesn't match any entry. The doc's current text for session-review says \"skip silently if `projects.md` doesn't exist\" but doesn't cover the case where the file exists but the project is new.\n\n**Where it goes:** Section \"Skill changes > Session-review\", as a new bullet after the existing ones\n\n**Suggested text:**\n```\n- If the session's project doesn't match any existing entry in\n  projects.md, offer to add a new project entry. Ask the user for\n  the fields that can't be inferred from the session: Path, Repo,\n  Serves, Why. Infer Status (active), Arcs (from session arcs),\n  Needs next (from session remaining work), Last touched (today),\n  Deadline (none unless stated).\n```\n\n### Gap 4: Startwork cross-repo git checks need a cost bound\n\nStartwork Step 2 says to run `git status --short && git branch --show-current` for each active project with a `Path`. If a learner has 8 active projects, that's 8 shell commands before the briefing even starts. No upper bound is specified.\n\n**Where it goes:** Section \"Skill changes > Startwork\", item 2\n\n**Suggested text after the existing paragraph:**\n```\n   Bound: check at most 5 project paths. If more active projects have\n   paths, prioritize by Last touched (most recent first). This keeps\n   startup time reasonable while covering the most relevant projects.\n```\n\n---\n\nThose are the four gaps. The rest of the doc is self-contained — the file format, data flow diagram, degradation table, and verification steps are all clear enough for a naive reader to execute from. Want me to apply these fixes?"
+    },
+    {
+      "role": "user",
+      "turnNumber": 4,
+      "timestamp": "2026-02-26T22:54:47.285Z",
+      "text": "apply all fixes"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 32,
+      "timestamp": "2026-02-26T22:54:50.656Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: projects-feature.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 33,
+      "timestamp": "2026-02-26T22:54:53.354Z",
+      "text": "Applying all four fixes now."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 34,
+      "timestamp": "2026-02-26T22:54:58.680Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: projects-feature.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 35,
+      "timestamp": "2026-02-26T22:55:01.048Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: projects-feature.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 36,
+      "timestamp": "2026-02-26T22:55:03.431Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: projects-feature.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 37,
+      "timestamp": "2026-02-26T22:55:04.519Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: projects-feature.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 38,
+      "timestamp": "2026-02-26T22:55:11.145Z",
+      "text": "All four fixes applied:\n\n1. **Gap 1** — Added rationale for why \"main agent drafts\" doesn't violate intake's anti-pattern (structured transcription vs. synthesis)\n2. **Gap 2** — Added name-matching guidance: session-review enforces canonical names from projects.md headings\n3. **Gap 3** — Added new-project-after-intake flow: session-review offers to create entries for unrecognized projects, asks user for non-inferable fields\n4. **Gap 4** — Added cost bound: max 5 project paths, prioritized by Last touched"
+    },
+    {
+      "role": "user",
+      "turnNumber": 5,
+      "timestamp": "2026-02-26T22:57:02.339Z",
+      "text": "my concern is that the plan is quite complex and requires many changes, especially to the intake skill, which is already lengthy and demanding of context. What this means is that the intake agent will run across a lot of complexities it has to make decisions about. It is doing a lot of synthesis from sub-agent reports, and it may itself run out of context before the intake stage is complete. The intake stage is the most important stage that sets up the entire software to do its job. So the open question to add to the end of this plan is, do we need to break the intake flow into discrete phases that are accomplished by different agents and they reach the handoff test at each checkpoint before beginning a new phase? go ahead and add a summary of this open question to the end of the plan, but do not execute the plan."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 39,
+      "timestamp": "2026-02-26T22:57:05.416Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: projects-feature.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 40,
+      "timestamp": "2026-02-26T22:57:25.435Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: projects-feature.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 41,
+      "timestamp": "2026-02-26T22:57:30.639Z",
+      "text": "Added. The open question frames the core tension: `.intake-notes.md` already exists as a resume checkpoint, but promoting it to an inter-agent contract is a different quality bar. The handoff test is the mechanism that could enforce that bar — but only if it's calibrated for the interview-to-synthesis boundary specifically.\n\nThe \"resolve before implementing\" tag at the end keeps this from getting buried once someone picks up the plan."
+    },
+    {
+      "role": "user",
+      "turnNumber": 6,
+      "timestamp": "2026-02-26T23:00:11.223Z",
+      "text": "what I want for the project's feature to accomplish is that there is a consistent updated state of the user's ongoing projects that is available to help the start work skill make informed decisions about what to produce. present the user with as relevant next steps that can be taken and these projects inform or rather projects are informed by the intake interview and learning state of the user. Do you think that the plan outlines the creation of a feature that actually fulfills these goals?"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 42,
+      "timestamp": "2026-02-26T23:00:29.773Z",
+      "text": "Yes, the plan fulfills those goals. Here's why I think so, and one place where it's thin.\n\n**What it gets right:**\n\nThe data flow is sound. Intake seeds projects.md with the learner's own words about what they're building and why. Session-review keeps `Needs next` and `Status` current after every session — so by the time startwork runs, it has a fresh picture. Startwork then joins project state to learning state: `Arcs` connects a project to capability clusters, which connect to concept scores in current-state.md, which tell startwork where the growth edge is. That's the chain that produces \"this project needs X and you're at level Y — this is where the learning happens.\"\n\nThe `Path` and `Repo` fields close the cross-repo blindspot. Without them, startwork only sees the directory you happen to be sitting in. With them, it can check git state across all your active projects and surface continuation signals for work you left mid-flight somewhere else.\n\n**Where it's thin:**\n\nThe plan describes *what* startwork reads and *where* the data lives, but it doesn't say much about how startwork *weighs* project-level signals against each other when composing the briefing. Right now startwork's tier system handles this implicitly — Tier 1 beats Tier 2 beats Tier 4. But with multiple active projects each carrying their own `Needs next`, `Deadline`, and arc connections, the ranking *within* a tier gets more complex. The plan says \"prioritize active, skip complete, note paused\" but doesn't address: if you have 3 active projects, how does startwork decide which one's `Needs next` matters most today?\n\nIn practice, startwork's existing signals probably handle this — the CWD project gets Tier 1 from git state, deadline proximity sorts Tier 2, and the growth-edge heuristic from the developmental model sorts Tier 4. But the plan doesn't make that explicit. A naive implementer might surface all 3 projects' next steps with equal weight, which would bloat the briefing.\n\nThat said — this is a tuning concern, not a structural gap. The architecture is right. The data flows to the right places. The consumer (startwork) has what it needs to compose an informed briefing. Whether it composes *well* is a question that gets answered by running it and iterating.\n\n**Short answer:** The plan builds the feature you described. Projects become persistent, updated state that startwork can use to surface relevant next steps informed by both the project's needs and the learner's growth edge."
+    },
+    {
+      "role": "user",
+      "turnNumber": 7,
+      "timestamp": "2026-02-26T23:02:24.839Z",
+      "text": "a couple of questions I have. What actions keep the needs next and deadline attributes fresh? How do we know how fresh they are, and how do we resolve staleness, and how do we resolve conflicts of state between various records about the project, etc.?"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 43,
+      "timestamp": "2026-02-26T23:02:49.964Z",
+      "text": "Good questions. The plan has gaps here. Let me trace what it actually says and where it falls short.\n\n**What keeps `Needs next` fresh?**\n\nOnly session-review. It updates the field after each reviewed session. But session-review only runs when the user explicitly invokes `/session-review`. If they work three sessions without running it, `Needs next` is three sessions stale. There's no other update mechanism in the plan.\n\n**What keeps `Deadline` fresh?**\n\nNothing. The plan says intake seeds it and lists it as a field session-review does NOT update from session evidence (it's in the \"stable, human-authored\" list alongside `Why`, `Serves`, `Path`, `Repo`). So a deadline that passes or changes just sits there wrong until the user manually edits it.\n\n**How do we know how fresh they are?**\n\n`Last touched` gives a date but only tells you when *any* field was updated, not whether `Needs next` specifically is still accurate. The user could have completed that step two days ago and moved on.\n\n**State conflicts between records:**\n\nThe plan doesn't address this at all. But the conflict surface is real:\n- `projects.md` says \"Needs next: write API endpoints\" but git state at that `Path` shows the API branch was merged\n- Most recent session log says \"remaining work: fix CSS layout\" but `projects.md` says \"Needs next: write tests\"\n- `Deadline` in projects.md says 2026-03-01 but the project's README or schedule.md says it was pushed to 2026-03-15\n\nThese are multiple sources of truth about the same project, with no reconciliation protocol.\n\nI'll add these as concrete gaps to the design doc."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 44,
+      "timestamp": "2026-02-26T23:02:50.506Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: projects-feature.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 45,
+      "timestamp": "2026-02-26T23:03:25.017Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: projects-feature.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 46,
+      "timestamp": "2026-02-26T23:03:32.679Z",
+      "text": "Added. The key findings:\n\n**Session-review is the only update mechanism**, and it only runs on explicit invocation. Everything between reviews is a blind spot. `Deadline` is worse — nothing updates it at all.\n\n**The proposed resolution:** startwork is the natural reconciliation point. It already reads both projects.md and git state during Gather. When they disagree, it names the conflict to the user rather than silently picking a winner. This is lightweight, consistent with P7, and doesn't add write responsibilities to a skill that's designed to be read-only in Phases 1-4.\n\nThe authority hierarchy I proposed: git state (ground truth for code) > recent session log (closest to actual work) > projects.md (persistent but potentially stale) > schedule files (project-local, may diverge). That's a starting point — worth confirming before building."
+    },
+    {
+      "role": "user",
+      "turnNumber": 8,
+      "timestamp": "2026-02-26T23:05:21.712Z",
+      "text": "is this proposed resolution listed anywhere in the plan?"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 47,
+      "timestamp": "2026-02-26T23:05:29.684Z",
+      "text": "No. The staleness detection and conflict resolution are only in the open questions section — they're framed as \"possible signals\" and \"proposal,\" not as committed design. The actual skill changes sections for startwork, session-review, and intake don't include any of it.\n\nIf we want startwork to actually flag stale entries and name conflicts, that needs to be in the startwork skill changes section, not just theorized about at the bottom. Same for the authority hierarchy — it's proposed but not wired into any skill's decision logic.\n\nWant me to promote the concrete pieces into the skill changes sections? Specifically:\n\n- Startwork Gather: detect past deadlines, stale `Last touched`, git-state contradictions\n- Startwork Present: surface conflicts as lightweight prompts in the briefing\n- The authority hierarchy as an explicit rule startwork follows when sources disagree"
+    },
+    {
+      "role": "user",
+      "turnNumber": 9,
+      "timestamp": "2026-02-26T23:06:32.057Z",
+      "text": "not yet. Instead, let's leave the end of the plan marked out with what the plan needs next, which includes answering these open questions and resolving proposals"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 48,
+      "timestamp": "2026-02-26T23:06:35.247Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: projects-feature.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 49,
+      "timestamp": "2026-02-26T23:06:50.633Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: projects-feature.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 50,
+      "timestamp": "2026-02-26T23:06:55.351Z",
+      "text": "Done. The plan now ends with a clear checklist of what needs to happen before implementation: six items, each pointing back to a specific open question and naming where its answer needs to land in the plan. No proposals promoted prematurely."
+    }
+  ],
+  "stats": {
+    "userTurns": 9,
+    "assistantTurns": 50,
+    "toolCalls": 30,
+    "toolErrors": 2
+  }
+}
