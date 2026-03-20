@@ -1,0 +1,957 @@
+{
+  "sessionId": "82956eeb-d353-462d-806f-2d3d3e1f7e9f",
+  "timeRange": {
+    "start": "2026-03-07T14:08:45.876Z",
+    "end": "2026-03-07T14:40:36.598Z"
+  },
+  "turns": [
+    {
+      "role": "user",
+      "turnNumber": 1,
+      "timestamp": "2026-03-07T14:10:53.564Z",
+      "text": "Okay, I have successfully updated the schema that creates the domain map. And this has significantly affected the way that the learning state gets created and updated. What we need to do next is find all the components of the learning loop that have broken in some way due to this new design. Whether it's developing quiz targets for a session review or doing a progress review or getting relevant information for the start work. So I need you to explore the weft harness thoroughly and assess every component and bring a list of things to fix first, things that are most load-bearing and most broken that need to be repaired in order to integrate the domain map skill and schema as it currently stands. @~/documents/github/weft/"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 1,
+      "timestamp": "2026-03-07T14:10:57.233Z",
+      "text": "Let me explore the current domain map schema and then audit each learning loop component against it."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 2,
+      "timestamp": "2026-03-07T14:10:58.045Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "ToolSearch",
+          "summary": "ToolSearch: select:Read,Glob,Agent"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "turnNumber": 2,
+      "timestamp": "2026-03-07T14:10:58.049Z",
+      "text": "Tool loaded."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 3,
+      "timestamp": "2026-03-07T14:11:01.266Z",
+      "text": "Let me read the domain map schema and current learning state first, then audit all the skills in parallel."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 4,
+      "timestamp": "2026-03-07T14:11:02.607Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Glob",
+          "summary": "Glob: **/*domain* in weft"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 5,
+      "timestamp": "2026-03-07T14:11:02.682Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Glob",
+          "summary": "Glob: **/*domain* in learning"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 6,
+      "timestamp": "2026-03-07T14:11:03.069Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Glob",
+          "summary": "Glob: *.md in learning"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 7,
+      "timestamp": "2026-03-07T14:11:06.553Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: domain-graph-schema.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 8,
+      "timestamp": "2026-03-07T14:11:06.961Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: domain-graph.ts"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 9,
+      "timestamp": "2026-03-07T14:11:07.386Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: current-state.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 10,
+      "timestamp": "2026-03-07T14:11:07.884Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: goals.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 11,
+      "timestamp": "2026-03-07T14:11:08.108Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: arcs.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 12,
+      "timestamp": "2026-03-07T14:11:17.161Z",
+      "text": "Now let me audit all the skills that touch learning state. I'll read them in parallel."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 13,
+      "timestamp": "2026-03-07T14:11:17.889Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Glob",
+          "summary": "Glob: **/*.md in skills"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 14,
+      "timestamp": "2026-03-07T14:11:20.478Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: SKILL.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 15,
+      "timestamp": "2026-03-07T14:11:20.887Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: SKILL.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 16,
+      "timestamp": "2026-03-07T14:11:21.337Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: SKILL.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 17,
+      "timestamp": "2026-03-07T14:11:21.809Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: SKILL.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 18,
+      "timestamp": "2026-03-07T14:11:22.343Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: SKILL.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 19,
+      "timestamp": "2026-03-07T14:11:22.695Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: SKILL.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 20,
+      "timestamp": "2026-03-07T14:11:23.140Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: SKILL.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 21,
+      "timestamp": "2026-03-07T14:11:23.580Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: SKILL.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 22,
+      "timestamp": "2026-03-07T14:11:27.479Z",
+      "text": "Let me check what exists for the learner state types and any existing domain graph files."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 23,
+      "timestamp": "2026-03-07T14:11:28.370Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Glob",
+          "summary": "Glob: scripts/types/*.ts in weft"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 24,
+      "timestamp": "2026-03-07T14:11:28.828Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Glob",
+          "summary": "Glob: domains/** in weft"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 25,
+      "timestamp": "2026-03-07T14:11:29.664Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Glob",
+          "summary": "Glob: learning/state/** in roger"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 26,
+      "timestamp": "2026-03-07T14:11:29.836Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Glob",
+          "summary": "Glob: domains/** in roger"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 27,
+      "timestamp": "2026-03-07T14:11:32.704Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Glob",
+          "summary": "Glob: scripts/**/*.ts in weft"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 28,
+      "timestamp": "2026-03-07T14:11:35.351Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "ToolSearch",
+          "summary": "ToolSearch: select:Bash"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "turnNumber": 3,
+      "timestamp": "2026-03-07T14:11:35.352Z",
+      "text": "Tool loaded."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 29,
+      "timestamp": "2026-03-07T14:12:28.571Z",
+      "text": "Now I have the full picture. Here's the assessment.\n\n---\n\n## Breakage Assessment: Domain Map Integration\n\n### The core tension\n\nThe domain map schema splits learning state into two files:\n- **Domain graph** (`domains/<slug>.domain.json`) — topology, shared, learner-independent\n- **Learner state** (`learning/state/<slug>.state.json`) — observations, per-learner, per-domain\n\nEvery existing skill reads/writes a single `learning/current-state.md` (YAML markdown) that conflates both. No skill currently reads from either new file path or knows the new data structures.\n\nAdditionally:\n- `learning/arcs.md` duplicates arc info now in the domain graph\n- `learning/goals.md` has goal info now in the learner state\n- `scripts/types/learner-state.ts` is referenced in the schema doc but doesn't exist\n- `scripts/lib/graph-queries.ts` (referenced by domain-map Phase 2) doesn't exist\n- Neither `domains/` nor `learning/state/` directories exist yet\n\n---\n\n### Priority 1: Most load-bearing, most broken\n\n**1. session-review** — The primary state writer. Reads current-state.md YAML in Phase 1, writes quiz scores back in Phase 3. Every line of its write logic assumes flat YAML entries (`name`, `score`, `gap`, `last-quizzed`, `times-quizzed`, `history`). The new schema has `ConceptObservation` with `assessments[]`, `chunkingState`, `fluencyTarget`, `instrument` — a completely different shape. Session-review also selects quiz types but doesn't use knowing profiles or the interaction matrix yet, even though the schema doc says it should.\n\n**2. session-digest** — Reads current-state.md for concept matching. Its output format and YAML entry schema (lines 151-161) target the old flat format. The synthesis phase compares against current-state and returns diffs shaped for the old file. Since session-review dispatches digest as a sub-agent, fixing one without the other creates a format mismatch.\n\n**3. startwork** — Reads all three learning state files (current-state, goals, arcs) in Phase 1 Step 4. Extracts low-scoring concepts, stale concepts, gap types — all assuming YAML flat list. Also dispatches session-digest (Step 3c), whose output targets the old format. The Tier 3 (Unblocking) and Tier 4 (Growth-edge) logic can't use prerequisite edges or arc dependencies from the domain graph because it doesn't read one.\n\n### Priority 2: Broken but less frequently invoked\n\n**4. intake** — Generates initial current-state.md as YAML (Phase 3d). Should now either: (a) generate a domain graph + learner state, or (b) work with current-state.md as a lightweight bootstrap that gets migrated when domain-map runs. Intake also generates `arcs.md` and `goals.md`, which overlap with domain graph arcs and learner state goals.\n\n**5. progress-review** — All four analytical lenses (concept, arc, goal, learner model) read the old format. The concept lens checks scores, stalls, regressions against YAML entries. Would benefit from assessment history (the new `assessments[]` array) but can't access it.\n\n**6. lesson-scaffold** — Reads current-state.md to classify concepts as solid/growing/new/prerequisite-gap. Could use prerequisite edges from the domain graph for actual gap detection instead of score thresholds alone.\n\n### Priority 3: Structural gaps (not broken, but missing)\n\n**7. `learner-state.ts`** — Referenced in the schema doc but doesn't exist. Domain-map writes an empty learner state stub but the types aren't defined.\n\n**8. `graph-queries.ts`** — Domain-map Phase 2 references it for structural validation. Doesn't exist.\n\n**9. Migration path** — No skill or script converts existing `current-state.md` → `learning/state/<slug>.state.json`. Hart has 40+ concepts with history in the old format. A migration tool (or at minimum a migration plan) is needed.\n\n**10. Dual-source resolution** — Once domain graphs exist, skills need to know: read the domain graph for topology, read the learner state for scores, join on concept ID. No skill has this logic. And during the transition, some concepts may exist in current-state.md but not in any domain graph.\n\n---\n\n### Recommended repair sequence\n\n1. **Write `learner-state.ts`** — Define the types. Everything downstream needs them.\n2. **Write a migration script** — `current-state.md` → `<slug>.state.json`. Preserves all existing data.\n3. **Fix session-review** — The tightest feedback loop. Update read/write to use new format. Add knowing-profile-aware quiz targeting and interaction matrix dispatch.\n4. **Fix session-digest** — Align output format with new schema so session-review can consume it.\n5. **Fix startwork** — Add domain graph reading for prerequisite-aware ranking (Tier 3).\n6. **Fix intake** — Decide whether intake bootstraps a lightweight state or generates a full domain graph.\n7. **Fix progress-review and lesson-scaffold** — Lower urgency since they're read-only consumers.\n\nWant me to start on any of these?"
+    },
+    {
+      "role": "user",
+      "turnNumber": 4,
+      "timestamp": "2026-03-07T14:22:30.749Z",
+      "text": "Good, this is pretty thorough information. I'd like you to launch research agents to investigate any open questions that we have from this list and then create an update plan that 1) resolves all known issues and 2) names all remaining open questions. we're going to wait on building any of these changes and simply keep the update plan in weft-dev/design prepended with today's date. that will become the highest priority for the next phase of the build. important to note in the plan that the domain graph update exists only on the hart/domain-graph-schema branch with an open PR that has not yet merged; main branch (shipped to users) still uses the old schema. all solutions must be ready in order to ship the new schema in an integrated state."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 30,
+      "timestamp": "2026-03-07T14:22:37.625Z",
+      "text": "Let me dispatch research agents for the key open questions."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 31,
+      "timestamp": "2026-03-07T14:22:44.530Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Agent",
+          "summary": "Agent: Audit domain-graph-schema branch"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 32,
+      "timestamp": "2026-03-07T14:22:51.367Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Agent",
+          "summary": "Agent: Audit reference files and scripts"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 33,
+      "timestamp": "2026-03-07T14:22:59.021Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Agent",
+          "summary": "Agent: Audit current session log format"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 34,
+      "timestamp": "2026-03-07T14:24:07.464Z",
+      "text": "Good — the research filled in major gaps. Key discoveries:\n\n- **`learner-state.ts` exists** on the branch (57 lines, full interfaces)\n- **`graph-queries.ts` exists** (476 lines — fringe, priority, practice mode, coverage, surmise queries)\n- **`migrate-observations.ts` exists** (509 lines — parses legacy YAML, matches to domain graph concepts, handles orphans)\n- The infrastructure is more complete than the initial audit suggested. The gap is in the **skills**, not the plumbing.\n\nLet me write the plan."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 35,
+      "timestamp": "2026-03-07T14:24:08.000Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "ToolSearch",
+          "summary": "ToolSearch: select:Write"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "turnNumber": 5,
+      "timestamp": "2026-03-07T14:24:08.003Z",
+      "text": "Tool loaded."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 36,
+      "timestamp": "2026-03-07T14:26:00.502Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Write",
+          "summary": "Write: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 37,
+      "timestamp": "2026-03-07T14:26:03.178Z",
+      "text": "Good catch — the plan needs to address the upgrade path for existing users, not just Hart's migration. Let me add that section."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 38,
+      "timestamp": "2026-03-07T14:26:04.160Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 39,
+      "timestamp": "2026-03-07T14:26:07.122Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "ToolSearch",
+          "summary": "ToolSearch: select:Edit"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "turnNumber": 6,
+      "timestamp": "2026-03-07T14:26:07.124Z",
+      "text": "Tool loaded."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 40,
+      "timestamp": "2026-03-07T14:26:42.637Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 41,
+      "timestamp": "2026-03-07T14:26:44.599Z",
+      "text": "Now let me add the bootstrap graph to the open questions table."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 42,
+      "timestamp": "2026-03-07T14:26:49.791Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 43,
+      "timestamp": "2026-03-07T14:26:57.367Z",
+      "text": "Plan is written at `design/2026-03-07-domain-graph-integration-plan.md`.\n\n**Summary of what it covers:**\n\n- **8 build phases** in dependency order: generate first domain graph -> run migration -> resolve arcs/goals redundancy -> update session-review -> session-digest -> startwork -> remaining skills -> ship\n- **Existing user migration** for three user profiles (active user with state, light user, new user) — detection, domain graph generation, migration script, orphan resolution, verification\n- **Graceful degradation** requirement: every skill maintains a legacy read path so the harness works without a domain graph\n- **Bootstrap graph** option for users who want migration without source materials\n- **13 open questions** with blocking phase and recommendations\n- **6 risks** with mitigations\n- **Dependency graph** showing the critical path (no parallelism — each phase is a natural session boundary)\n\nKey design decisions flagged for your input: what happens to `arcs.md`/`goals.md` (three options), whether to build the bootstrap graph script, and who owns the migration prompt."
+    },
+    {
+      "role": "user",
+      "turnNumber": 7,
+      "timestamp": "2026-03-07T14:34:34.078Z",
+      "text": "Base directory for this skill: /Users/rhhart/.claude/skills/handoff-test\n\n# Handoff Test\n\n## The Naive Reader\n\nA fresh Claude instance with CLAUDE.md and tooling but nothing from this conversation. The only things that exist for it are what's written in persistent artifacts.\n\n## Process\n\n1. Identify what was created or modified this session. Read each artifact in full.\n2. From the naive reader perspective, find implicit dependencies:\n   - Session-local terminology used without definition\n   - References to \"the bug,\" \"the approach,\" \"what we discussed\" without grounding\n   - Decisions recorded without rationale (a future reader needs *why* to know when the decision expires)\n   - Scope assumed but not stated\n   - Next steps that depend on conversation memory\n3. Report gaps. For each: what's missing, where it goes, concrete suggested text. Offer to apply fixes.\n\nIf the artifact passes, say so in one sentence.\n\n\nARGUMENTS: the plan"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 44,
+      "timestamp": "2026-03-07T14:34:36.823Z",
+      "text": "Let me read the plan in full as a naive reader would encounter it."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 45,
+      "timestamp": "2026-03-07T14:34:36.995Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 46,
+      "timestamp": "2026-03-07T14:35:08.220Z",
+      "text": "## Handoff Test Results\n\nThe plan is well-structured and largely self-contained. A naive reader with CLAUDE.md context could pick this up and act on most of it. Five gaps found:\n\n### Gap 1: \"Old format\" never shown concretely\nThe plan describes the old format as \"YAML markdown\" and \"flat YAML entries\" but never shows a concrete example of what a `current-state.md` concept entry actually looks like. A naive reader updating session-review (Phase 4) needs to know what they're migrating FROM.\n\n**Where it goes:** Under \"What's broken\", after line 54\n**Suggested text:**\n```\n**Old format example** (`learning/current-state.md`):\n\n    - name: react-hooks\n      arc: react-fundamentals\n      score: 4\n      source: audit:observed\n      last-quizzed: 2026-02-10\n      times-quizzed: 1\n      history:\n        - { date: 2026-02-10, score: 3, note: \"...\" }\n\n**New format equivalent** (`learning/state/<slug>.state.json`):\n\n    \"react-hooks\": {\n      \"score\": 4,\n      \"gap\": null,\n      \"fluencyTarget\": \"production\",\n      \"chunkingState\": \"consolidated\",\n      \"lastAssessed\": \"2026-02-10\",\n      \"timesAssessed\": 1,\n      \"assessments\": [\n        { \"date\": \"2026-02-10\", \"score\": 3, \"source\": \"session-review:quiz\",\n          \"instrument\": \"quiz\", \"note\": \"...\" }\n      ]\n    }\n```\n\n### Gap 2: Where files live is ambiguous for the naive reader\nThe plan references `learning/current-state.md`, `domains/<slug>.domain.json`, and `learning/state/<slug>.state.json` but doesn't ground these in absolute paths. The harness has split repos (weft = harness code, roger = learner data). A naive reader wouldn't know that `learning/` resolves to `/Users/rhhart/Documents/GitHub/roger/learning/` while `domains/` and `scripts/` live in weft.\n\n**Where it goes:** Context section, after line 25\n**Suggested text:**\n```\n**File locations:**\n\n- Harness code (skills, scripts, references): `<harness-root>/` (weft repo)\n- Learner data (current-state, session logs, learner state JSON):\n  `<learner-root>/learning/` (per-learner repo, e.g. roger)\n- Domain graphs: `<harness-root>/domains/` (shared, shipped with harness)\n- Learner state overlays: `<learner-root>/learning/state/` (per-learner)\n\nPath resolution: skills read `~/.config/weft/root` for harness root.\nLearner data paths resolve from CLAUDE.md path mappings.\n```\n\n### Gap 3: \"Concept ID\" vs \"concept name\" distinction not defined\nThe plan says \"domain graphs use concept IDs (slugs)\" and the migration script \"matches legacy concept names to domain graph concept IDs\" but never defines what a concept ID looks like or how it relates to the name. The migration script generates slugs — a naive reader needs to know the slugging convention.\n\n**Where it goes:** Context section, or Phase 2 steps\n**Suggested text:**\n```\n**Concept identity:** Domain graphs key concepts by slug ID (e.g.,\n`react-hooks`, `async-execution-model`). The migration script generates\nslugs from legacy concept names via lowercasing and hyphenation. The\n`ConceptNode.name` field preserves the human-readable name. Skills\ndoing concept matching should check both the key (ID) and the `name`\nfield.\n```\n\n### Gap 4: Phase 7 intake decision is unresolved but not flagged as blocking\nThe plan lists two alternatives for intake (\"generates lightweight learner state JSON\" vs. \"generates current-state.md as before\") but doesn't flag this as an open question or blocking decision. A naive reader wouldn't know which path to implement.\n\n**Where it goes:** Already partially covered by open question #4, but Phase 7's intake section should cross-reference it explicitly.\n\n**Suggested edit to Phase 7 intake section:**\n```\n**intake** (open question #4 — decision required before implementation):\n```\n\n### Gap 5: No mention of which repo gets the skill updates\nSkills live in weft (`/Users/rhhart/Documents/GitHub/weft/.claude/skills/`). The plan says to commit Phase 1-2 work \"to the branch\" but doesn't state that all skill updates (Phases 4-7) are also edits to files on the `hart/domain-graph-schema` branch of the weft repo. Obvious in context, but a naive reader starting at Phase 4 could miss it.\n\n**Where it goes:** Top of \"Update sequence\" section, after line 125\n**Suggested text:**\n```\nAll changes across all phases target the `hart/domain-graph-schema`\nbranch in the weft repo (`/Users/rhhart/Documents/GitHub/weft`).\nNothing merges to main until Phase 8.\n```\n\n---\n\nWant me to apply these fixes?"
+    },
+    {
+      "role": "user",
+      "turnNumber": 8,
+      "timestamp": "2026-03-07T14:35:58.412Z",
+      "text": "yes"
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 47,
+      "timestamp": "2026-03-07T14:36:01.651Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 48,
+      "timestamp": "2026-03-07T14:36:06.889Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 49,
+      "timestamp": "2026-03-07T14:36:14.008Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 50,
+      "timestamp": "2026-03-07T14:36:18.792Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 51,
+      "timestamp": "2026-03-07T14:36:25.675Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 52,
+      "timestamp": "2026-03-07T14:36:30.207Z",
+      "text": "All five gaps fixed:\n\n1. **Format examples** — concrete old vs. new format shown in the \"What's broken\" section\n2. **File locations** — grounded with harness-root/learner-root distinction and path resolution note\n3. **Concept ID definition** — slug convention and name/ID relationship explained\n4. **Intake decision flagged** — cross-referenced to open question #4\n5. **Branch target stated** — all phases target `hart/domain-graph-schema`, nothing hits main until Phase 8"
+    },
+    {
+      "role": "user",
+      "turnNumber": 9,
+      "timestamp": "2026-03-07T14:36:40.682Z",
+      "text": "Now, quality test the plan to make sure that all references are correct, all schemas are completely depicted. the build steps are in dependency order and the open questions are complete coverage."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 53,
+      "timestamp": "2026-03-07T14:36:43.454Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 54,
+      "timestamp": "2026-03-07T14:36:46.767Z",
+      "text": "Now let me verify the plan against the actual source files to check every claim."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 55,
+      "timestamp": "2026-03-07T14:37:02.540Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Agent",
+          "summary": "Agent: Verify schema completeness in plan"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 56,
+      "timestamp": "2026-03-07T14:37:09.410Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Agent",
+          "summary": "Agent: Verify migration script claims"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 57,
+      "timestamp": "2026-03-07T14:37:21.111Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Agent",
+          "summary": "Agent: Verify skill phase references"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 58,
+      "timestamp": "2026-03-07T14:38:21.507Z",
+      "text": "Good findings. Here's what the verification surfaced:\n\n**Schema accuracy:** All type claims match. Two omissions in the format example (missing optional fields).\n\n**Migration script:** One real discrepancy — the script drops arc association from matched observations. Plan doesn't document this.\n\n**Skill references:** All claims verified. (The agent flagged intake as missing, but it IS in the plan at both the breakage section and Phase 7.)\n\n**Missing open questions:** `chunkingSelfReport` population, arc-loss in migration, infrastructure files during migration.\n\nLet me apply fixes."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 59,
+      "timestamp": "2026-03-07T14:38:28.177Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 60,
+      "timestamp": "2026-03-07T14:38:37.877Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 61,
+      "timestamp": "2026-03-07T14:38:40.389Z",
+      "text": "Now add the missing open questions."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 62,
+      "timestamp": "2026-03-07T14:38:52.590Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 63,
+      "timestamp": "2026-03-07T14:38:57.309Z",
+      "text": "Now let me verify the dependency ordering claim — the agent confirmed session-review Phase 3 goals/arcs check reads the markdown files, and Phase 4 says to change that. But Phase 4 depends on Phase 3 (arcs/goals decision). Let me check that the dependency chain holds for all the Phase 4 changes."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 64,
+      "timestamp": "2026-03-07T14:38:57.853Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 65,
+      "timestamp": "2026-03-07T14:39:13.714Z",
+      "text": "Dependency ordering checks out. Let me verify one more thing — the Phase 5 dependency claim says it depends on Phase 4 because \"session-review is the primary consumer of digest output.\" But actually, session-review *dispatches* digest and *consumes* its output. So digest's format needs to match what session-review expects to receive, which means Phase 5 (digest) should be updated to produce output that Phase 4 (session-review) can consume. This is a co-dependency — both need to agree on the interface.\n\nLet me check if this is addressed properly and also verify the startwork dependency.\n\nThe chain is: session-review dispatches digest -> digest returns structured diff -> session-review consumes diff. And startwork also dispatches digest -> digest returns diff -> startwork presents to user.\n\nSo the real constraint is: **digest's output format is the interface contract**. Session-review and startwork are both consumers. The plan has Phase 5 (digest) depending on Phase 4 (session-review), which means: define the new output format in Phase 4 (when updating session-review to expect JSON), then update digest in Phase 5 to produce it. This is correct.\n\nPhase 6 (startwork) depends on Phases 4-5 because it dispatches digest (Phase 5 format) and its own read path must match session-review's (Phase 4 pattern). Also correct.\n\nOne issue: **Phase 5 depends on Phase 4** but it could arguably go the other way — define the digest output format first, then update session-review to consume it. The plan's ordering works because session-review is the more complex skill and its needs should drive the interface. Worth noting but not a bug.\n\nLet me also check for one more gap — the plan's Phase 4 change #6 says \"Goals/arcs check: Read from learner state JSON and domain graph instead of markdown files.\" But this depends on Phase 3's decision about arcs.md/goals.md. If Option C is chosen (markdown is generated), session-review needs to know to read JSON. If Option B is chosen (markdown stays as human-facing), session-review might still read markdown for the narrative. The dependency is correctly stated (Phase 4 depends on Phase 3). Good.\n\nNow let me check the plan for one structural issue I noticed — the \"Existing user migration\" section comes AFTER the open questions, which is odd for a section that's core to the plan rather than supplementary."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 66,
+      "timestamp": "2026-03-07T14:39:15.252Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 67,
+      "timestamp": "2026-03-07T14:39:19.004Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 68,
+      "timestamp": "2026-03-07T14:39:21.195Z",
+      "text": "Now move the open questions after the migration section."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 69,
+      "timestamp": "2026-03-07T14:39:21.907Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 70,
+      "timestamp": "2026-03-07T14:39:24.673Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 71,
+      "timestamp": "2026-03-07T14:39:28.707Z",
+      "text": "Good — the structure is now: Update sequence -> Existing user migration -> Risk registry -> Dependency graph. But I need to add the Open questions section back after the migration section. Let me check where it currently sits."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 72,
+      "timestamp": "2026-03-07T14:39:28.872Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "ToolSearch",
+          "summary": "ToolSearch: select:Grep"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "turnNumber": 10,
+      "timestamp": "2026-03-07T14:39:28.874Z",
+      "text": "Tool loaded."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 73,
+      "timestamp": "2026-03-07T14:39:32.059Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Grep",
+          "summary": "Grep: ## Open questions in 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 74,
+      "timestamp": "2026-03-07T14:39:36.230Z",
+      "text": "The open questions section header got removed during my restructure. Let me find where the resolved/remaining tables ended up."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 75,
+      "timestamp": "2026-03-07T14:39:36.905Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Grep",
+          "summary": "Grep: Resolved by research in 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 76,
+      "timestamp": "2026-03-07T14:39:40.100Z",
+      "text": "The whole open questions section got consumed by the edit. Let me check the current state of the file around the migration section."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 77,
+      "timestamp": "2026-03-07T14:39:41.057Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Grep",
+          "summary": "Grep: Remaining open in 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 78,
+      "timestamp": "2026-03-07T14:39:44.307Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Read",
+          "summary": "Read: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 79,
+      "timestamp": "2026-03-07T14:39:48.129Z",
+      "text": "I see the problem. The \"Resolved by research\" table and \"Remaining open\" table got merged into the \"Existing user migration\" section header. The old open questions section header was replaced by the migration section header. Let me fix the structure."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 80,
+      "timestamp": "2026-03-07T14:39:57.400Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 81,
+      "timestamp": "2026-03-07T14:40:04.843Z",
+      "text": "Now add the open questions section back in its proper place — after the migration section and before the risk registry."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 82,
+      "timestamp": "2026-03-07T14:40:14.795Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Edit",
+          "summary": "Edit: 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 83,
+      "timestamp": "2026-03-07T14:40:18.048Z",
+      "text": "Now let me do a final structural verification — check that all sections are in logical order and nothing got duplicated or lost."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 84,
+      "timestamp": "2026-03-07T14:40:18.782Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Grep",
+          "summary": "Grep: ^##  in 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 85,
+      "timestamp": "2026-03-07T14:40:22.918Z",
+      "text": "Good. Section order is now:\n\n1. Context\n2. What's broken\n3. Update sequence (Phases 1-8)\n4. Existing user migration\n5. Open questions\n6. Risk registry\n7. Dependency graph\n\nThat's logical. Let me do one final check — verify no content was duplicated."
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 86,
+      "timestamp": "2026-03-07T14:40:23.873Z",
+      "text": "",
+      "tools": [
+        {
+          "name": "Grep",
+          "summary": "Grep: Three user profiles in 2026-03-07-domain-graph-integration-plan.md"
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "turnNumber": 87,
+      "timestamp": "2026-03-07T14:40:36.568Z",
+      "text": "No duplicates. Here's the quality test summary:\n\n## Quality Test Results\n\n### References: all correct\n- All TypeScript interface claims match actual code on the branch (verified field-by-field)\n- All `graph-queries.ts` function names match actual exports\n- All migration script CLI flags and processing steps match actual code\n- All skill phase references (which step reads what) verified against SKILL.md files\n\n### Schema completeness: fixed\n- Added `chunkingSelfReport` to the format example (was missing)\n- Added `gap` and `evidence` fields on Assessment to the format example (were missing)\n- Noted that migration script drops arc association from observations (by design — arc lives in domain graph, not learner state)\n\n### Dependency order: verified\n- Phase 1 → 2 → 3: sequential, each needs prior output\n- Phase 4 depends on 1-3: needs real data + arcs/goals decision\n- Phase 5 depends on 4: digest output format must match what session-review expects to consume\n- Phase 6 depends on 4-5: dispatches digest, reads same format as session-review\n- Phase 7 depends on 6: follows the read pattern Phase 6 establishes\n- Phase 8 depends on all: integration test\n- No circular dependencies. No missing edges.\n\n### Open questions: expanded from 13 to 17\n- Added #14: `chunkingSelfReport` population\n- Added #15: infrastructure file handling during migration\n- Added #16: render-state script timing\n- Added #17: arc association validation during migration\n\n### Structural fix\n- Moved \"Existing user migration\" to its correct position (after Update sequence, before Open questions)\n- Restored Open questions section that was accidentally consumed during an earlier edit"
+    }
+  ],
+  "stats": {
+    "userTurns": 10,
+    "assistantTurns": 87,
+    "toolCalls": 60,
+    "toolErrors": 0
+  }
+}
