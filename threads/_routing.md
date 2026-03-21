@@ -27,3 +27,8 @@ Standalone files: `<YYYY-MM-DD>-<slug>.md` (date from chunk's `origin` field)
 Path: `threads/_unsorted/`
 Chunks that match weft-dev but no specific thread. Reviewed during
 session-start or when starting work on a related thread.
+
+## Plan staging
+Path: `threads/_plans/`
+Plans created in plan mode that haven't been routed to a thread yet.
+Routed when the plan is executed (Step 1 moves it) or via /route.

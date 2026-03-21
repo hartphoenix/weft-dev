@@ -1,8 +1,8 @@
 # Thread Reorganization
 
 **Status:** active
-**Branch:** hart/metaclaude-migration
-**Last touched:** 2026-03-17
+**Branch:** hart/plan-routing-convention
+**Last touched:** 2026-03-20
 **Next action:** Design decision-capture convention for _thread.md
 
 > If this document appears stale (status, dates, or reading order
@@ -22,7 +22,10 @@
 5. [[claude-md-infrastructure-plan]] — CLAUDE.md infrastructure layer:
    what to add, design decisions, excluded candidates (applied 2026-03-17)
 6. [[newthread-skill-plan]] — /newthread skill design: survey, scope,
-   propose, initialize. Depends on _routing.md from #4 below (current)
+   propose, initialize. Implemented at `weft/.claude/skills/newthread/` (current)
+7. [[2026-03-20-plan-routing-convention]] — Plan routing: two-layer
+   approach (CLAUDE.md convention + /route scanning `_plans/`), research
+   findings on Claude Code plan-mode internals, catch basin (current)
 
 ## Phase status
 - **Phase 1:** Done — _thread.md files written for 7 threads
@@ -31,8 +34,10 @@
 - **Phase 3:** Done — archive, resources, infrastructure consolidated
 - **Phase 3b:** Done — roger cleanup
 - **Phase 3c:** Done — weft-dev legacy cleanup
-- **Phase 4:** In progress — desire path analysis complete, skill
-  design pending
+- **Phase 4:** In progress — desire path analysis complete, /newthread
+  skill written, /route skill written, plan routing convention
+  implemented. Remaining: decision-capture convention, startwork
+  examination, loose thread anchoring.
 - **Phase 5:** Not started — generalize for weft users
 - **Phase 6:** Not started — context engineering curriculum
 
@@ -72,6 +77,20 @@
   Phase 2 (persist into artifacts). Catch basin population is now
   /handoff-test's job; /route processes the results. Chain:
   /handoff-test → catch basin → /route.
+- 2026-03-20: _routing.md format implemented (weft-dev and roger both
+  have `threads/_routing.md` with thread tables, type-based routing
+  rules, naming conventions, and unsorted buckets).
+- 2026-03-20: /newthread skill written (`weft/.claude/skills/newthread/`).
+  Multi-project thread discovery: CWD `threads/` + `{learningRoot}/threads/`
+  + explicit `threadRoots` config. Exclusive resources relocate into
+  thread dir; shared resources get referenced. _routing.md updated if
+  present, skipped if absent.
+- 2026-03-20: Plan routing convention: CLAUDE.md convention makes each
+  plan's first step write itself to the active thread's directory (or
+  `threads/_plans/` if no thread matches). /route scans `_plans/` for
+  orphaned plans. Two layers: convention → skill. `plansDirectory`
+  setting dropped — project-level `settings.json` has override-vs-merge
+  bug with global settings.
 
 ## Loose threads to anchor
 Sessions containing substantial design work with no persistent artifact.
@@ -102,7 +121,4 @@ in the appropriate thread's _thread.md.
 1. Design decision-capture convention for _thread.md (agent-triggered)
 2. Examine startwork skill for modularization / redesign
 3. Retrieve and anchor loose threads listed above
-4. Design thread-aware plan routing + _routing.md format (replace random-slug)
-5. Build /newthread skill (depends on #4 for _routing.md)
-6. Build /route skill (voice-pipeline step 4, tests routing conventions)
-7. Move to Phase 5: generalize thread management for weft users
+4. Move to Phase 5: generalize thread management for weft users

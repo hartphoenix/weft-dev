@@ -61,6 +61,12 @@ Threads: `threads/<name>/`. Each thread has `_thread.md` (status,
 reading order, decisions, open questions, next actions). Check thread
 state before starting work on a thread.
 
+Plans: when a plan is created, its first step is to write itself to
+the active thread's directory as `<YYYY-MM-DD>-<slug>.md` (slug from
+the plan's purpose, kebab-case). If no thread matches, write to
+`threads/_plans/` instead. Plans in `_plans/` are routable later via
+/route. The plan-mode copy at `~/.claude/plans/` is a backup.
+
 ### Key design decisions
 
 - **Loading policy over transport.** What matters is when/how content
