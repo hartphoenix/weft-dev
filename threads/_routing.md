@@ -1,3 +1,7 @@
+---
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/6422c45a-7c8c-4f17-85c5-024c6dfd18c6.jsonl
+stamped: 2026-03-20T20:37:32.037Z
+---
 # Routing Rules — weft-dev
 
 ## Threads

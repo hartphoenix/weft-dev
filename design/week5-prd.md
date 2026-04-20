@@ -1,6 +1,6 @@
 ---
-session: (no matching session found)
-stamped: 2026-03-05T23:05:31.835Z
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/41277142-577d-432e-8f07-54cdeaf8fec0.jsonl
+stamped: 2026-03-20T15:55:21.344Z
 ---
 # Weft — Week 5: Front Door & Learning Loop
 

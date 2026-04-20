@@ -1,3 +1,7 @@
+---
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/41277142-577d-432e-8f07-54cdeaf8fec0.jsonl
+stamped: 2026-03-20T16:02:14.049Z
+---
 # Session Workflow Analysis
 
 You are analyzing Claude Code session transcripts to understand how a user naturally works within a personal development harness. The goal is to identify "desire paths" — the natural workflow patterns — so we can design thread-aware skills that pave those paths rather than fight them.

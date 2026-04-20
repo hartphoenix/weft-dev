@@ -96,3 +96,5 @@ When resuming after an error or API interruption:
 4. Use the todo list as a checkpoint — check what's already marked complete
 5. If the user interrupted and gave a new instruction, treat that as the complete scope. Do not resume the prior plan unless explicitly told to continue
 6. When in doubt about scope or next step after an interruption, ask
+
+<!-- session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/6422c45a-7c8c-4f17-85c5-024c6dfd18c6.jsonl | 2026-03-20T20:40:25.264Z -->

@@ -1,9 +1,18 @@
+---
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/5c3455b4-2970-4828-9e48-e7aef9703556.jsonl
+stamped: 2026-03-20T18:14:55.991Z
+---
 # MetaClaude
 
-**Status:** design
+**Status:** superseded — v1 architecture. See canonical thread below.
 **Branch:** (not yet created)
-**Last touched:** 2026-03-19
-**Next action:** Wire prompt.md with alignment + symbiosis sections
+**Last touched:** 2026-04-01
+**Next action:** None — this thread is historical.
+
+**Canonical thread:** `/Users/rhhart/Documents/GitHub/roger-metaclaude/threads/metaclaude/_thread.md`
+MetaClaude v2 operates as a full Opus instance in roger-metaclaude,
+not as a hook-based observer. All active development, decisions, and
+state tracking live there. This thread preserves v1 design history.
 
 > If this document appears stale (status, dates, or reading order
 > don't match the actual state of the thread), surface it with the

@@ -2,8 +2,8 @@
 name: framework-docs-researcher
 description: "Gathers comprehensive documentation and best practices for frameworks, libraries, or dependencies. Use when you need official docs, version-specific constraints, or implementation patterns."
 model: inherit
-session: (no matching session found)
-stamped: 2026-02-23T19:44:43.817Z
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/41277142-577d-432e-8f07-54cdeaf8fec0.jsonl
+stamped: 2026-03-20T16:18:31.653Z
 ---
 
 <examples>

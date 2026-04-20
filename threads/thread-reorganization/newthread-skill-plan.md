@@ -4,6 +4,8 @@ description: >-
   Scopes and initializes a new thread. Surveys existing threads,
   scans source material for relevance, proposes scope and connections,
   then creates the thread directory and _thread.md after user approval.
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/c2772fca-303a-44b5-8607-4e11628313b4.jsonl
+stamped: 2026-03-20T18:42:36.304Z
 ---
 
 # /newthread

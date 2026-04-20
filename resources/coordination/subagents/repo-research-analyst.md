@@ -2,6 +2,8 @@
 name: repo-research-analyst
 description: "Conducts thorough research on repository structure, documentation, conventions, and implementation patterns. Use when onboarding to a new codebase or understanding project conventions."
 model: inherit
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/41277142-577d-432e-8f07-54cdeaf8fec0.jsonl
+stamped: 2026-03-20T16:18:31.653Z
 ---
 
 <examples>

@@ -1,3 +1,7 @@
+---
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/6422c45a-7c8c-4f17-85c5-024c6dfd18c6.jsonl
+stamped: 2026-03-20T20:57:16.566Z
+---
 # Thread Reorganization
 
 **Status:** active
@@ -26,6 +30,10 @@
 7. [[2026-03-20-plan-routing-convention]] — Plan routing: two-layer
    approach (CLAUDE.md convention + /route scanning `_plans/`), research
    findings on Claude Code plan-mode internals, catch basin (current)
+8. [[2026-03-20-threads-prd]] — PRD for shipping threads to weft users:
+   two-loop architecture, full lifecycle spec, intellectual lineage,
+   delivery sequence, skill designs for /threads-setup, /close-thread,
+   startwork redesign, decision capture convention (draft — in revision)
 
 ## Phase status
 - **Phase 1:** Done — _thread.md files written for 7 threads

@@ -1,3 +1,7 @@
+---
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/d0bcb71d-ddb4-41de-a21d-feb13c13907b.jsonl
+stamped: 2026-03-17T02:52:59.056Z
+---
 # Compound Engineering & Multi-Agent Orchestration
 
 **Assignment:** Week 2 — Transform a Snake game using compound engineering workflow

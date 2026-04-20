@@ -6,6 +6,8 @@ source_repos:
   - schelling-points (group project, the built system)
   - claude-game (solo project, predecessor)
   - roger (harness, metacognitive work)
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/d0bcb71d-ddb4-41de-a21d-feb13c13907b.jsonl
+stamped: 2026-03-17T02:52:59.057Z
 ---
 
 # Multi-User Claude Code Coordination System

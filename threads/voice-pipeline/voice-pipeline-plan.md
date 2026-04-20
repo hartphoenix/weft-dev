@@ -1,3 +1,7 @@
+---
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/5c3455b4-2970-4828-9e48-e7aef9703556.jsonl
+stamped: 2026-03-20T17:43:56.186Z
+---
 # Voice Memo Transcription Pipeline
 
 ## Thread location

@@ -1,6 +1,6 @@
 ---
-session: (no matching session found)
-stamped: 2026-02-25T20:53:37.755Z
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/41277142-577d-432e-8f07-54cdeaf8fec0.jsonl
+stamped: 2026-03-20T15:55:21.340Z
 ---
 # Agent Hooks: Research Report & Design Implications for Maestro
 
