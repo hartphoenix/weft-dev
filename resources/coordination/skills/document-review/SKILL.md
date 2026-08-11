@@ -88,3 +88,5 @@ Return control to the caller (workflow or user) after selection.
 - Do not add new sections or requirements the user didn't discuss
 - Do not over-engineer or add complexity
 - Do not create separate review files or add metadata sections
+
+<!-- session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/41277142-577d-432e-8f07-54cdeaf8fec0.jsonl | 2026-03-20T16:18:31.652Z -->

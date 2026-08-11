@@ -61,6 +61,12 @@ Threads: `threads/<name>/`. Each thread has `_thread.md` (status,
 reading order, decisions, open questions, next actions). Check thread
 state before starting work on a thread.
 
+Plans: when a plan is created, its first step is to write itself to
+the active thread's directory as `<YYYY-MM-DD>-<slug>.md` (slug from
+the plan's purpose, kebab-case). If no thread matches, write to
+`threads/_plans/` instead. Plans in `_plans/` are routable later via
+/route. The plan-mode copy at `~/.claude/plans/` is a backup.
+
 ### Key design decisions
 
 - **Loading policy over transport.** What matters is when/how content
@@ -90,3 +96,5 @@ When resuming after an error or API interruption:
 4. Use the todo list as a checkpoint — check what's already marked complete
 5. If the user interrupted and gave a new instruction, treat that as the complete scope. Do not resume the prior plan unless explicitly told to continue
 6. When in doubt about scope or next step after an interruption, ask
+
+<!-- session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/6422c45a-7c8c-4f17-85c5-024c6dfd18c6.jsonl | 2026-03-20T20:40:25.264Z -->

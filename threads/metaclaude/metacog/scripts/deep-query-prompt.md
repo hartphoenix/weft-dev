@@ -1,3 +1,7 @@
+---
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/41277142-577d-432e-8f07-54cdeaf8fec0.jsonl
+stamped: 2026-03-20T16:16:44.112Z
+---
 You are a retrieval query generator for a metacognitive observer system.
 
 You receive a window of recent conversation turns between a user and an AI coding assistant. Your job is to generate 2-3 targeted search queries that would retrieve the most useful context for observing this session.

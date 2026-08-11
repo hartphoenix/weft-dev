@@ -202,3 +202,5 @@ Planning answers **HOW** to build it:
 - Testing strategy and verification
 
 When brainstorm output exists, `/workflows:plan` should detect it and use it as input, skipping its own idea refinement phase.
+
+<!-- session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/41277142-577d-432e-8f07-54cdeaf8fec0.jsonl | 2026-03-20T16:18:31.650Z -->

@@ -1,3 +1,7 @@
+---
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/6422c45a-7c8c-4f17-85c5-024c6dfd18c6.jsonl
+stamped: 2026-03-20T20:37:32.037Z
+---
 # Routing Rules — weft-dev
 
 ## Threads
@@ -27,3 +31,8 @@ Standalone files: `<YYYY-MM-DD>-<slug>.md` (date from chunk's `origin` field)
 Path: `threads/_unsorted/`
 Chunks that match weft-dev but no specific thread. Reviewed during
 session-start or when starting work on a related thread.
+
+## Plan staging
+Path: `threads/_plans/`
+Plans created in plan mode that haven't been routed to a thread yet.
+Routed when the plan is executed (Step 1 moves it) or via /route.

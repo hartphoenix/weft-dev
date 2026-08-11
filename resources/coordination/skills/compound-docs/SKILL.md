@@ -168,3 +168,5 @@ What's next?
 - Code examples included in solution section
 - Cross-references added if related issues found
 - User presented with decision menu and action confirmed
+
+<!-- session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/41277142-577d-432e-8f07-54cdeaf8fec0.jsonl | 2026-03-20T16:18:31.651Z -->

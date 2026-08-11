@@ -4,6 +4,8 @@ description: >-
   Scopes and initializes a new thread. Surveys existing threads,
   scans source material for relevance, proposes scope and connections,
   then creates the thread directory and _thread.md after user approval.
+session: /Users/rhhart/.config/weft/session-archive/-Users-rhhart-Documents-GitHub-weft-dev/c2772fca-303a-44b5-8607-4e11628313b4.jsonl
+stamped: 2026-03-20T18:42:36.304Z
 ---
 
 # /newthread
@@ -32,9 +34,10 @@ entries) that should live with the thread they exclusively serve.
 ### _routing.md: consumer, not creator
 
 /newthread reads and appends to `threads/_routing.md` if it exists.
-It does not create it. The _routing.md format design belongs to the
-thread-aware plan routing task. /newthread needs to know: one entry
-per thread with scope description and status.
+It does not create it. The format is established: thread table
+(description + accepted types), type-based routing rules, naming
+conventions, and unsorted bucket. /newthread appends a row to the
+thread table with the new thread's description and accepted types.
 
 ### Connection updates are proposed, not auto-applied
 
@@ -192,7 +195,8 @@ User may: approve, adjust (scope/name/connections/branch), or reject.
 
 | Missing | Effect |
 |---------|--------|
-| `threadRoots` config | Fall back to CWD `threads/` |
+| `learningRoot` config | Skip extract and notepad scans |
+| `threadRoots` config | Discover threads from CWD + learningRoot only |
 | `{learningRoot}/extract/` | Skip extract scan |
 | `notepad/` | Skip notepad scan |
 | `plans/`, `design/` | Skip loose-file scan |
@@ -226,7 +230,12 @@ User may: approve, adjust (scope/name/connections/branch), or reject.
 
 ## Config
 
-Read `~/.config/weft/config.json` for:
-- `learningRoot` — base path for extract/, notepad/
-- `threadRoots` — directories containing `threads/` (when implemented;
-  fall back to current working directory)
+Read `~/.config/weft/config.json` for `learningRoot` and `threadRoots`.
+
+Thread discovery locations (deduplicate by resolved path):
+1. CWD `threads/` — always
+2. `{learningRoot}/threads/` — always (if different from CWD)
+3. Each path in `threadRoots` array — if present in config
+
+If neither `learningRoot` nor `threadRoots` is set, CWD `threads/`
+is the only source.
